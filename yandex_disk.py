@@ -1,5 +1,7 @@
+from __future__ import annotations
 import webbrowser
 import os
+from dotenv import load_dotenv
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import secrets
 import base64
@@ -15,21 +17,24 @@ from typing import Any, cast
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 # Конфигурация OAuth
-CLIENT_ID: str = "46e7a99ef2d6482ba87b8799df736906"
-REDIRECT_URI: str = "http://localhost:12345"
+load_dotenv()
+YANDEX_CLIENT_ID: str = os.getenv("YANDEX_CLIENT_ID")
+YANDEX_REDIRECT_URI: str = os.getenv("YANDEX_REDIRECT_URI")
+YANDEX_SCOPE: str = os.getenv("YANDEX_SCOPE")
 AUTH_URL: str = "https://oauth.yandex.ru/authorize"
 TOKEN_URL: str = "https://oauth.yandex.ru/token"
-SCOPE: str = "cloud_api:disk.app_folder cloud_api:disk.read cloud_api:disk.write"
+
+required_vars = ["YANDEX_CLIENT_ID", "YANDEX_REDIRECT_URI", "YANDEX_SCOPE"]
+missing = [var for var in required_vars if not os.getenv(var)]
+if missing:
+    raise EnvironmentError(f"Не заданы переменные окружения: {', '.join(missing)}")
 
 
 class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации с хранилищем состояния"""
 
     def __init__(
-            self,
-            server_address: tuple[str, int],
-            handler_class: Any,
-            oauth_flow: "OAuthFlow",
+            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         """
         Инициализирует сервер авторизации OAuth
@@ -122,13 +127,13 @@ class OAuthFlow:
         )
 
         # 2. Создаем OAuth-клиент
-        client: WebApplicationClient = WebApplicationClient(CLIENT_ID)
+        client: WebApplicationClient = WebApplicationClient(YANDEX_CLIENT_ID)
 
         # 3. Формируем URL для авторизации с PKCE
         auth_url: str = client.prepare_request_uri(
             AUTH_URL,
-            redirect_uri=REDIRECT_URI,
-            scope=SCOPE,
+            redirect_uri=YANDEX_REDIRECT_URI,
+            scope=YANDEX_SCOPE,
             code_challenge=code_challenge,
             code_challenge_method="S256",
         )
@@ -180,9 +185,9 @@ class OAuthFlow:
         token_data: dict[str, str] = {
             "grant_type": "authorization_code",
             "code": auth_code,
-            "client_id": CLIENT_ID,
+            "client_id": YANDEX_CLIENT_ID,
             "code_verifier": code_verifier,
-            "redirect_uri": REDIRECT_URI,
+            "redirect_uri": YANDEX_REDIRECT_URI,
         }
 
         # 9. Отправляем запрос на получение токена
