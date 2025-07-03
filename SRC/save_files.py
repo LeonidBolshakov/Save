@@ -1,0 +1,1 @@
+import seven_z_manager

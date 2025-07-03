@@ -200,19 +200,19 @@ class SevenZManager:
         ]
 
 
-if __name__ == "__main__":
-    """Точка входа при запуске скрипта напрямую."""
+def main():
     try:
-        # Создание экземпляра менеджера с конфигурацией
         seven_z_manager = SevenZManager("../TEST/config.json")
     except ValueError:
-        # Обработка ошибки инициализации
         print(f"Путь к {SevenZManager.PATTERN_7_Z} не найден")
     else:
-        # Получение и вывод результата
         main_path = seven_z_manager.get_7z_path()
         print(
             main_path
             if main_path
             else f"Программа {SevenZManager.PATTERN_7_Z} не найдена. Установите программу"
         )
+
+
+if __name__ == "__main__":
+    main()
