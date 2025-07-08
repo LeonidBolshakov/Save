@@ -1,0 +1,3 @@
+{
+    "SEVEN_ZIP_PATH": "C:\\Users\\LB\\Downloads\\7-Zip\\7z.exe"
+}

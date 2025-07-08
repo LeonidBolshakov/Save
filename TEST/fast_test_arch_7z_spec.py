@@ -74,7 +74,7 @@ def test_to_archive_success(mock_run, tmp_arch_path, tmp_list_file):
     mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
     arch = Arch7zSpec(tmp_arch_path, tmp_list_file, "password")
-    assert arch.to_archive() is True
+    assert arch.make_archive() is True
 
     # Проверяем вызов команды
     expected_cmd = [
@@ -100,7 +100,7 @@ def test_to_archive_no_password(mock_run, tmp_arch_path, tmp_list_file):
     mock_run.return_value = MagicMock(returncode=0)
 
     arch = Arch7zSpec(tmp_arch_path, tmp_list_file)
-    assert arch.to_archive() is True
+    assert arch.make_archive() is True
 
     # Проверяем что параметр пароля отсутствует
     cmd = mock_run.call_args[0][0]
@@ -116,7 +116,7 @@ def test_to_archive_failure(mock_run, tmp_arch_path, tmp_list_file, capsys):
     )
 
     arch = Arch7zSpec(tmp_arch_path, tmp_list_file)
-    assert arch.to_archive() is False
+    assert arch.make_archive() is False
 
     # Проверяем вывод ошибок
     captured = capsys.readouterr()
@@ -129,7 +129,7 @@ def test_to_archive_failure(mock_run, tmp_arch_path, tmp_list_file, capsys):
 def test_to_archive_exception(mock_run, tmp_arch_path, tmp_list_file, capsys):
     """Проверка обработки исключения при архивации."""
     arch = Arch7zSpec(tmp_arch_path, tmp_list_file)
-    assert arch.to_archive() is False
+    assert arch.make_archive() is False
     captured = capsys.readouterr()
     assert "Ошибка архивации: Command failed" in captured.err
 
@@ -169,7 +169,7 @@ def test_windows_encoding(mock_run, tmp_arch_path, tmp_list_file, monkeypatch):
     mock_run.return_value = MagicMock(returncode=0)
 
     arch = Arch7zSpec(tmp_arch_path, tmp_list_file)
-    arch.to_archive()
+    arch.make_archive()
 
     # Проверяем что использовалась правильная кодировка
     mock_run.assert_called_once()
@@ -184,7 +184,7 @@ def test_non_windows_encoding(mock_run, tmp_arch_path, tmp_list_file, monkeypatc
     mock_run.return_value = MagicMock(returncode=0)
 
     arch = Arch7zSpec(tmp_arch_path, tmp_list_file)
-    arch.to_archive()
+    arch.make_archive()
 
     # Проверяем что использовалась правильная кодировка
     mock_run.assert_called_once()

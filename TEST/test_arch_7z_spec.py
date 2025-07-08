@@ -2,37 +2,17 @@ import os
 import pytest
 import subprocess
 from pathlib import Path
+
 from SRC.arch_7z_spec import Arch7zSpec
+from SRC.seven_z_manager import SevenZManager
 
 
 # Фикстура для пути к 7z
 @pytest.fixture(scope="session")
 def sevenzip_path():
     # Путь по умолчанию
-    default_path = r"C:\Program Files\7-Zip\7z.exe"
-
-    # Проверяем существование пути
-    if Path(default_path).exists():
-        return default_path
-
-    # Проверяем переменную окружения
-    env_path = os.environ.get("SEVENZIP_PATH")
-    if env_path and Path(env_path).exists():
-        return env_path
-
-    # Проверяем доступность в PATH
-    try:
-        subprocess.run(
-            ["7z", "--help"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        return "7z"
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        pytest.skip(
-            "7z not found. Install 7-Zip or set SEVENZIP_PATH environment variable"
-        )
+    seven_z_manager = SevenZManager()
+    return seven_z_manager.get_7z_path(auto_install=True)
 
 
 # Фикстура тестовых данных
@@ -81,7 +61,7 @@ def test_integration_archive(
     )
 
     # 2. Выполняем архивацию
-    assert arch.to_archive() is True
+    assert arch.make_archive() is True
 
     # 3. Проверяем архив
     archive_file = Path(archive_path)
@@ -120,7 +100,7 @@ def test_wrong_password(sevenzip_path, archive_path, list_file, tmp_path):
         password="correct_password",
         sevenzip_path=sevenzip_path,
     )
-    assert arch.to_archive() is True
+    assert arch.make_archive() is True
 
     # Пробуем распаковать с неправильным паролем
     extract_dir = tmp_path / "extracted"
@@ -147,7 +127,7 @@ def test_no_password(sevenzip_path, archive_path, list_file, test_data, tmp_path
         list_file=list_file,
         sevenzip_path=sevenzip_path,
     )
-    assert arch.to_archive() is True
+    assert arch.make_archive() is True
 
     # Распаковываем
     extract_dir = tmp_path / "extracted"

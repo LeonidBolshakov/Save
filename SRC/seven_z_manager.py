@@ -5,8 +5,8 @@ from pathlib import Path  # Современный объектно-ориент
 import tempfile  # Для создания временных файлов и директорий
 import logging  # Для журнализации событий
 
-# Настройка базовой конфигурации логирования
-logging.basicConfig(level=logging.INFO)
+# Создаем модульный логгер
+logger = logging.getLogger(__name__)
 
 
 class SevenZManager:
@@ -30,7 +30,6 @@ class SevenZManager:
         self.seven_zip_path: str | None = None  # Кешированный путь к 7z.exe
         self.file_config: str | None = file_config  # Путь к файлу конфигурации
         self.config: dict = {}  # Словарь конфигурации
-        self.logger = logging.getLogger(self.__class__.__name__)  # Logger класса
         self._init_config()  # Инициализация конфигурации
 
     def _init_config(self) -> None:
@@ -38,7 +37,7 @@ class SevenZManager:
         if self.file_config and Path(self.file_config).exists():
             # Открытие и чтение файла конфигурации
             with open(self.file_config, "r", encoding="utf-8") as f:
-                path = None
+                path = ""
                 try:
                     # Парсинг JSON-конфигурации
                     self.config = json.load(f)
@@ -46,12 +45,12 @@ class SevenZManager:
                     path = self.config["SEVEN_ZIP_PATH"]
                 except KeyError:
                     # Обработка отсутствия нужного ключа
-                    self.logger.warning(
+                    logger.warning(
                         f'В файле конфигураторе "{self.file_config}" нет ключа "SEVEN_ZIP_PATH"'
                     )
                 except Exception as e:
                     # Общая обработка ошибок parsing
-                    self.logger.warning(
+                    logger.warning(
                         f"Файл конфигуратора {self.file_config} содержит ошибки {e}"
                     )
 
@@ -60,12 +59,12 @@ class SevenZManager:
                 case 0:  # Путь рабочий
                     self.seven_zip_path = path
                 case 1:  # Программа неработоспособна
-                    self.logger.error(
+                    logger.error(
                         f"Программа {SevenZManager.PATTERN_7_Z} из конфига некорректна"
                     )
                     raise ValueError  # Прерываем инициализацию
                 case 2:  # Путь не существует
-                    self.logger.warning(
+                    logger.warning(
                         f"В конфиге нет достоверной информации о расположении 7z"
                     )
 
@@ -149,7 +148,7 @@ class SevenZManager:
 
     def _global_search(self) -> str | None:
         """Инициирует поиск 7z.exe по всем доступным дискам."""
-        self.logger.info(
+        logger.info(
             f"Начинаем поиск {SevenZManager.PATTERN_7_Z} по всем дискам... Это сможет занять некоторое время"
         )
         # Перебор всех доступных дисков

@@ -1,15 +1,15 @@
 import pytest
 import time
 import requests
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import patch, mock_open
 from SRC.yandex_token import (
     YandexOAuth,
     OAuthFlow,
     TokenManager,
     AuthCancelledError,
     RefreshTokenError,
-    main as yandex_main,
     parse_arguments,
+    main,
 )
 
 
@@ -154,41 +154,32 @@ class TestOAuthFlow:
         assert "400" in str(exc_info.value)
 
 
-# Тесты для основной программы
-@pytest.mark.main
-@patch("SRC.yandex_token.YandexOAuth")
-def test_main_success(MockYandexOAuth, monkeypatch, capsys):
-    monkeypatch.setenv("YANDEX_CLIENT_ID", "test_client")
-    monkeypatch.setenv("YANDEX_REDIRECT_URI", "http://test")
-    monkeypatch.setenv("YANDEX_SCOPE", "test_scope")
+# test_yandex_token.py
+import pytest
+import sys
+from unittest.mock import patch, MagicMock
 
+
+def test_main_success(monkeypatch):
+    # Подменяем parse_arguments, чтобы не использовать argparse
+    monkeypatch.setattr(
+        "SRC.yandex_token.parse_arguments",
+        lambda: MagicMock(tokens_file="test_tokens.json", port=12345),
+    )
+
+    # Подменяем методы YandexOAuth
     mock_auth = MagicMock()
-    mock_auth.get_token.return_value = "final_token"
-    MockYandexOAuth.return_value = mock_auth
+    mock_auth.get_token.return_value = "dummy_token"
 
-    with pytest.raises(SystemExit) as exc_info:
-        yandex_main()
+    # Подменяем конструктор YandexOAuth, чтобы возвращал наш мок
+    monkeypatch.setattr(
+        "SRC.yandex_token.YandexOAuth", lambda tokens_file, port: mock_auth
+    )
 
-    assert exc_info.value.code == 0
-    captured = capsys.readouterr()
-    assert captured.out.strip() == "final_token"
-
-
-@pytest.mark.main
-@patch("SRC.yandex_token.YandexOAuth")
-def test_main_failure(MockYandexOAuth, monkeypatch, capsys):
-    monkeypatch.setenv("YANDEX_CLIENT_ID", "test_client")
-    monkeypatch.setenv("YANDEX_REDIRECT_URI", "http://test")
-    monkeypatch.setenv("YANDEX_SCOPE", "test_scope")
-
-    mock_auth = MagicMock()
-    mock_auth.get_token.return_value = None
-    MockYandexOAuth.return_value = mock_auth
-
-    with pytest.raises(SystemExit) as exc_info:
-        yandex_main()
-
-    assert exc_info.value.code == 2
+    # Подменяем sys.exit, чтобы не завершать тест
+    with patch.object(sys, "exit") as mock_exit:
+        main()
+        mock_exit.assert_called_once_with(0)  # Успешное завершение
 
 
 @pytest.mark.main

@@ -1,3 +1,20 @@
+"""
+Модуль для OAuth 2.0 авторизации в Яндекс.Диск
+Реализует получение, обновление и валидацию токенов доступа
+с поддержкой PKCE для безопасной авторизации.
+
+Основные компоненты:
+- YandexOAuth: Фасад для управления процессом авторизации
+- OAuthFlow: Управление OAuth 2.0 потоком
+- TokenManager: Работа с токенами (сохранение/загрузка)
+- OAuthHTTPServer: HTTP-сервер для обработки callback
+
+Требует заданных переменных окружения:
+- YANDEX_CLIENT_ID: ID OAuth-приложения
+- YANDEX_REDIRECT_URI: URI для перенаправления
+- YANDEX_SCOPE: Запрашиваемые разрешения
+"""
+
 from __future__ import annotations
 import webbrowser
 import os
@@ -18,8 +35,8 @@ from typing import Any, cast
 from pathlib import Path
 import argparse
 
-# Глобальный logger для всей программы
-logger: logging.Logger = logging.getLogger(__name__)
+# Создаем модульный логгер
+logger = logging.getLogger(__name__)
 
 
 # Кастомные исключения
@@ -33,37 +50,6 @@ class AuthCancelledError(AuthError):
 
 class RefreshTokenError(AuthError):
     """Ошибка при обновлении токена"""
-
-
-def configure_logging() -> None:
-    """Настраивает глобальный logger"""
-    global logger
-
-    LOG_LEVELS: dict[str, int] = {
-        "debug": logging.DEBUG,
-        "info": logging.INFO,
-        "warning": logging.WARNING,
-        "error": logging.ERROR,
-        "critical": logging.CRITICAL,
-    }
-
-    log_level_name = os.getenv("LOGGING_LEVEL", "info").lower()
-    log_level = LOG_LEVELS.get(log_level_name, logging.INFO)
-
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        stream=sys.stderr,
-    )
-    logger.debug(f"Уровень логирования установлен в {logging.getLevelName(log_level)}")
-
-
-def validate_environment_vars() -> None:
-    """Проверяет наличие обязательных переменных окружения"""
-    required_vars = ["YANDEX_CLIENT_ID", "YANDEX_REDIRECT_URI", "YANDEX_SCOPE"]
-    missing = [var for var in required_vars if not os.getenv(var)]
-    if missing:
-        raise EnvironmentError(f"Не заданы переменные окружения: {', '.join(missing)}")
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -101,7 +87,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -165,7 +151,7 @@ class TokenManager:
         self.last_check_result: bool | None = None
 
     def save_tokens(
-        self, access_token: str, refresh_token: str, expires_in: int
+            self, access_token: str, refresh_token: str, expires_in: int
     ) -> None:
         """Сохраняет токены с расчетом абсолютного времени истечения"""
         data = {
@@ -203,7 +189,6 @@ class TokenManager:
                 )
                 return None
 
-            # Убрана проверка через API - полагаемся только на expires_at
             return data
 
         except json.JSONDecodeError:
@@ -254,9 +239,9 @@ class OAuthFlow:
     """Управляет процессом OAuth 2.0 авторизации"""
 
     def __init__(
-        self,
-        token_manager: TokenManager,
-        port: int,
+            self,
+            token_manager: TokenManager,
+            port: int,
     ):
         self.token_manager = token_manager
         self.port = port
@@ -276,14 +261,15 @@ class OAuthFlow:
         try:
             # 1. Проверка токена в памяти
             if (
-                self.access_token
-                and self.token_state == "valid"
-                and not self.is_token_expired()
+                    self.access_token
+                    and self.token_state == "valid"
+                    and not self.is_token_expired()
             ):
                 return self.access_token
 
             # 2. Загрузка токенов из файла
             tokens = self.token_manager.load_valid_tokens()
+
             if tokens:
                 self.access_token = tokens["access_token"]
                 self.refresh_token = tokens.get("refresh_token")
@@ -468,7 +454,6 @@ class OAuthFlow:
             )
             self._token_expires_at = time.time() + expires_in - 60
 
-        # Убрана проверка через API - полагаемся на ответ сервера
         return self.access_token
 
     def refresh_access_token(self, depth: int = 0) -> str:
@@ -534,47 +519,14 @@ class OAuthFlow:
             self.token_state = "invalid"
             raise RefreshTokenError(error_msg) from e
 
-    @staticmethod
-    def validate_token_api(access_token: str) -> bool | None:
-        """
-        Проверяет валидность токена через API Яндекс. Диска
-
-        Returns:
-            True: токен точно валиден (200 OK)
-            False: токен точно невалиден (401/403)
-            None: статус токена не определен (ошибки сети, сервера)
-        """
-        try:
-            response = requests.get(
-                "https://cloud-api.yandex.net/v1/disk",
-                headers={"Authorization": f"OAuth {access_token}"},
-                timeout=5,
-            )
-
-            if response.status_code == 200:
-                return True
-
-            if response.status_code in (401, 403):
-                logger.debug(f"Недействительный токен (HTTP {response.status_code})")
-                return False
-
-            logger.warning(
-                f"Ошибка API при проверке токена: HTTP {response.status_code}"
-            )
-            return None
-
-        except requests.RequestException as e:
-            logger.warning(f"Ошибка сети при проверке токена: {str(e)}")
-            return None
-
 
 class YandexOAuth:
     """Фасад для управления OAuth-авторизацией Яндекс. Диск"""
 
     def __init__(
-        self,
-        tokens_file: str | Path,
-        port: int,
+            self,
+            tokens_file: str | Path,
+            port: int,
     ):
         """
         Инициализирует OAuth-клиент
@@ -585,10 +537,6 @@ class YandexOAuth:
         # Разрешаем небезопасный транспорт для локальной разработки
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
         load_dotenv()
-
-        # Инициализация logger
-        configure_logging()
-        validate_environment_vars()
 
         # Создание зависимостей
         self.token_manager = TokenManager(Path(tokens_file))
@@ -634,8 +582,7 @@ def main() -> None:
         )
 
         # Получение токена
-        if token := auth.get_token():
-            print(token)  # Вывод токена в stdout
+        if auth.get_token():
             sys.exit(0)  # Успешное завершение
         else:
             logger.info("Авторизация отменена пользователем или проблемы с Internet")
