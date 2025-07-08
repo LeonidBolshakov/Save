@@ -344,12 +344,12 @@ class OAuthFlow:
         """Формирует URL для запроса авторизации"""
         logger.debug("Формирование URL авторизации")
         client: WebApplicationClient = WebApplicationClient(
-            os.getenv("YANDEX_CLIENT_ID")
+            os.getenv("YANDEX_CLIENT_ID", "")
         )
         return client.prepare_request_uri(
             os.getenv("AUTH_URL", "https://oauth.yandex.ru/authorize"),
-            redirect_uri=os.getenv("YANDEX_REDIRECT_URI"),
-            scope=os.getenv("YANDEX_SCOPE"),
+            redirect_uri=os.getenv("YANDEX_REDIRECT_URI", ""),
+            scope=os.getenv("YANDEX_SCOPE", ""),
             code_challenge=code_challenge,
             code_challenge_method="S256",
         )
@@ -418,9 +418,9 @@ class OAuthFlow:
         token_data: dict[str, str] = {
             "grant_type": "authorization_code",
             "code": auth_code,
-            "client_id": os.getenv("YANDEX_CLIENT_ID"),
+            "client_id": os.getenv("YANDEX_CLIENT_ID", ""),
             "code_verifier": code_verifier,
-            "redirect_uri": os.getenv("YANDEX_REDIRECT_URI"),
+            "redirect_uri": os.getenv("YANDEX_REDIRECT_URI", ""),
         }
 
         logger.info("Получаю токен доступа...")

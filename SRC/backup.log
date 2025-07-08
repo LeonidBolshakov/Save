@@ -1021,3 +1021,19 @@ Got the error after 3 retry attempts
 2025-07-08 12:15:45,934 - yandex_disk - INFO - yandex_disk:242 - Файл C:\Users\LB\AppData\Local\Temp\tmpvg6d5hcy\archive.exe успешно загружен в archive_2025_07_08_2.exe
 2025-07-08 12:15:45,934 - __main__ - INFO - save_files:85 - Архив успешно загружен на Яндекс.Диск
 2025-07-08 12:15:45,942 - main - INFO - save_files:161 - Процесс завершен успешно
+2025-07-08 15:07:56,629 - main - INFO - save_files:156 - Запуск приложения резервного копирования
+2025-07-08 15:07:56,629 - __main__ - INFO - save_files:22 - Инициализация SaveFiles
+2025-07-08 15:07:56,654 - __main__ - INFO - save_files:50 - Начало создания и загрузки архива
+2025-07-08 15:07:56,654 - arch_7z_spec - INFO - arch_7z_spec:115 - Запуск архивации: ['C:\\Users\\LB\\Downloads\\7-Zip\\7z.exe', 'a', '-p***************', '-mhe=on', '-sfx', 'C:\\Users\\LB\\AppData\\Local\\Temp\\tmpwk5q4z8v\\archive.exe', '@C:\\PycharmProjects\\Save\\list.txt', '-bso0', '-bsp0']
+2025-07-08 15:08:01,454 - arch_7z_spec - INFO - arch_7z_spec:140 - Архивация завершена успешно
+2025-07-08 15:08:01,454 - __main__ - INFO - save_files:74 - Архив успешно создан
+2025-07-08 15:08:01,454 - yandex_disk - INFO - yandex_disk:51 - Инициализация YandexDisk
+2025-07-08 15:08:01,454 - yandex_disk - INFO - yandex_disk:67 - Получение токена авторизации
+2025-07-08 15:08:01,455 - __main__ - INFO - save_files:79 - Начало загрузки на Яндекс.Диск
+2025-07-08 15:08:01,455 - yandex_disk - INFO - yandex_disk:239 - Быстрая загрузка файла C:\Users\LB\AppData\Local\Temp\tmpwk5q4z8v\archive.exe
+2025-07-08 15:08:01,455 - yandex_disk - INFO - yandex_disk:86 - Генерация имени архива
+2025-07-08 15:08:02,309 - yandex_disk - INFO - yandex_disk:98 - Сгенерировано имя архива: archive_2025_07_08_3.exe
+2025-07-08 15:08:03,293 - yandex_disk - INFO - yandex_disk:245 - Начало быстрой загрузки файла C:\Users\LB\AppData\Local\Temp\tmpwk5q4z8v\archive.exe
+2025-07-08 15:08:48,452 - yandex_disk - INFO - yandex_disk:250 - Файл C:\Users\LB\AppData\Local\Temp\tmpwk5q4z8v\archive.exe успешно загружен в archive_2025_07_08_3.exe
+2025-07-08 15:08:48,453 - __main__ - INFO - save_files:85 - Архив успешно загружен на Яндекс.Диск
+2025-07-08 15:08:48,462 - main - INFO - save_files:161 - Процесс завершен успешно

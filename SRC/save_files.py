@@ -64,7 +64,7 @@ class SaveFiles:
             arch_path=archive_path,
             list_file=LIST_FILE,
             seven_zip_path=self.seven_z_path,
-            password=os.getenv("PASSWORD"),
+            password=os.getenv("PASSWORD", ""),
         )
 
         if not arch_7z_spec.make_archive():

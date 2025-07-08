@@ -42,16 +42,16 @@ class YandexDisk:
 
     def __init__(
             self,
-            target_date: date | None = date.today(),  # Дата для именования
-            archive_prefix: str | None = _ARCHIVE_PREFIX,  # Префикс имени файла архива
-            archive_ext: str | None = _ARCHIVE_EXT,  # Расширение файла архива
-            archive_path: str | None = _ARCHIVE_PATH,  # Путь на Яндекс. Диске
+            target_date: date = date.today(),  # Дата для именования
+            archive_prefix: str = _ARCHIVE_PREFIX,  # Префикс имени файла архива
+            archive_ext: str = _ARCHIVE_EXT,  # Расширение файла архива
+            archive_path: str = _ARCHIVE_PATH,  # Каталог архивов на Яндекс-Диске
     ):
 
         logger.info("Инициализация YandexDisk")
 
         self.archive_ext = archive_ext
-        self.archive_path = archive_path
+        self.archive_path: str = archive_path if archive_path else "disk:/Архивы"
 
         # Форматирование шаблона имени с учетом даты
         self.archive_name_format = self._ARCHIVE_NAME_FORMAT.format(
@@ -67,6 +67,11 @@ class YandexDisk:
             logger.info("Получение токена авторизации")
             yandex_token = YandexOAuth(tokens_file=Path("token.json"), port=12345)
             self.yandex_token = yandex_token.get_token()
+            if not self.yandex_token:
+                logger.critical(f"Нет доступа к Яндекс-Диск. Токен недействителен.")
+                raise PermissionError(
+                    "Нет доступа к Яндекс-Диск. Токен недействителен."
+                )
             self.disk = yadisk.YaDisk(token=self.yandex_token)
             logger.debug("Токен успешно получен")
         except Exception as e:
@@ -105,6 +110,9 @@ class YandexDisk:
             # Получаем список элементов в папке архивов
             for item in self.disk.listdir(self.archive_path):
                 # Извлекаем номер из имени файла
+                if item.name is None:
+                    logger.error("Обнаружен None-элемент в списке файлов Яндекс-Диска.")
+                    continue
                 file_num_str = self._extract_file_num(item.name)
 
                 # Пропускаем если не удалось извлечь
@@ -299,7 +307,7 @@ class YandexDisk:
             logger.error(f"Ошибка при загрузке файла: {e}", exc_info=True)
             return False
 
-    def get_file_download_URL(self) -> tuple[str, str] | None:
+    def get_file_download_URL(self) -> tuple[str, str]:
         """
         Формирование имени файла архива и url пути загрузки файла на Яндекс-Диск
         :return: tuple[str, str] - (url загрузки файла на Яндекс-Диск, сгенерированное имя файла)
@@ -322,7 +330,7 @@ class YandexDisk:
 
         if not url_resp.ok:
             logger.error(f"Ошибка получения upload URL: {url_resp.text}")
-            return None
+            raise Exception(f"Ошибка получения upload URL: {url_resp.text}")
 
         upload_url = url_resp.json()["href"]
         logger.debug(f"Получен upload URL: {upload_url}")
