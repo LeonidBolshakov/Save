@@ -30,6 +30,7 @@ import time
 import threading
 import requests
 from urllib.parse import urlparse, parse_qs
+
 from oauthlib.oauth2 import WebApplicationClient
 from typing import Any, cast
 from pathlib import Path
@@ -87,7 +88,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -101,12 +102,15 @@ class CallbackHandler(BaseHTTPRequestHandler):
         try:
             super().handle()
         except Exception as e:
-            logger.error(f"Ошибка обработки запроса: {e}")
+            message = f"Ошибка обработки запроса: {e}"
+            logger.error(message)
+            raise RuntimeError(message) from None
 
     def log_message(self, format_: str, *args: Any) -> None:
         """Отключаем стандартное логирование запросов"""
         return
 
+    # noinspection PyPep8Naming
     def do_GET(self) -> None:
         server: OAuthHTTPServer = cast(OAuthHTTPServer, self.server)
         state: OAuthFlow = server.oauth_flow
@@ -151,7 +155,7 @@ class TokenManager:
         self.last_check_result: bool | None = None
 
     def save_tokens(
-            self, access_token: str, refresh_token: str, expires_in: int
+        self, access_token: str, refresh_token: str, expires_in: int
     ) -> None:
         """Сохраняет токены с расчетом абсолютного времени истечения"""
         data = {
@@ -239,9 +243,9 @@ class OAuthFlow:
     """Управляет процессом OAuth 2.0 авторизации"""
 
     def __init__(
-            self,
-            token_manager: TokenManager,
-            port: int,
+        self,
+        token_manager: TokenManager,
+        port: int,
     ):
         self.token_manager = token_manager
         self.port = port
@@ -261,9 +265,9 @@ class OAuthFlow:
         try:
             # 1. Проверка токена в памяти
             if (
-                    self.access_token
-                    and self.token_state == "valid"
-                    and not self.is_token_expired()
+                self.access_token
+                and self.token_state == "valid"
+                and not self.is_token_expired()
             ):
                 return self.access_token
 
@@ -298,8 +302,9 @@ class OAuthFlow:
         except AuthCancelledError:
             return None
         except AuthError as e:
-            logger.error(f"Ошибка авторизации: {e}")
-            raise
+            message = f"Ошибка авторизации: {e}"
+            logger.error(message)
+            raise RuntimeError(message) from None
 
     def is_token_expired(self) -> bool:
         """Проверяет, истек ли срок действия текущего токена"""
@@ -321,11 +326,17 @@ class OAuthFlow:
             return token
 
         except TimeoutError as e:
-            raise AuthCancelledError("Превышено время ожидания авторизации") from e
+            message = f"Превышено время ожидания авторизации"
+            logger.error(message)
+            raise AuthCancelledError(message) from e
         except AuthCancelledError:
-            raise
+            message = "Авторизация прекращена"
+            logger.error(message)
+            raise RuntimeError(message) from None
         except Exception as e:
-            raise AuthError(f"Ошибка в процессе авторизации: {e}") from e
+            message = f"Ошибка в процессе авторизации: {e}"
+            logger.error(message)
+            raise AuthError(message) from e
 
     @staticmethod
     def generate_pkce_params() -> tuple[str, str]:
@@ -376,17 +387,20 @@ class OAuthFlow:
         logger.info("Ожидаю авторизацию...")
         start_time: float = time.time()
         while not self.callback_received:
-            if time.time() - start_time > 120:
-                logger.error("Таймаут: не получил ответ за 2 минуты")
-                raise TimeoutError("Таймаут: не получил ответ за 2 минуты")
+            time_out_sec = 120
+            if time.time() - start_time > time_out_sec:
+                message = f"Таймаут: не получил ответ за {time_out_sec / 60} минуты"
+                logger.error(message)
+                raise TimeoutError(message)
             time.sleep(0.1)
         logger.info("Получен callback!")
 
     def parse_callback(self) -> str:
         """Извлекает код авторизации из callback URL"""
         if not self.callback_path:
-            logger.error("Callback path не установлен")
-            raise AuthCancelledError("Авторизация не была завершена")
+            message = "Callback path не установлен"
+            logger.error(message)
+            raise AuthCancelledError(message) from None
 
         query: str = urlparse(self.callback_path).query
         params: dict[str, list[str]] = parse_qs(query)
@@ -396,19 +410,20 @@ class OAuthFlow:
             error_desc: str = params.get("error_description", ["Unknown error"])[0]
 
             if error_code == "access_denied":
-                raise AuthCancelledError(
-                    f"Пользователь отказал в авторизации: {error_desc}"
-                )
+                message = f"Пользователь отказал в авторизации: {error_desc}"
+                logger.error(message)
+                raise AuthCancelledError(message) from None
 
-            error_msg = f"Ошибка авторизации: {error_code} - {error_desc}"
-            logger.error(error_msg)
-            raise AuthError(error_msg)
+            message = f"Ошибка авторизации: {error_code} - {error_desc}"
+            logger.error(message)
+            raise AuthError(message)
 
         auth_code: str = params.get("code", [""])[0]
         if not auth_code:
-            logger.error("Не удалось извлечь код авторизации")
+            message = "Не удалось извлечь код авторизации"
+            logger.error(message)
             logger.debug(f"Полученные параметры: {params}")
-            raise AuthError("Не удалось извлечь код авторизации")
+            raise AuthError(message)
 
         logger.info(f"Извлечен код: auth_code='{auth_code[:15]}...'")
         return auth_code
@@ -434,15 +449,17 @@ class OAuthFlow:
             response.raise_for_status()
             token: dict[str, Any] = response.json()
         except requests.RequestException as e:
-            logger.error(f"Ошибка при запросе токена: {e}")
+            message = f"Ошибка при запросе токена: {e}"
+            logger.error(message)
             if hasattr(e, "response") and e.response:
                 logger.debug(f"Ответ сервера: {e.response.text}")
-            raise AuthError("Ошибка при обмене кода на токен") from e
+            raise AuthError(message) from e
 
         if "access_token" not in token:
-            logger.error("Токен доступа не получен в ответе")
+            message = "Токен доступа не получен в ответе"
+            logger.error(message)
             logger.debug(f"Полученный ответ: {token}")
-            raise AuthError("Токен доступа не получен в ответе")
+            raise AuthError(message)
 
         self.access_token = token["access_token"]
         self.refresh_token = token.get("refresh_token", self.refresh_token)
@@ -459,11 +476,14 @@ class OAuthFlow:
     def refresh_access_token(self, depth: int = 0) -> str:
         """Обновляет access token с помощью refresh token"""
         if depth > 2:
-            raise RefreshTokenError("Превышена глубина рекурсии при обновлении токена")
+            message = "Превышена глубина рекурсии при обновлении токена"
+            logger.error(message)
+            raise RefreshTokenError(message) from None
 
         if not self.refresh_token:
-            logger.error("Попытка обновления без refresh token")
-            raise RefreshTokenError("Refresh token отсутствует")
+            message = "Refresh token отсутствует"
+            logger.error(message)
+            raise RefreshTokenError(message) from None
 
         logger.info("Обновляю токен доступа...")
         token_data = {
@@ -481,10 +501,10 @@ class OAuthFlow:
             )
             # Проверяем статус ответа
             if response.status_code >= 400:
-                error_msg = f"Ошибка {response.status_code} при обновлении токена"
-                logger.error(error_msg)
+                message = f"Ошибка {response.status_code} при обновлении токена"
+                logger.error(message)
                 logger.debug(f"Ответ сервера: {response.text}")
-                raise RefreshTokenError(error_msg)
+                raise RefreshTokenError(message)
 
             response.raise_for_status()  # Дополнительная проверка
             token = response.json()
@@ -512,21 +532,21 @@ class OAuthFlow:
                 if hasattr(e, "response") and e.response
                 else "N/A"
             )
-            error_msg = f"Ошибка {status_code} при обновлении токена: {str(e)}"
-            logger.error(error_msg)
+            message = f"Ошибка {status_code} при обновлении токена: {str(e)}"
+            logger.error(message)
             if hasattr(e, "response") and e.response:
                 logger.debug(f"Ответ сервера: {e.response.text}")
             self.token_state = "invalid"
-            raise RefreshTokenError(error_msg) from e
+            raise RefreshTokenError(message) from e
 
 
 class YandexOAuth:
     """Фасад для управления OAuth-авторизацией Яндекс. Диск"""
 
     def __init__(
-            self,
-            tokens_file: str | Path,
-            port: int,
+        self,
+        tokens_file: str | Path,
+        port: int,
     ):
         """
         Инициализирует OAuth-клиент

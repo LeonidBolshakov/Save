@@ -59,14 +59,15 @@ class SevenZManager:
                 case 0:  # Путь рабочий
                     self.seven_zip_path = path
                 case 1:  # Программа неработоспособна
-                    logger.error(
+                    message = (
                         f"Программа {SevenZManager.PATTERN_7_Z} из конфига некорректна"
                     )
-                    raise ValueError  # Прерываем инициализацию
+                    logger.critical(message)
+                    raise ValueError(message)  # Прерываем инициализацию
                 case 2:  # Путь не существует
-                    logger.warning(
-                        f"В конфиге нет достоверной информации о расположении 7z"
-                    )
+                    message = f"В файле конфигураторе нет достоверной информации о расположении программы 7z.exe"
+                    logger.warning(message)
+                    raise ValueError(message)
 
     @staticmethod
     def _check_working_path(path: str) -> int:
