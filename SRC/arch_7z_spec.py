@@ -103,9 +103,9 @@ class Arch7zSpec:
         if self.arch_path:
             return Path(self.arch_path)
         else:
-            message = "Не задан путь на архив, в который собираются сохраняемые файлы"
-            logger.error(message)
-            raise ValueError(message)
+            error_msg = "Не задан путь на архив, в который собираются сохраняемые файлы"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
     @staticmethod
     def check_arch_exists(arch_path: Path):
@@ -118,15 +118,16 @@ class Arch7zSpec:
         Raises:
             FileExistsError: Если по указанному пути уже существует файл или директория
         """
-        if arch_path.exists():
-            if arch_path.is_file():
-                message = f"существует файл {arch_path}, имя которого, совпадает с именем архива. Архивация невозможна."
-                logger.error(message)
-                raise FileExistsError(message)
-            else:
-                message = f"существует директория {arch_path}, имя которой, совпадает с именем архива. Архивация невозможна."
-                logger.error(message)
-                raise FileExistsError(message)
+        if not arch_path.exists():
+            return
+
+        obj_type = "файл" if arch_path.is_file() else "директория"
+        error_msg = (
+            f"существует {obj_type} {arch_path}, имя которого, совпадает с именем архива."
+            f"Архивация невозможна."
+        )
+        logger.error(error_msg)
+        raise FileExistsError(error_msg)
 
     @staticmethod
     def check_arch_ext(arch_path: Path):
@@ -140,9 +141,9 @@ class Arch7zSpec:
             ValueError: Если расширение архива не .exe
         """
         if arch_path.suffix != ".exe":
-            message = f"Недопустимое расширение файла архива: {arch_path.suffix} - должно быть exe"
-            logger.critical(message)
-            raise ValueError(message)
+            error_msg = f"Недопустимое расширение файла архива: {arch_path.suffix} - должно быть exe"
+            logger.critical(error_msg)
+            raise ValueError(error_msg)
 
     def check_list_file(self):
         """
@@ -153,13 +154,13 @@ class Arch7zSpec:
         """
         # Проверяем существует ли список архивируемых файлов
         list_file_path = Path(self.list_file)
-        message = f"Не найден файл списка для архивации: {list_file_path}"
+        error_msg = f"Не найден файл списка для архивации: {list_file_path}"
         if not list_file_path.exists():
-            logger.critical(message)
-            raise FileNotFoundError(message)
+            logger.critical(error_msg)
+            raise FileNotFoundError(error_msg)
         logger.debug(f"Файл списка файлов архивации существует: {list_file_path}")
 
-    def make_archive(self) -> bool:
+    def make_archive(self) -> int:
         """
         Выполняет создание самораспаковывающегося архива.
 
@@ -169,7 +170,7 @@ class Arch7zSpec:
         3. Обрабатывает результаты выполнения
 
         Returns:
-            bool: True если архивация успешна, False если произошла ошибка
+            int: 0 если архивация успешна, 1 не фатальные ошибки, 2 - фатальные ошибки
 
         Note:
             Для Windows используется кодировка cp866 для корректного отображения вывода
@@ -179,29 +180,42 @@ class Arch7zSpec:
 
         # Запускаем программу 7z
         cmd = self.get_cmd_archiver()
+        logger.info(f"Запуск архивации: {self._mask_password_in_cmd(cmd)}")
         try:
-            process = subprocess.run(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                encoding=encoding,
-                errors="replace",  # Автозамена нечитаемых символов
-                cwd=self.work_dir,  # Указываем рабочую директорию
-            )
+            process = self._run_archive_process(cmd, encoding)
+            return self._handle_process_result(process)
         except Exception as e:
-            logger.critical(
-                f"Ошибка при запуске процесса архивации: {e}"
-            )  # Оригинальный вывод
-            return False
-        else:
-            if process.returncode != 0:
-                # Выводим ошибки в LOG
-                logger.error(f"stderr: {process.stderr}")
-                logger.error("Архивация завершена с ошибками")
-                return False
-            else:
+            logger.critical(f"Ошибка при запуске процесса архивации: {e}")
+            return 2
+
+    def _run_archive_process(
+        self, cmd: list[str], encoding: str
+    ) -> subprocess.CompletedProcess:
+        """Запускает процесс архивации."""
+        return subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            encoding=encoding,
+            errors="replace",
+            cwd=self.work_dir,
+        )
+
+    @staticmethod
+    def _handle_process_result(process: subprocess.CompletedProcess) -> int:
+        # noinspection PyUnreachableCode
+        match process.returncode:
+            case 0:
                 logger.info("Архивация завершена успешно")
-                return True
+                return 0
+            case 1:
+                logger.warning(f"stderr: {process.stderr}")
+                logger.warning("Архивация завершена с НЕ фатальными ошибками")
+                return 1
+            case _:
+                logger.error(f"stderr: {process.stderr}")
+                logger.error("Архивация завершена с ФАТАЛЬНЫМИ ошибками")
+                return 2
 
     def get_cmd_archiver(self) -> list[str]:
         """
@@ -229,10 +243,13 @@ class Arch7zSpec:
         ]
 
         # Создаем безопасную копию команды для логирования
-        cmd_print = cmd.copy()
-        if self.password:
-            # Маскируем пароль в логах
-            cmd_print[2] = f"-p{'*' * len(self.password)}"
-        logger.info("Запуск архивации: %s", cmd_print)
 
         return cmd
+
+    def _mask_password_in_cmd(self, cmd: list[str]) -> list[str]:
+        """Маскирует пароль в команде для логирования."""
+        if not self.password:
+            return cmd
+        masked_cmd = cmd.copy()
+        masked_cmd[2] = f"-p{'*' * len(self.password)}"
+        return masked_cmd

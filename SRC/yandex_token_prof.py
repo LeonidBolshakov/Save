@@ -272,7 +272,8 @@ class OAuthFlow:
         self.access_token: Optional[str] = None
         self.refresh_token: Optional[str] = None
 
-    def is_token_valid(self, token: str) -> bool:
+    @staticmethod
+    def is_token_valid(token: str) -> bool:
         """Проверяет валидность access token"""
         try:
             response = requests.get(
@@ -512,13 +513,13 @@ class OAuthFlow:
         return None
 
 
-def check_disk_space(access_token: str) -> Optional[float]:
-    """Проверяет доступ к API Яндекс.Диска и возвращает общее пространство в GB"""
+def check_disk_space(access_token_: str) -> Optional[float]:
+    """Проверяет доступ к API Яндекс-Диска и возвращает общее пространство в GB"""
     try:
         print("Проверяю доступ к Яндекс.Диску...")
         response = requests.get(
             "https://cloud-api.yandex.net/v1/disk",
-            headers={"Authorization": f"OAuth {access_token}"},
+            headers={"Authorization": f"OAuth {access_token_}"},
             timeout=15,
         )
         response.raise_for_status()

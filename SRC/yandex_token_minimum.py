@@ -41,6 +41,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 # Создаем сервер с явным атрибутом
+# noinspection PyTypeChecker
 server = HTTPServer(("localhost", 12345), Handler)
 server.auth_code = None
 

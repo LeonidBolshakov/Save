@@ -1,24 +1,20 @@
-import subprocess  # Для запуска внешних процессов (7z.exe)
-import string  # Для работы с наборами символов (диски)
-import json  # Для работы с JSON-конфигурацией
-from pathlib import Path  # Современный объектно-ориентированный путь
-import tempfile  # Для создания временных файлов и директорий
-import logging  # Для журнализации событий
+import subprocess
+import string
+import json
+from pathlib import Path
+import tempfile
+import logging
 
-# Создаем модульный логгер
 logger = logging.getLogger(__name__)
 
 
 class SevenZManager:
     """Класс для управления доступом к утилите архивации 7z.exe."""
 
-    # Стандартные пути установки 7-Zip в Windows
     DEFAULT_PATHS = [
         "C:\\Program Files\\7-Zip\\7z.exe",
         "C:\\Program Files (x86)\\7-Zip\\7z.exe",
     ]
-
-    # Шаблон имени искомого файла
     PATTERN_7_Z = "7z.exe"
 
     def __init__(self, file_config: str | None = None):
@@ -27,174 +23,144 @@ class SevenZManager:
 
         :param file_config: Путь к JSON-файлу конфигурации (опционально)
         """
-        self.seven_zip_path: str | None = None  # Кешированный путь к 7z.exe
-        self.file_config: str | None = file_config  # Путь к файлу конфигурации
-        self.config: dict = {}  # Словарь конфигурации
-        self._init_config()  # Инициализация конфигурации
+        self.seven_zip_path: str | None = None
+        self.file_config: str | None = file_config
+        self.config: dict = {}
+        self._init_config()
 
     def _init_config(self) -> None:
         """Загрузка и проверка конфигурации из файла."""
-        if self.file_config and Path(self.file_config).exists():
-            # Открытие и чтение файла конфигурации
-            with open(self.file_config, "r", encoding="utf-8") as f:
-                path = ""
-                try:
-                    # Парсинг JSON-конфигурации
-                    self.config = json.load(f)
-                    # Попытка получить путь к 7z из конфига
-                    path = self.config["SEVEN_ZIP_PATH"]
-                except KeyError:
-                    # Обработка отсутствия нужного ключа
-                    logger.warning(
-                        f'В файле конфигураторе "{self.file_config}" нет ключа "SEVEN_ZIP_PATH"'
-                    )
-                except Exception as e:
-                    # Общая обработка ошибок parsing
-                    logger.warning(
-                        f"Файл конфигуратора {self.file_config} содержит ошибки {e}"
-                    )
+        if not self.file_config or not Path(self.file_config).exists():
+            return
 
-            # Проверка работоспособности пути из конфига
+        self._load_config()
+        self._validate_config_path()
+
+    def _load_config(self) -> None:
+        """Загружает JSON-конфигурацию."""
+        if not self.file_config or not Path(self.file_config).exists():
+            logger.warning(
+                f"Файл с путём на 7z не задан или не существует {self.file_config}"
+            )
+            return
+        try:
+            with open(self.file_config, "r", encoding="utf-8") as f:
+                self.config = json.load(f)
+        except Exception as e:
+            logger.warning(
+                f"Ошибка загрузки файла с путём на 7z {self.file_config}: {e}"
+            )
+            return
+
+    def _validate_config_path(self) -> None:
+        """Проверяет путь из конфига на валидность."""
+        try:
+            path = self.config["SEVEN_ZIP_PATH"]
             match self._check_working_path(path):
-                case 0:  # Путь рабочий
+                case 0:
                     self.seven_zip_path = path
-                case 1:  # Программа неработоспособна
-                    message = (
-                        f"Программа {SevenZManager.PATTERN_7_Z} из конфига некорректна"
-                    )
-                    logger.critical(message)
-                    raise ValueError(message)  # Прерываем инициализацию
-                case 2:  # Путь не существует
-                    message = f"В файле конфигураторе нет достоверной информации о расположении программы 7z.exe"
-                    logger.warning(message)
-                    raise ValueError(message)
+                case _:
+                    error_msg = f"Некорректный путь к 7z.exe в конфиге: {path}"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+        except KeyError:
+            logger.warning('В конфиге нет ключа "SEVEN_ZIP_PATH"')
 
     @staticmethod
     def _check_working_path(path: str) -> int:
         """
         Проверяет работоспособность 7z.exe по указанному пути.
 
-        :param path: Путь к исполняемому файлу 7z
         :return:
             0 - программа работоспособна,
             1 - программа неработоспособна,
             2 - файл не существует
         """
-        # Проверка существования файла
-        if not (path and Path(path).exists()):
+        if not path or not Path(path).exists():
             return 2
+        if not SevenZManager._test_7z_execution(path):
+            return 1
+        return 0
 
-        # Создание временной директории (автоматически удаляется после выхода)
+    @staticmethod
+    def _test_7z_execution(path: str) -> bool:
+        """Тестирует выполнение 7z.exe."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            test_archive = Path(tmpdir) / "test.exe"  # Временный архив
-            test_file = Path(tmpdir) / "test.txt"  # Тестовый файл
-
-            # Создание тестового файла
+            test_archive = Path(tmpdir) / "test.exe"
+            test_file = Path(tmpdir) / "test.txt"
             test_file.write_text("Test", encoding="utf-8")
 
-            # Попытка создания архива с помощью 7z
-            # noinspection PyBroadException
             try:
                 result = subprocess.run(
-                    [
-                        path,  # Путь к 7z.exe
-                        "a",  # Команда добавления в архив
-                        "-sfx",  # Создание самораспаковывающегося архива
-                        str(test_archive),  # Имя архива
-                        str(test_file),  # Архивируемый файл
-                    ],
-                    stdout=subprocess.DEVNULL,  # Игнорировать stdout
-                    stderr=subprocess.DEVNULL,  # Игнорировать stderr
-                    timeout=2,  # Таймаут выполнения
+                    [path, "a", "-sfx", str(test_archive), str(test_file)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=2,
                 )
-                # Возвращаем 0 если процесс завершился успешно
-                return 0 if result.returncode == 0 else 1
-            # Обработка возможных ошибок выполнения
+                return result.returncode == 0
             except Exception:
-                return 1
+                return False
 
     def get_7z_path(self) -> str | None:
         """
         Основной метод получения пути к 7z.exe.
 
-        Выполняет поиск в следующем порядке:
-        1. Возвращает кешированный путь (если есть)
-        2. Проверяет стандартные пути установки
-        3. Выполняет глобальный поиск по всем дискам
-
         :return: Найденный путь или None
         """
-        # Если путь уже известен - возвращаем его
         if self.seven_zip_path:
             return self.seven_zip_path
 
-        # Поиск в стандартных местах установки
         if path := self._check_common_paths():
-            self._save_config(path)  # Сохраняем в конфиг
+            self._save_config(path)
             return path
 
-        # Глобальный поиск по всем дискам
         if path := self._global_search():
-            self._save_config(path)  # Сохраняем в конфиг
+            self._save_config(path)
             return path
 
-        return None  # 7z не найдена
+        return None
 
     def _check_common_paths(self) -> str | None:
         """Проверка стандартных путей установки 7-Zip."""
-        for path in SevenZManager.DEFAULT_PATHS:
+        for path in self.DEFAULT_PATHS:
             if self._check_working_path(path) == 0:
                 return path
         return None
 
     def _global_search(self) -> str | None:
-        """Инициирует поиск 7z.exe по всем доступным дискам."""
-        logger.info(
-            f"Начинаем поиск {SevenZManager.PATTERN_7_Z} по всем дискам... Это сможет занять некоторое время"
-        )
-        # Перебор всех доступных дисков
-        for driver in self._get_available_drives():
-            path = self._global_search_in_disk(str(driver))
-            if path:
+        """Поиск 7z.exe по всем доступным дискам."""
+        logger.info(f"Поиск {self.PATTERN_7_Z} по всем дискам...")
+        for drive in self._get_available_drives():
+            if path := self._global_search_in_disk(str(drive)):
                 return path
         return None
 
     def _global_search_in_disk(self, path: str) -> str | None:
-        """
-        Рекурсивный поиск 7z.exe в указанном диске/директории.
-
-        :param path: Корневой путь для поиска
-        :return: Найденный путь или None
-        """
-        # Рекурсивный обход файловой системы
-        for item in Path(path).rglob(f"{SevenZManager.PATTERN_7_Z}"):
-            try:
-                # Проверка найденного файла
+        """Рекурсивный поиск 7z.exe в указанном диске."""
+        try:
+            for item in Path(path).rglob(self.PATTERN_7_Z):
                 if self._check_working_path(str(item)) == 0:
                     return str(item)
-            except PermissionError:
-                # Пропуск файлов без доступа
-                pass
+        except PermissionError:
+            logger.debug(f"Нет доступа к {path}")
         return None
 
     def _save_config(self, path: Path | str) -> None:
-        """
-        Сохраняет путь к 7z в конфигурацию и файл (если указан).
-
-        :param path: Путь к 7z.exe
-        """
+        """Сохраняет путь к 7z в конфигурацию."""
         str_path = str(path)
-        self.seven_zip_path = str_path  # Кешируем путь
-        self.config["SEVEN_ZIP_PATH"] = str_path  # Обновляем конфиг
+        self.seven_zip_path = str_path
+        self.config["SEVEN_ZIP_PATH"] = str_path
 
-        # Сохранение в файл если он указан
         if self.file_config:
-            with open(self.file_config, "w", encoding="utf-8") as f:
-                json.dump(self.config, f, ensure_ascii=False, indent=4)
+            try:
+                with open(self.file_config, "w", encoding="utf-8") as f:
+                    json.dump(self.config, f, ensure_ascii=False, indent=4)
+            except Exception as e:
+                logger.warning(f"Ошибка сохранения конфига: {e}")
 
     @staticmethod
     def _get_available_drives() -> list[Path]:
-        """Возвращает список доступных дисков в системе."""
+        """Возвращает список доступных дисков."""
         return [
             Path(f"{d}:\\") for d in string.ascii_uppercase if Path(f"{d}:\\").exists()
         ]
