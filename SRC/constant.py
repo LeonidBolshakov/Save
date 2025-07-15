@@ -41,13 +41,14 @@ class Constant(frozenset):
     )
     EMAIL_WARNING_SUBJECT = "🔥 Предупреждение при архивации"
     EMAIL_SEND_TRIGGER = "*Stop"
-    ENV_LOGGING_LEVEL = "LOGGING_LEVEL"
+    ENV_LOGGING_LEVEL_CONSOLE = "LOGGING_LEVEL_CONSOLE"
+    ENV_LOGGING_LEVEL_FILE = "LOGGING_LEVEL_FILE"
     ENV_PASSWORD_ARCHIVE = "PASSWORD_ARCHIVE"
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "SENDER_PASSWORD"
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
-        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
+            "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
     HTML_WINDOW_SUCCESSFUL = """
             <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
@@ -66,6 +67,7 @@ class Constant(frozenset):
             </body></html>
             """
     LIBS = ["urllib3", "yadisk"]
+    LIST_ARCHIVE_FILE = r"C:\PycharmProjects\Save\list.txt"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVELS = {
         "debug": logging.DEBUG,
