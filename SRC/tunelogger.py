@@ -70,7 +70,7 @@ class TuneLogger:
         )
 
     def configure_handlers(
-            self, log_format: str, log_level_console: int, log_level_file: int
+        self, log_format: str, log_level_console: int, log_level_file: int
     ) -> None:
         """Конфигурация всех обработчиков"""
         handlers = list(self.log_handlers.values())

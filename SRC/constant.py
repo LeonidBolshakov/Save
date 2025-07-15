@@ -48,7 +48,7 @@ class Constant(frozenset):
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "SENDER_PASSWORD"
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
-            "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
+        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
     HTML_WINDOW_SUCCESSFUL = """
             <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">

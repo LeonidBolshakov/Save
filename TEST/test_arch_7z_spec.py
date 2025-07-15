@@ -43,17 +43,17 @@ def list_file(tmp_path, test_data):
 
 # Фикстура пути архива
 @pytest.fixture
-def archive_path(tmp_path):
+def local_archive_path(tmp_path):
     return str(tmp_path / "test_archive.exe")
 
 
 # Основной тест
 def test_integration_archive(
-    sevenzip_path, archive_path, list_file, test_data, tmp_path
+    sevenzip_path, local_archive_path, list_file, test_data, tmp_path
 ):
     # 1. Создаем объект архивации
     arch = Arch7zSpec(
-        arch_path=archive_path,
+        arch_path=local_archive_path,
         list_file=list_file,
         password="secure_password",
         sevenzip_path=sevenzip_path,
@@ -64,7 +64,7 @@ def test_integration_archive(
     assert arch.make_archive() is True
 
     # 3. Проверяем архив
-    archive_file = Path(archive_path)
+    archive_file = Path(local_archive_path)
     assert archive_file.exists()
     assert archive_file.stat().st_size > 1000
 
@@ -73,7 +73,7 @@ def test_integration_archive(
     extract_dir.mkdir()
 
     subprocess.run(
-        [archive_path, f"-o{extract_dir}", "-y", f"-psecure_password"],
+        [local_archive_path, f"-o{extract_dir}", "-y", f"-psecure_password"],
         check=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -92,10 +92,10 @@ def test_integration_archive(
 
 
 # Тест с неправильным паролем
-def test_wrong_password(sevenzip_path, archive_path, list_file, tmp_path):
+def test_wrong_password(sevenzip_path, local_archive_path, list_file, tmp_path):
     # Создаем архив
     arch = Arch7zSpec(
-        arch_path=archive_path,
+        arch_path=local_archive_path,
         list_file=list_file,
         password="correct_password",
         sevenzip_path=sevenzip_path,
@@ -108,7 +108,13 @@ def test_wrong_password(sevenzip_path, archive_path, list_file, tmp_path):
 
     with pytest.raises(subprocess.CalledProcessError):
         subprocess.run(
-            [sevenzip_path, "x", "-pwrong_password", f"-o{extract_dir}", archive_path],
+            [
+                sevenzip_path,
+                "x",
+                "-pwrong_password",
+                f"-o{extract_dir}",
+                local_archive_path,
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -120,10 +126,10 @@ def test_wrong_password(sevenzip_path, archive_path, list_file, tmp_path):
 
 
 # Тест без пароля
-def test_no_password(sevenzip_path, archive_path, list_file, test_data, tmp_path):
+def test_no_password(sevenzip_path, local_archive_path, list_file, test_data, tmp_path):
     # Создаем архив без пароля
     arch = Arch7zSpec(
-        arch_path=archive_path,
+        arch_path=local_archive_path,
         list_file=list_file,
         sevenzip_path=sevenzip_path,
     )
@@ -134,7 +140,7 @@ def test_no_password(sevenzip_path, archive_path, list_file, test_data, tmp_path
     extract_dir.mkdir()
 
     subprocess.run(
-        [sevenzip_path, "x", f"-o{extract_dir}", archive_path],
+        [sevenzip_path, "x", f"-o{extract_dir}", local_archive_path],
         check=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

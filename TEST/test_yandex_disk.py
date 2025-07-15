@@ -44,7 +44,7 @@ def test_initialization_calls(mock_disk, ydisk):
 def test_create_archive_name_first(ydisk, mock_disk):
     """Создание имени, если архивов нет"""
     mock_disk.listdir.return_value = []
-    name = ydisk.create_archive_name()
+    name = ydisk.remote_archive_name()
     assert name == "backup_2023_12_31_1.zip"
 
 
@@ -59,7 +59,7 @@ def test_create_archive_name_existing_files(ydisk, mock_disk):
     mock_file3.name = "note.txt"
 
     mock_disk.listdir.return_value = [mock_file1, mock_file2, mock_file3]
-    name = ydisk.create_archive_name()
+    name = ydisk.remote_archive_name()
     assert name == "backup_2023_12_31_4.zip"
 
 
@@ -98,7 +98,7 @@ def test_get_file_nums_exception(ydisk, mock_disk):
 def test_write_archive_success(ydisk, mock_disk):
     mock_disk.get_disk_info.return_value = {}
     mock_disk.upload.return_value = None
-    result = ydisk.write_archive("local_file.zip")
+    result = ydisk.write_file("local_file.zip")
     assert result is True
     mock_disk.upload.assert_called_once()
 
@@ -106,25 +106,25 @@ def test_write_archive_success(ydisk, mock_disk):
 def test_write_archive_unauthorized(ydisk, mock_disk):
     mock_disk.get_disk_info.side_effect = UnauthorizedError("Недействительный токен")
     with pytest.raises(PermissionError, match="Недействительный токен Яндекс.Диск!"):
-        ydisk.write_archive("local_file.zip")
+        ydisk.write_file("local_file.zip")
 
 
 def test_write_archive_path_exists(ydisk, mock_disk):
     mock_disk.get_disk_info.return_value = {}
     mock_disk.upload.side_effect = PathExistsError("File exists")
-    result = ydisk.write_archive("local_file.zip")
+    result = ydisk.write_file("local_file.zip")
     assert result is False
 
 
 def test_write_archive_forbidden(ydisk, mock_disk):
     mock_disk.get_disk_info.return_value = {}
     mock_disk.upload.side_effect = ForbiddenError("No access")
-    result = ydisk.write_archive("local_file.zip")
+    result = ydisk.write_file("local_file.zip")
     assert result is False
 
 
 def test_write_archive_generic_exception(ydisk, mock_disk):
     mock_disk.get_disk_info.return_value = {}
     mock_disk.upload.side_effect = RuntimeError("Network error")
-    result = ydisk.write_archive("local_file.zip")
+    result = ydisk.write_file("local_file.zip")
     assert result is False
