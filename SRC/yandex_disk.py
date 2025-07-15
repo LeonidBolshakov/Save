@@ -1,5 +1,5 @@
 """
-Модуль для работы с. Яндекс. Диском
+Модуль для работы с. Яндекс-Диском
 Обеспечивает загрузку архивов с автоматическим именованием
 и проверкой существующих файлов.
 
@@ -25,33 +25,27 @@ logger = logging.getLogger(__name__)
 
 import yadisk
 from yadisk.exceptions import PathNotFoundError, PathExistsError
-
 from yandex_token import YandexOAuth  # Модуль для работы с OAuth
+
+from constant import Constant as C
 
 
 class YandexDisk:
     """Класс для работы с архивами на Яндекс. Диске"""
 
-    # Стандартные значения для конфигурации
-    _GENERAL_ARCHIVE_NAME_FORMAT = "{archive}_{year}_{month:02d}_{day:02d}_{file_num}"
-    _ARCHIVE_EXT = ".exe"
-    _ARCHIVE_PREFIX = "archive"
-    _ARCHIVE_PATH = "disk:/Архивы"
-
     def __init__(
         self,
         target_date: date = date.today(),  # Дата для именования
-        archive_prefix: str = _ARCHIVE_PREFIX,  # Префикс имени файла архива
-        archive_ext: str = _ARCHIVE_EXT,  # Расширение файла архива
-        archive_path: str = _ARCHIVE_PATH,  # Каталог архивов на Яндекс-Диске
+        archive_prefix: str = C.REMOTE_ARCHIVE_PREFIX,  # Префикс имени файла архива
+        archive_ext: str = C.ARCHIVE_SUFFIX,  # Расширение файла архива
+        archive_path: str = C.REMOTE_ARCHIVE_PATH,  # Каталог архивов на Яндекс-Диске
     ):
-
         logger.info("Инициализация YandexDisk")
 
         self.target_date = target_date
         self.archive_prefix = archive_prefix
         self.archive_ext = archive_ext
-        self.archive_path: str = archive_path if archive_path else "disk:/Архивы"
+        self.archive_path: str = archive_path if archive_path else C.REMOTE_ARCHIVE_PATH
         self.yandex_token: str | None = None
         self.disk = yadisk.YaDisk()
 
@@ -59,7 +53,7 @@ class YandexDisk:
         self.get_token_for_API()
 
     def get_archive_name_format(self):
-        return self._GENERAL_ARCHIVE_NAME_FORMAT.format(
+        return C.GENERAL_REMOTE_ARCHIVE_FORMAT.format(
             archive=self.archive_prefix,
             year=self.target_date.year,
             month=self.target_date.month,

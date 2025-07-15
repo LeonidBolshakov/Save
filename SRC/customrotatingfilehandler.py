@@ -1,18 +1,36 @@
 import logging.handlers
 
+from constant import Constant as C
+
 
 class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """
+    Кастомный обработчик логов с ротацией файлов и фильтрацией сообщений.
+
+    Наследует стандартную функциональность RotatingFileHandler и добавляет:
+    - Фильтрацию сообщений по ключевой фразе
+    - Безопасную обработку ошибок записи
+    """
+
     def __init__(
-        self, filename, mode="a", maxBytes=0, backupCount=0, encoding=None, delay=False
+        self,
+        filename: str,
+        mode: str = "a",
+        maxBytes: int = 0,
+        backupCount: int = 0,
+        encoding: str | None = None,
+        delay: bool = False,
     ):
         """
-        Инициализация обработчика
-        :param filename: путь к файлу лога (обязательный)
-        :param mode: режим открытия файла
-        :param maxBytes: максимальный размер файла перед ротацией
-        :param backupCount: количество хранимых бэкапов
-        :param encoding: кодировка файла
-        :param delay: отложенное открытие файла
+        Инициализирует обработчик логов.
+
+        Args:
+            filename: Путь к файлу лога
+            mode: Режим открытия файла (по умолчанию 'a' - append)
+            maxBytes: Максимальный размер файла перед ротацией (0 - отключено)
+            backupCount: Количество сохраняемых бэкапов (0 - бесконечно)
+            encoding: Кодировка файла
+            delay: Отложенное открытие файла
         """
         super().__init__(
             filename=filename,
@@ -22,13 +40,24 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
             encoding=encoding,
             delay=delay,
         )
+        self.email_send_trigger = C.EMAIL_SEND_TRIGGER
+    def emit(self, record: logging.LogRecord) -> None:
+        """
+        Записывает лог-запись с фильтрацией запрещенных фраз.
 
-    def emit(self, record: logging.LogRecord):
+        Args:
+            record: Объект лог-записи
+
+        Note:
+            - Автоматически обрабатывает ротацию файлов через родительский класс
+            - Пропускает записи, содержащие FORBIDDEN_PHRASE
+            - Обрабатывает ошибки записи
         """
-        Переопределение метода записи лога
-        :param record: запись лога
-        """
-        # Проверка наличия запрещенной фразы в сообщении
-        if "*Stop*" not in record.getMessage():
-            # Корректный вызов родительского метода
-            super().emit(record)
+        try:
+            # Фильтрация сообщений
+            if self.email_send_trigger not in record.getMessage():
+                # Ротация и запись обрабатываются родительским классом
+                super().emit(record)
+
+        except Exception:
+            self.handleError(record)

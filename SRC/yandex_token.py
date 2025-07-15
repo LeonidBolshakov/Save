@@ -36,6 +36,8 @@ from typing import Any, cast
 from pathlib import Path
 import argparse
 
+from constant import Constant as C
+
 # Создаем модульный логгер
 logger = logging.getLogger(__name__)
 
@@ -76,8 +78,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--port",
         type=int,
-        default=12345,
-        help="Порт для callback-сервера (по умолчанию: 12345)",
+        default=C.DEFAULT_PORT,
+        help=f"Порт для callback-сервера (по умолчанию: {C.DEFAULT_PORT})",
     )
 
     # Парсим только известные аргументы
@@ -123,25 +125,10 @@ class CallbackHandler(BaseHTTPRequestHandler):
             threading.Thread(target=server.shutdown, daemon=True).start()
 
             self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.send_header("Content-type", f"text/html; charset={C.ENCODING}")
             self.end_headers()
-            html: str = """
-            <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
-                <h1 style="color: #4CAF50;">✅ Авторизация Яндекс.Диск прошла успешно!</h1>
-                <p>Это окно можно закрыть</p>
-                <button onclick="window.close()" 
-                    style="padding: 12px 24px; 
-                           background: #4CAF50; 
-                           color: white; 
-                           border: none; 
-                           border-radius: 4px; 
-                           cursor: pointer;
-                           font-size: 16px;">
-                Закрыть окно
-                </button>
-            </body></html>
-            """
-            self.wfile.write(html.encode("utf-8"))
+            html: str = C.HTML_WINDOW_SUCCESSFUL
+            self.wfile.write(html.encode(C.ENCODING))
         else:
             self.send_response(204)
             self.end_headers()
@@ -163,7 +150,7 @@ class TokenManager:
             "refresh_token": refresh_token,
             "expires_at": time.time() + expires_in - 60,  # Запас 60 секунд
         }
-        with open(self.tokens_file, "w", encoding="utf-8") as f:
+        with open(self.tokens_file, "w", encoding=f"{C.ENCODING}") as f:
             json.dump(data, f)
         logger.info("Токены сохранены в %s", self.tokens_file)
 
@@ -174,7 +161,7 @@ class TokenManager:
             return None
 
         try:
-            with open(self.tokens_file, "r", encoding="utf-8") as f:
+            with open(self.tokens_file, "r", encoding=f"{C.ENCODING}") as f:
                 data = json.load(f)
 
             required_keys = {"access_token", "expires_at"}
@@ -355,12 +342,12 @@ class OAuthFlow:
         """Формирует URL для запроса авторизации"""
         logger.debug("Формирование URL авторизации")
         client: WebApplicationClient = WebApplicationClient(
-            os.getenv("YANDEX_CLIENT_ID", "")
+            os.getenv(C.YANDEX_CLIENT_ID, "")
         )
         return client.prepare_request_uri(
-            os.getenv("AUTH_URL", "https://oauth.yandex.ru/authorize"),
-            redirect_uri=os.getenv("YANDEX_REDIRECT_URI", ""),
-            scope=os.getenv("YANDEX_SCOPE", ""),
+            os.getenv(C.AUTH_URL, "https://oauth.yandex.ru/authorize"),
+            redirect_uri=os.getenv(C.YANDEX_REDIRECT_URI, ""),
+            scope=os.getenv(C.YANDEX_SCOPE, ""),
             code_challenge=code_challenge,
             code_challenge_method="S256",
         )
@@ -433,9 +420,9 @@ class OAuthFlow:
         token_data: dict[str, str] = {
             "grant_type": "authorization_code",
             "code": auth_code,
-            "client_id": os.getenv("YANDEX_CLIENT_ID", ""),
+            "client_id": os.getenv(C.YANDEX_CLIENT_ID, ""),
             "code_verifier": code_verifier,
-            "redirect_uri": os.getenv("YANDEX_REDIRECT_URI", ""),
+            "redirect_uri": os.getenv(C.YANDEX_REDIRECT_URI, ""),
         }
 
         logger.info("Получаю токен доступа...")

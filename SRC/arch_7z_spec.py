@@ -6,6 +6,8 @@ import logging
 
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
+from constant import Constant as C
+
 
 class Arch7zSpec:
     """
@@ -20,7 +22,7 @@ class Arch7zSpec:
         password (str): Пароль для архива (необязательный)
         arch_path (str): Путь к создаваемому архиву
         list_file (str): Путь к файлу со списком файлов для архивации
-        seven_zip_path (str): Путь к исполняемому файлу 7z.exe
+        seven_zip_exe_path (str): Путь к исполняемому файлу 7z.exe
         work_dir (str): Рабочая директория для выполнения команд
     """
 
@@ -28,7 +30,7 @@ class Arch7zSpec:
         self,
         arch_path: str,
         list_file: str,
-        seven_zip_path: str,
+        seven_zip_exe_path: str,
         password: str = "",
         work_dir: str | None = None,
     ):
@@ -38,7 +40,7 @@ class Arch7zSpec:
         Args:
             arch_path: Путь к создаваемому SFX-архиву (должен иметь расширение .exe)
             list_file: Путь к файлу, содержащему список файлов для архивации
-            seven_zip_path: Абсолютный путь к исполняемому файлу 7z.exe
+            seven_zip_exe_path: Абсолютный путь к исполняемому файлу 7z.exe
             password: Пароль для шифрования архива (по умолчанию пустая строка)
             work_dir: Рабочая директория для выполнения команд архивации
                      (по умолчанию текущая директория)
@@ -54,7 +56,7 @@ class Arch7zSpec:
         self.password = password
         self.arch_path = arch_path
         self.list_file = list_file
-        self.seven_zip_path = seven_zip_path  # Сохраняем путь на программу 7z
+        self.seven_zip_exe_path = seven_zip_exe_path  # Сохраняем путь на программу 7z
         self.work_dir = work_dir or os.getcwd()  # Текущая директория по умолчанию
 
         self.check_all_params()
@@ -92,7 +94,7 @@ class Arch7zSpec:
 
     def check_arch_path(self) -> Path:
         """
-        Проверяет наличие пути к архиву, в которос собираются сохраняемые файлы.
+        Проверяет наличие пути к архиву, в который собираются сохраняемые файлы.
 
         Returns:
             Path: Объект Path для пути к архиву
@@ -140,8 +142,11 @@ class Arch7zSpec:
         Raises:
             ValueError: Если расширение архива не .exe
         """
-        if arch_path.suffix != ".exe":
-            error_msg = f"Недопустимое расширение файла архива: {arch_path.suffix} - должно быть exe"
+        if arch_path.suffix != C.ARCHIVE_SUFFIX:
+            error_msg = (
+                f"Недопустимое расширение файла архива: {arch_path.suffix} "
+                f"- должно быть {C.ARCHIVE_SUFFIX}"
+            )
             logger.critical(error_msg)
             raise ValueError(error_msg)
 
@@ -228,7 +233,7 @@ class Arch7zSpec:
             Пароль в логах маскируется звездочками для безопасности
         """
         cmd = [
-            self.seven_zip_path,
+            self.seven_zip_exe_path,
             "a",  # Добавляем файлы в архив
             *(
                 [f"-p{self.password}"] if self.password else []
@@ -241,8 +246,6 @@ class Arch7zSpec:
             "-bso0",  # отключить вывод в stdout
             "-bsp0",  # отключить индикатор прогресса
         ]
-
-        # Создаем безопасную копию команды для логирования
 
         return cmd
 

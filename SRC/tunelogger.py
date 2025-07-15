@@ -9,51 +9,44 @@ from customrotatingfilehandler import CustomRotatingFileHandler
 
 logger = logging.getLogger(__name__)
 
+from constant import Constant as C
+
 
 class TuneLogger:
-    # Общие настройки по умолчанию
-    DEFAULT_LOG_LEVEL = "info"
-    DEFAULT_LOG_FILE = "backup.log"
-    DEFAULT_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
-    DEFAULT_BACKUP_COUNT = 3
-
     def __init__(self):
         """Инициализация с загрузкой env-переменных"""
         load_dotenv()
-        self.sender_email = os.getenv("SENDER_EMAIL", "")
-        self.sender_password = os.getenv("SENDER_PASSWORD", "")
-        self.recipient_email = os.getenv("RECIPIENT_EMAIL", "")
-        self.log_level_name = os.getenv("LOGGING_LEVEL", self.DEFAULT_LOG_LEVEL).lower()
+        self.sender_email = os.getenv(C.ENV_SENDER_EMAIL, "")
+        self.sender_password = os.getenv(C.ENV_SENDER_PASSWORD, "")
+        self.recipient_email = os.getenv(C.ENV_RECIPIENT_EMAIL, "")
+        self.log_level_name = os.getenv(
+            C.ENV_LOGGING_LEVEL, C.DEFAULT_LOG_LEVEL
+        ).lower()
+        self.log_format = C.LOG_FORMAT
 
     def setup_logging(self):
         """Настройка глобального логирования"""
-        log_format = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
         log_level = self.get_log_level()
-        self.configure_handlers(log_format, log_level)
+        self.configure_handlers(self.log_format, log_level)
 
         # Для библиотек устанавливаем более высокий уровень
-        for lib in ["urllib3", "yadisk"]:
-            logging.getLogger(lib).setLevel(logging.WARNING)
+        for lib in C.LIBS:
+            logging.getLogger(lib).setLevel(C.DEFAULT_LEVEL_LIB)
 
     def get_log_level(self) -> int:
         """Определение уровня логирования"""
-        LOG_LEVELS = {
-            "debug": logging.DEBUG,
-            "info": logging.INFO,
-            "warning": logging.WARNING,
-            "error": logging.ERROR,
-            "critical": logging.CRITICAL,
-        }
-        logger.debug(f"Уровень логирования: {self.log_level_name}")
-        return LOG_LEVELS.get(self.log_level_name, logging.INFO)
 
-    def create_file_handler(self) -> CustomRotatingFileHandler:
+        logger.debug(f"Уровень логирования: {self.log_level_name}")
+        return C.LOG_LEVELS.get(self.log_level_name, C.DEFAULT_LEVEL_GENERAL)
+
+    @staticmethod
+    def create_file_handler() -> CustomRotatingFileHandler:
         """Создание файлового обработчика"""
         return CustomRotatingFileHandler(
-            filename=self.DEFAULT_LOG_FILE,
-            maxBytes=self.DEFAULT_MAX_BYTES,
-            backupCount=self.DEFAULT_BACKUP_COUNT,
-            encoding="utf-8",
+            filename=C.DEFAULT_LOG_FILE,
+            maxBytes=C.DEFAULT_LOG_MAX_BYTES,
+            backupCount=C.DEFAULT_LOG_BACKUP_COUNT,
+            encoding=C.ENCODING,
             delay=True,
         )
 

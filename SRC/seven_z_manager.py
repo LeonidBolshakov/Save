@@ -7,15 +7,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from constant import Constant as C
+
 
 class SevenZManager:
     """Класс для управления доступом к утилите архивации 7z.exe."""
-
-    DEFAULT_PATHS = [
-        "C:\\Program Files\\7-Zip\\7z.exe",
-        "C:\\Program Files (x86)\\7-Zip\\7z.exe",
-    ]
-    PATTERN_7_Z = "7z.exe"
 
     def __init__(self, file_config: str | None = None):
         """
@@ -25,6 +21,8 @@ class SevenZManager:
         """
         self.seven_zip_path: str | None = None
         self.file_config: str | None = file_config
+        self.default_7z_paths: list[str] = C.DEFAULT_7Z_PATHS
+        self.pattern_7_z = C.PATTERN_7_Z
         self.config: dict = {}
         self._init_config()
 
@@ -122,14 +120,14 @@ class SevenZManager:
 
     def _check_common_paths(self) -> str | None:
         """Проверка стандартных путей установки 7-Zip."""
-        for path in self.DEFAULT_PATHS:
+        for path in self.default_7z_paths:
             if self._check_working_path(path) == 0:
                 return path
         return None
 
     def _global_search(self) -> str | None:
         """Поиск 7z.exe по всем доступным дискам."""
-        logger.info(f"Поиск {self.PATTERN_7_Z} по всем дискам...")
+        logger.info(f"Поиск {self.pattern_7_z} по всем дискам...")
         for drive in self._get_available_drives():
             if path := self._global_search_in_disk(str(drive)):
                 return path
@@ -138,7 +136,7 @@ class SevenZManager:
     def _global_search_in_disk(self, path: str) -> str | None:
         """Рекурсивный поиск 7z.exe в указанном диске."""
         try:
-            for item in Path(path).rglob(self.PATTERN_7_Z):
+            for item in Path(path).rglob(self.pattern_7_z):
                 if self._check_working_path(str(item)) == 0:
                     return str(item)
         except PermissionError:
@@ -170,13 +168,13 @@ def main():
     try:
         seven_z_manager = SevenZManager("../TEST/config.json")
     except ValueError:
-        print(f"Путь к {SevenZManager.PATTERN_7_Z} не найден")
+        print(f"Путь к архиватору не найден")
     else:
         main_path = seven_z_manager.get_7z_path()
         print(
             main_path
             if main_path
-            else f"Программа {SevenZManager.PATTERN_7_Z} не найдена. Установите программу"
+            else f"Программа {seven_z_manager.pattern_7_z} не найдена. Установите программу"
         )
 
 

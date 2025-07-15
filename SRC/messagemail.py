@@ -1,4 +1,4 @@
-from logging import LogRecord, Formatter, FileHandler, StreamHandler
+from logging import Formatter, FileHandler, StreamHandler
 import time
 from datetime import datetime
 import sys
@@ -6,156 +6,165 @@ import os
 import logging
 
 from yagmailhandler import YaGmailHandler
+from constant import Constant as C
+from maxlevelhandler import MaxLevelHandler
 
+# Инициализация логгера для текущего модуля
 logger = logging.getLogger(__name__)
-
-# Константы
-MONTHS_RU = [
-    "",
-    "января",
-    "февраля",
-    "марта",
-    "апреля",
-    "мая",
-    "июня",
-    "июля",
-    "августа",
-    "сентября",
-    "октября",
-    "ноября",
-    "декабря",
-]
-DEFAULT_LOG_FILE = "application.log"
-MAX_RETRY_ATTEMPTS = 3
-RETRY_DELAY = 5
 
 
 class MessageMail:
+    """Класс для управления отправкой email-уведомлений на основе логов."""
+
     def __init__(self):
-        """Получает учетные данные email из переменных окружения"""
-        sender = os.getenv("SENDER_EMAIL", "")
-        password = os.getenv("SENDER_PASSWORD", "")
-        recipient = os.getenv("RECIPIENT_EMAIL", "")
+        """Инициализирует обработчик email с учетными данными из переменных окружения."""
+        # Получение учетных данных из переменных окружения
+        self.months_ru = C.MONTHS_RU
+        self.max_retry_attempts = C.MAX_RETRY_ATTEMPTS
+        self.retry_delay = C.RETRY_DELAY
+        # Инициализация обработчика email (YaGmailHandler)
+        self.email_handler = self.create_email_handler()
 
-        self.email_handler = YaGmailHandler(sender, password, recipient)
+    @staticmethod
+    def create_email_handler() -> YaGmailHandler:
+        sender = os.getenv(C.ENV_SENDER_EMAIL, "")
+        password = os.getenv(C.ENV_SENDER_PASSWORD, "")
+        recipient = os.getenv(C.ENV_RECIPIENT_EMAIL, "")
+        return YaGmailHandler(sender, password, recipient)
 
-    def compose_and_send_email(self, record: LogRecord, max_level: int) -> None:
-        """Формирует и отправляет e-mail"""
+    def compose_and_send_email(self) -> None:
+        """Основной метод для формирования и отправки email с обработкой ошибок.
 
-        subject, content = self._compose_message_content(record, max_level)
-        if not self._send_email_with_retry(subject, content):
-            error_msg = "Все попытки отправки email провалились"
-            logging.error(error_msg)
-            raise RuntimeError(error_msg)
-        logging.info("Служебное сообщение отправлено по e-mail")
+        Включает несколько попыток отправки при неудаче.
+        """
+        try:
+            max_level_handler = MaxLevelHandler()
+            max_level = max_level_handler.get_highest_level()
+            last_time = max_level_handler.get_last_time()
+            remote_archive_path = max_level_handler.get_remote_archive_path()
+            subject, content = self._compose_message_content(
+                last_time, max_level, remote_archive_path
+            )
+            logger.debug(f"Отправка email: {subject}")
+            if not self._send_email_with_retry(subject, content):
+                error_msg = "Все попытки отправки email провалились"
+                logger.error(error_msg)
+                return
+        except Exception as e:
+            error_msg = f"Ошибка отправки email: {str(e)}"
+            logger.error(error_msg)
+
+        logger.info("Служебное сообщение отправлено по e-mail")
 
     def _compose_message_content(
-        self, record: LogRecord, max_level: int
+        self, last_time: float, max_level: int, remote_archive_path: str
     ) -> tuple[str, str]:
-        """Формирует тему и содержание email"""
+        """Формирует тему и содержание email в зависимости от уровня важности."""
         level_name = logging.getLevelName(max_level)
+        last_time_str = self._format_timestamp(last_time)
+        log_path = self._get_log_path()
 
+        # Выбор шаблона email в зависимости от уровня логирования
         # noinspection PyUnreachableCode
         match max_level:
-            case logging.DEBUG | logging.INFO:
-                return self._create_info_email(record)
+            case logging.NOTSET | logging.DEBUG | logging.INFO:
+                return self._create_info_email(last_time_str, remote_archive_path)
             case logging.WARNING:
-                return self._create_warning_email(record)
-            case _:
-                return self._create_error_email(record, level_name)
+                return self._create_warning_email(
+                    last_time_str, remote_archive_path, log_path
+                )
+            case _:  # Для ERROR, CRITICAL и других уровней
+                return self._create_error_email(last_time_str, level_name, log_path)
 
-    def _create_info_email(self, record: LogRecord) -> tuple[str, str]:
-        """Формирует email для информационных сообщений"""
-        archive_path = self._extract_archive_path(record.getMessage())
-        subject = "✅ Успешное сохранение данных"
-        content = (
-            f"✅ Сообщение:\n\n "
-            f"Архив успешно записан в облако.\n"
-            f"Расположение: {archive_path}\n\n"
-            f"Время: {self._format_timestamp(record.created)}"
-        )
-        return subject, content
-
-    def _create_warning_email(self, record: LogRecord) -> tuple[str, str]:
-        """Формирует email для предупреждений"""
-        archive_path = self._extract_archive_path(record.getMessage())
-        subject = "🔥 Предупреждение при архивации"
-        content = (
-            f"🔥 Сообщение:\n\nАрхив создан с предупреждениями.\n"
-            f"Расположение: {archive_path}\n\n"
-            f"Проверьте LOG файл: {self._get_log_path()}\n\n"
-            f"Время: {self._format_timestamp(record.created)}"
-        )
-        return subject, content
-
-    def _create_error_email(
-        self, record: LogRecord, level_name: str
+    @staticmethod
+    def _create_info_email(
+        last_time_str: str, remote_archive_path: str
     ) -> tuple[str, str]:
-        """Формирует email для ошибок"""
-        subject = "🚨 Проблемы при сохранении данных"
-        content = (
-            f"🚨 Сообщение:\n\nАрхивация провалилась.\n"
-            f"Максимальный уровень ошибки: {level_name}\n"
-            f"Подробности в LOG файле: {self._get_log_path()}\n\n"
-            f"Время: {self._format_timestamp(record.created)}"
+        """Создает email-уведомление об успешном выполнении операции."""
+        # noinspection PyUnusedLocal
+        subject = C.EMAIL_INFO_SUBJECT
+        content = C.EMAIL_INFO_CONTENT.format(
+            remote_archive_path=remote_archive_path, last_time_str=last_time_str
         )
         return subject, content
 
     @staticmethod
-    def _extract_archive_path(message: str) -> str:
-        """Извлекает путь к архиву из сообщения"""
-        if "remote_path=" in message:
-            return message.split("remote_path=")[1]
-        return ""
+    def _create_warning_email(
+        last_time_str: str, remote_archive_path: str, log_path: str
+    ) -> tuple[str, str]:
+        """Создает email-уведомление с предупреждением."""
+        # noinspection PyUnusedLocal
+        subject = C.EMAIL_WARNING_SUBJECT
+        content = C.EMAIL_WARNING_CONTENT.format(
+            remote_archive_path=remote_archive_path,
+            log_path=log_path,
+            last_time_str=last_time_str,
+        )
+        return subject, content
 
     @staticmethod
-    def _format_timestamp(timestamp: float) -> str:
-        """Форматирует timestamp в русский формат даты"""
+    def _create_error_email(
+        last_time_str: str, level_name: str, log_path: str
+    ) -> tuple[str, str]:
+        """Создает email-уведомление об ошибке."""
+        subject = C.EMAIL_ERROR_SUBJECT
+        content = C.EMAIL_ERROR_CONTENT.format(
+            level_name=level_name, log_path=log_path, last_time_str=last_time_str
+        )
+        return subject, content
+
+    def _format_timestamp(self, timestamp: float) -> str:
+        """Конвертирует timestamp в читаемую дату на русском языке."""
         dt = datetime.fromtimestamp(timestamp)
-        return f"{dt.day} {MONTHS_RU[dt.month]} {dt.year} года {dt:%H:%M}"
+        return f"{dt.day} {self.months_ru[dt.month]} {dt.year} года {dt:%H:%M}"
 
     @staticmethod
     def _get_log_path() -> str | None:
-        """Возвращает путь к файлу лога"""
+        """Находит и возвращает путь к файлу лога, если он настроен."""
         for handler in logging.getLogger().handlers:
             if isinstance(handler, FileHandler):
                 return handler.baseFilename
         return None
 
     def _send_email_with_retry(self, subject: str, content: str) -> bool:
-        """Пытается отправить email с повторными попытками"""
-        for attempt in range(1, MAX_RETRY_ATTEMPTS + 1):
+        """Выполняет отправку email с несколькими попытками при неудаче."""
+        for attempt in range(1, self.max_retry_attempts + 1):
             if self.email_handler.send_email(subject, content):
                 return True
-            if attempt < MAX_RETRY_ATTEMPTS:
-                time.sleep(RETRY_DELAY)
+            if attempt < self.max_retry_attempts:
+                time.sleep(C.RETRY_DELAY)
         return False
 
 
-def setup_logging(log_file: str = DEFAULT_LOG_FILE):
-    """Настраивает систему логирования"""
+def setup_logging(log_file: str = "message_mail.log"):
+    """Настраивает систему логирования с выводом в консоль и файл."""
     formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
+    # Обработчик для вывода в консоль (только сообщения уровня INFO и выше)
     console_handler = StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
 
+    # Обработчик для записи в файл (все сообщения уровня DEBUG и выше)
     file_handler = FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
+    # Настройка корневого логгера
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
 
+    # Удаление существующих обработчиков
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
+    # Добавление новых обработчиков
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
 
 
 def get_email_credentials() -> tuple[str, str, str]:
-    """Получает учетные данные email из переменных окружения"""
+    """Получает и проверяет учетные данные для отправки email."""
     sender = os.getenv("SENDER_EMAIL", "")
     password = os.getenv("SENDER_PASSWORD", "")
     recipient = os.getenv("RECIPIENT_EMAIL", "")
@@ -168,16 +177,16 @@ def get_email_credentials() -> tuple[str, str, str]:
 
 
 def configure_email_logging() -> None:
-    """Настраивает email логирование"""
-    # !!! logger.addHandler(MaxLevelHandler())
+    """Настраивает обработчик для отправки логов по email (заглушка)."""
+    # Реализация должна быть добавлена позже
     logger.info("Email обработчик инициализирован")
 
 
 def run_test_scenarios() -> None:
-    """Выполняет тестовые сценарии логирования"""
+    """Выполняет тестовые сценарии для проверки системы логирования."""
     logger.info("Система запущена")
     try:
-        1 / 0
+        1 / 0  # Генерация ошибки деления на ноль
     except Exception as e:
         logger.error(f"Ошибка вычисления: {e}", exc_info=True)
     logger.warning("Ресурсы на исходе")
@@ -186,7 +195,7 @@ def run_test_scenarios() -> None:
 
 
 def main() -> None:
-    """Основная функция приложения"""
+    """Точка входа в приложение - выполняет настройку и тестовые сценарии."""
     try:
         setup_logging()
         configure_email_logging()
