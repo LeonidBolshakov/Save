@@ -1,5 +1,7 @@
 import logging
 
+from environment import Environment
+
 # Инициализация логгера для текущего модуля
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,9 @@ if __name__ == "__main__":
 
     Логирует все этапы работы и обрабатывает возможные ошибки.
     """
+
+    # Сбор из разных источников и проверка наличия переменных окружения
+    environment = Environment()
 
     # Настройка системы логирования
     customize_logger = TuneLogger()  # Создание экземпляра настройщика логов

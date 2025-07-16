@@ -1,7 +1,6 @@
 from __future__ import annotations
 import webbrowser
 import os
-from dotenv import load_dotenv
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import secrets
 import base64
@@ -19,7 +18,6 @@ import traceback
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 # Конфигурация OAuth
-load_dotenv()
 YANDEX_CLIENT_ID: str = os.getenv("YANDEX_CLIENT_ID")
 YANDEX_REDIRECT_URI: str = os.getenv("YANDEX_REDIRECT_URI")
 YANDEX_SCOPE: str = os.getenv("YANDEX_SCOPE")
@@ -36,7 +34,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации с хранилищем состояния"""
 
     def __init__(
-        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -524,7 +522,7 @@ def check_disk_space(access_token_: str) -> Optional[float]:
         )
         response.raise_for_status()
         disk_info = response.json()
-        total_space_gb = disk_info["total_space"] / (1024**3)
+        total_space_gb = disk_info["total_space"] / (1024 ** 3)
         print(f"Общее пространство: {total_space_gb:.2f} GB")
         return total_space_gb
     except Exception as e:

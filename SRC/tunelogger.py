@@ -1,7 +1,6 @@
 import os
 import sys
 import logging
-from dotenv import load_dotenv
 import maxlevelhandler
 from yagmailhandler import YaGmailHandler
 from customstreamhandler import CustomStreamHandler
@@ -14,19 +13,19 @@ from constant import Constant as C
 
 class TuneLogger:
     def __init__(self):
-        """Инициализация с загрузкой env-переменных"""
-        load_dotenv()
+        """Инициализация с использованием env-переменных"""
         self.sender_email = os.getenv(C.ENV_SENDER_EMAIL, "")
         self.sender_password = os.getenv(C.ENV_SENDER_PASSWORD, "")
         self.recipient_email = os.getenv(C.ENV_RECIPIENT_EMAIL, "")
-        self.log_level_console_name = os.getenv(
+        self.log_level_name_for_console = os.getenv(
             C.ENV_LOGGING_LEVEL_CONSOLE, C.DEFAULT_LOG_LEVEL
         ).lower()
-        self.log_level_file_name = os.getenv(
+        self.log_level_name_for_file = os.getenv(
             C.ENV_LOGGING_LEVEL_FILE, C.DEFAULT_LOG_LEVEL
         ).lower()
-        self.log_format = C.LOG_FORMAT
-        self.log_handlers = {
+
+        self.log_format = C.LOG_FORMAT  # Формат для всех обработчиков логгеров
+        self.log_handlers = {  # Словарь обработчиков логгеров
             "file": self.create_file_handler(),
             "max_level": maxlevelhandler.MaxLevelHandler(),
             "console": CustomStreamHandler(sys.stdout),
@@ -45,12 +44,14 @@ class TuneLogger:
     def get_log_level_console(self) -> int:
         """Определение уровня логирования на консоль"""
 
-        return C.LOG_LEVELS.get(self.log_level_console_name, C.DEFAULT_LEVEL_GENERAL)
+        return C.LOG_LEVELS.get(
+            self.log_level_name_for_console, C.DEFAULT_LEVEL_GENERAL
+        )
 
     def get_log_level_file(self) -> int:
         """Определение уровня логирования в файл"""
 
-        return C.LOG_LEVELS.get(self.log_level_file_name, C.DEFAULT_LEVEL_GENERAL)
+        return C.LOG_LEVELS.get(self.log_level_name_for_file, C.DEFAULT_LEVEL_GENERAL)
 
     @staticmethod
     def create_file_handler() -> CustomRotatingFileHandler:
@@ -70,7 +71,7 @@ class TuneLogger:
         )
 
     def configure_handlers(
-        self, log_format: str, log_level_console: int, log_level_file: int
+            self, log_format: str, log_level_console: int, log_level_file: int
     ) -> None:
         """Конфигурация всех обработчиков"""
         handlers = list(self.log_handlers.values())

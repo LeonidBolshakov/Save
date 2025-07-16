@@ -17,6 +17,7 @@ class Constant(frozenset):
     DEFAULT_LOG_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
     DEFAULT_LOG_BACKUP_COUNT = 3
     DEFAULT_PORT = 12345
+    DOTENV_PATH = ".env"
     ENCODING = "utf-8"
     EMAIL_ERROR_CONTENT = (
         "🚨 Сообщение:\n\n"
@@ -43,12 +44,12 @@ class Constant(frozenset):
     EMAIL_SEND_TRIGGER = "*Stop"
     ENV_LOGGING_LEVEL_CONSOLE = "LOGGING_LEVEL_CONSOLE"
     ENV_LOGGING_LEVEL_FILE = "LOGGING_LEVEL_FILE"
-    ENV_PASSWORD_ARCHIVE = "PASSWORD_ARCHIVE"
+    ENV_PASSWORD_ARCHIVE = "BOL_SAVE_PASSWORD_ARCHIVE"
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
-    ENV_SENDER_PASSWORD = "SENDER_PASSWORD"
+    ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
-        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
+            "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
     HTML_WINDOW_SUCCESSFUL = """
             <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
@@ -76,7 +77,6 @@ class Constant(frozenset):
         "error": logging.ERROR,
         "critical": logging.CRITICAL,
     }
-    LIST_ARCHIVE_FILE = r"C:\PycharmProjects\Save\list.txt"
     MAX_RETRY_ATTEMPTS = 3  # Максимальное количество попыток отправки email
     MONTHS_RU = [
         "",  # Пустой элемент для удобства индексации (месяцы с 1 по 12)
@@ -98,20 +98,21 @@ class Constant(frozenset):
     REMOTE_ARCHIVE_PREFIX = "archive"
     REMOTE_LINK = "remote_path="
     REQUIRED_VARS = [  # Обязательные переменные .env файла
-        "YANDEX_CLIENT_ID",  # ID OAuth-приложения Яндекс для API доступа
+        "BOL_SAVE_YANDEX_CLIENT_ID",  # ID OAuth-приложения Яндекс для API доступа
         "YANDEX_REDIRECT_URI",  # URI перенаправления после авторизации
         "YANDEX_SCOPE",  # Запрашиваемые разрешения (scope) для API Яндекс
-        "PASSWORD_ARCHIVE",  # Пароль для шифрования архива
+        "BOL_SAVE_PASSWORD_ARCHIVE",  # Пароль для шифрования архива
         "SENDER_EMAIL",  # Email для отправки уведомлений
-        "SENDER_PASSWORD",  # Пароль от email отправителя
+        "BOL_SAVE_SENDER_PASSWORD",  # Пароль от email отправителя
         "RECIPIENT_EMAIL",  # Email получателя уведомлений
     ]
     RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)
+    SECRET_KEY_START = "BOL_SAVE_"
     STOP_SERVICE_MESSAGE = (
         f"***** Не менять! Информация для отправки служебного сообщения "
         f"{EMAIL_SEND_TRIGGER} {REMOTE_LINK}"
     )
-    YANDEX_CLIENT_ID = "YANDEX_CLIENT_ID"
+    YANDEX_CLIENT_ID = "BOL_SAVE_YANDEX_CLIENT_ID"
     YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
     YANDEX_SCOPE = "YANDEX_SCOPE"
     YANDEX_SMTP_HOST = "smtp.yandex.ru"

@@ -23,10 +23,6 @@ class BackupManager:
     - Обработку ошибок и логирование процесса
     """
 
-    def __init__(self):
-        # Список обязательных переменных окружения с пояснениями
-        self.required_vars = C.REQUIRED_VARS
-
     def main(self) -> None:
         """Основной метод выполнения полного цикла резервного копирования.
 
@@ -41,8 +37,6 @@ class BackupManager:
         """
         logger.info("Начало процесса архивации и сохранения файлов в облако")
         try:
-            self.validate_environment_vars()
-
             # Используем TemporaryDirectory для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
                 local_archive = File7ZArchiving()
@@ -54,25 +48,6 @@ class BackupManager:
                 f"*** Критическая ошибка при выполнении резервного копирования {e}"
             )
             self.completion(failure=True)
-
-    def validate_environment_vars(self) -> None:
-        """Проверяет наличие и доступность обязательных переменных окружения.
-
-        Переменные окружения загружаются из .env файла. Если какие-то переменные
-        отсутствуют, генерируется исключение EnvironmentError.
-
-        Raises:
-            EnvironmentError: Если отсутствуют одна или несколько обязательных переменных
-        """
-        load_dotenv()
-
-        missing = [var for var in self.required_vars if not os.getenv(var)]
-        if missing:
-            error_msg = (
-                f"Отсутствуют обязательные переменные окружения: {', '.join(missing)}"
-            )
-            logging.critical(error_msg)
-            raise EnvironmentError(error_msg)
 
     @staticmethod
     def write_file(local_path: str) -> str:

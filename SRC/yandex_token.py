@@ -21,7 +21,6 @@ import os
 import sys
 import json
 import logging
-from dotenv import load_dotenv
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import secrets
 import base64
@@ -90,7 +89,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -142,7 +141,7 @@ class TokenManager:
         self.last_check_result: bool | None = None
 
     def save_tokens(
-        self, access_token: str, refresh_token: str, expires_in: int
+            self, access_token: str, refresh_token: str, expires_in: int
     ) -> None:
         """Сохраняет токены с расчетом абсолютного времени истечения"""
         data = {
@@ -230,9 +229,9 @@ class OAuthFlow:
     """Управляет процессом OAuth 2.0 авторизации"""
 
     def __init__(
-        self,
-        token_manager: TokenManager,
-        port: int,
+            self,
+            token_manager: TokenManager,
+            port: int,
     ):
         self.token_manager = token_manager
         self.port = port
@@ -252,9 +251,9 @@ class OAuthFlow:
         try:
             # 1. Проверка токена в памяти
             if (
-                self.access_token
-                and self.token_state == "valid"
-                and not self.is_token_expired()
+                    self.access_token
+                    and self.token_state == "valid"
+                    and not self.is_token_expired()
             ):
                 return self.access_token
 
@@ -531,9 +530,9 @@ class YandexOAuth:
     """Фасад для управления OAuth-авторизацией Яндекс. Диск"""
 
     def __init__(
-        self,
-        tokens_file: str | Path,
-        port: int,
+            self,
+            tokens_file: str | Path,
+            port: int,
     ):
         """
         Инициализирует OAuth-клиент
@@ -543,7 +542,6 @@ class YandexOAuth:
         """
         # Разрешаем небезопасный транспорт для локальной разработки
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-        load_dotenv()
 
         # Создание зависимостей
         self.token_manager = TokenManager(Path(tokens_file))
