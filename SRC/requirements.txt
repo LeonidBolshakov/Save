@@ -1,0 +1,10 @@
+oauthlib==3.2.2
+python-dotenv==1.1.1
+pywin32==310
+Requests==2.32.4
+SRC==0.0.7
+tqdm==4.67.1
+yadisk==3.3.0
+yagmail==0.15.293
+
+pipreqs C:\PycharmProjects\Save\SRC\ --encoding=utf-8 --force
