@@ -14,18 +14,21 @@ from typing import Any, cast, Optional
 import json
 import traceback
 
+from SRC.GENERAL.environment_variables import EnvironmentVariables
+
 # Разрешаем небезопасный транспорт для локальной разработки
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 # Конфигурация OAuth
-YANDEX_CLIENT_ID: str = os.getenv("YANDEX_CLIENT_ID")
-YANDEX_REDIRECT_URI: str = os.getenv("YANDEX_REDIRECT_URI")
-YANDEX_SCOPE: str = os.getenv("YANDEX_SCOPE")
+variables = EnvironmentVariables()
+YANDEX_CLIENT_ID: str = variables.get_var("YANDEX_CLIENT_ID")
+YANDEX_REDIRECT_URI: str = variables.get_var("YANDEX_REDIRECT_URI")
+YANDEX_SCOPE: str = variables.get_var("YANDEX_SCOPE")
 AUTH_URL: str = "https://oauth.yandex.ru/authorize"
 TOKEN_URL: str = "https://oauth.yandex.ru/token"
 
 required_vars = ["YANDEX_CLIENT_ID", "YANDEX_REDIRECT_URI", "YANDEX_SCOPE"]
-missing = [var for var in required_vars if not os.getenv(var)]
+missing = [var for var in required_vars if not variables.get_var(var)]
 if missing:
     raise EnvironmentError(f"Не заданы переменные окружения: {', '.join(missing)}")
 

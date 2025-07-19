@@ -88,13 +88,13 @@ class TestTokenManager:
     def test_validate_token_api_valid(self, mock_get, tokens_file):
         mock_get.return_value.status_code = 200
         tm = TokenManager(tokens_file)
-        assert tm.validate_token_api("test_token") is True
+        assert tm._validate_token_api("test_token") is True
 
     @patch("requests.get")
     def test_validate_token_api_invalid(self, mock_get, tokens_file):
         mock_get.return_value.status_code = 401
         tm = TokenManager(tokens_file)
-        assert tm.validate_token_api("test_token") is False
+        assert tm._validate_token_api("test_token") is False
 
 
 class TestOAuthFlow:

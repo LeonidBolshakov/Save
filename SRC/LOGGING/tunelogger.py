@@ -1,4 +1,3 @@
-import os
 import sys
 import logging
 
@@ -9,18 +8,21 @@ from SRC.MAIL.yagmailhandler import YaGmailHandler
 from SRC.LOGGING.customstreamhandler import CustomStreamHandler
 from SRC.LOGGING.customrotatingfilehandler import CustomRotatingFileHandler
 from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.environment_variables import EnvironmentVariables
 
 
 class TuneLogger:
     def __init__(self):
-        """Инициализация с использованием env-переменных"""
-        self.sender_email = os.getenv(C.ENV_SENDER_EMAIL, "")
-        self.sender_password = os.getenv(C.ENV_SENDER_PASSWORD, "")
-        self.recipient_email = os.getenv(C.ENV_RECIPIENT_EMAIL, "")
-        self.log_level_name_for_console = os.getenv(
+        """Инициализация с использованием переменных окружения"""
+        variables = EnvironmentVariables()
+
+        self.sender_email = variables.get_var(C.ENV_SENDER_EMAIL)
+        self.sender_password = variables.get_var(C.ENV_SENDER_PASSWORD)
+        self.recipient_email = variables.get_var(C.ENV_RECIPIENT_EMAIL)
+        self.log_level_name_for_console = variables.get_var(
             C.ENV_LOGGING_LEVEL_CONSOLE, C.DEFAULT_LOG_LEVEL
         ).lower()
-        self.log_level_name_for_file = os.getenv(
+        self.log_level_name_for_file = variables.get_var(
             C.ENV_LOGGING_LEVEL_FILE, C.DEFAULT_LOG_LEVEL
         ).lower()
 

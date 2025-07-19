@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 import logging
 
@@ -8,6 +7,7 @@ logger = logging.getLogger(__name__)
 # Импорт зависимостей
 from SRC.ARCHIVES.seven_z_manager import SevenZManager
 from SRC.ARCHIVES.arch_7z_spec import Arch7zSpec
+from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
 
 
@@ -70,6 +70,8 @@ class File7ZArchiving:
         """
         logger.debug("Начало создания и загрузки архива")
         try:
+            # Доступ к переменным окружения
+            variables = EnvironmentVariables()
             # Формирование пути к архиву
             local_path = Path(temp_dir, self.archive_name)
             local_path_str = str(local_path)
@@ -80,8 +82,8 @@ class File7ZArchiving:
                 arch_path=local_path_str,
                 list_file=self.list_archive_file,
                 seven_zip_exe_path=self.seven_z_exe_path,
-                password=os.getenv(
-                    C.ENV_PASSWORD_ARCHIVE, ""
+                password=variables.get_var(
+                    C.ENV_PASSWORD_ARCHIVE
                 ),  # Безопасное получение пароля
             )
 

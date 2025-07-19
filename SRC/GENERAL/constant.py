@@ -2,6 +2,8 @@ import logging
 
 
 class Constant(frozenset):
+    ACCESS_TOKEN = "ACCESS_TOKEN"  # token доступа к Яндекс-Диску
+    APP_NAME = "bol_save"
     ARCHIVE_SUFFIX = ".exe"
     AUTH_URL = "AUTH_URL"
     DEFAULT_7Z_PATHS = [
@@ -17,7 +19,7 @@ class Constant(frozenset):
     DEFAULT_LOG_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
     DEFAULT_LOG_BACKUP_COUNT = 3
     DEFAULT_PORT = 12345
-    DOTENV_PATH = "env"
+    DOTENV_PATH = ".env"
     ENCODING = "utf-8"
     EMAIL_ERROR_CONTENT = (
         "🚨 Сообщение:\n\n"
@@ -48,6 +50,8 @@ class Constant(frozenset):
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
+    EXPIRES_AT = "EXPIRES_AT"
+    EXPIRES_AT = f"{EXPIRES_AT}"  # Время истечения токена
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
         "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
@@ -94,10 +98,25 @@ class Constant(frozenset):
         "декабря",
     ]
     PATTERN_7_Z = "7z.exe"
+    REFRESH_TOKEN = "REFRESH_TOKEN"  # refresh token к Яндекс-Диску
     REMOTE_ARCHIVE_PATH = "disk:/Архивы"
     REMOTE_ARCHIVE_PREFIX = "archive"
     REMOTE_LINK = "remote_path="
-    REQUIRED_VARS = [  # Обязательные переменные .env файла
+    RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)
+    SECRET_KEY_START = "BOL_SAVE_"
+    STOP_SERVICE_MESSAGE = (
+        f"***** Не менять! Информация для отправки служебного сообщения "
+        f"{EMAIL_SEND_TRIGGER} {REMOTE_LINK}"
+    )
+    VARS_KEYRING = [  # секретные переменные окружения
+        "YANDEX_CLIENT_ID",  # ID Яндекс клиента
+        "SENDER_PASSWORD",  # Почтовый пароль отправителя
+        "PASSWORD_ARCHIVE",  # Пароль создаваемого архива
+        {ACCESS_TOKEN},  # token доступа к Яндекс-Диску
+        {REFRESH_TOKEN},  # refresh token к Яндекс-Диску
+        {EXPIRES_AT},  # Время истечения токена
+    ]
+    VARS_REQUIRED = [  # Обязательные переменные окружения
         "BOL_SAVE_YANDEX_CLIENT_ID",  # ID OAuth-приложения Яндекс для API доступа
         "YANDEX_REDIRECT_URI",  # URI перенаправления после авторизации
         "YANDEX_SCOPE",  # Запрашиваемые разрешения (scope) для API Яндекс
@@ -105,13 +124,8 @@ class Constant(frozenset):
         "SENDER_EMAIL",  # Email для отправки уведомлений
         "BOL_SAVE_SENDER_PASSWORD",  # Пароль от email отправителя
         "RECIPIENT_EMAIL",  # Email получателя уведомлений
+        "SENDER_PASSWORD",  # Почтовый пароль отправителя
     ]
-    RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)
-    SECRET_KEY_START = "BOL_SAVE_"
-    STOP_SERVICE_MESSAGE = (
-        f"***** Не менять! Информация для отправки служебного сообщения "
-        f"{EMAIL_SEND_TRIGGER} {REMOTE_LINK}"
-    )
     YANDEX_CLIENT_ID = "BOL_SAVE_YANDEX_CLIENT_ID"
     YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
     YANDEX_SCOPE = "YANDEX_SCOPE"

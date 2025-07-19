@@ -2,10 +2,10 @@ from logging import Formatter, FileHandler, StreamHandler
 import time
 from datetime import datetime
 import sys
-import os
 import logging
 
 from SRC.MAIL.yagmailhandler import YaGmailHandler
+from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 
@@ -27,9 +27,10 @@ class MessageMail:
 
     @staticmethod
     def create_email_handler() -> YaGmailHandler:
-        sender = os.getenv(C.ENV_SENDER_EMAIL, "")
-        password = os.getenv(C.ENV_SENDER_PASSWORD, "")
-        recipient = os.getenv(C.ENV_RECIPIENT_EMAIL, "")
+        variables = EnvironmentVariables()
+        sender = variables.get_var(C.ENV_SENDER_EMAIL, "")
+        password = variables.get_var(C.ENV_SENDER_PASSWORD, "")
+        recipient = variables.get_var(C.ENV_RECIPIENT_EMAIL, "")
         return YaGmailHandler(sender, password, recipient)
 
     def compose_and_send_email(self) -> None:
@@ -164,10 +165,11 @@ def setup_logging(log_file: str = "message_mail.log"):
 
 
 def get_email_credentials() -> tuple[str, str, str]:
+    variables = EnvironmentVariables()
     """Получает и проверяет учетные данные для отправки email."""
-    sender = os.getenv("SENDER_EMAIL", "")
-    password = os.getenv("SENDER_PASSWORD", "")
-    recipient = os.getenv("RECIPIENT_EMAIL", "")
+    sender = variables.get_var("SENDER_EMAIL", "")
+    password = variables.get_var("SENDER_PASSWORD", "")
+    recipient = variables.get_var("RECIPIENT_EMAIL", "")
 
     if not sender or not password:
         logging.critical("Отсутствуют учетные данные email")

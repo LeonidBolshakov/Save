@@ -14,7 +14,6 @@
 - Подробное логирование операций
 """
 
-from pathlib import Path
 from datetime import date
 import time
 import re
@@ -65,7 +64,7 @@ class YandexDisk:
         # Получение токена для API
         try:
             logger.info("Получение токена авторизации")
-            yandex_token = YandexOAuth(tokens_file=Path("token.json"), port=12345)
+            yandex_token = YandexOAuth(port=12345)
             self.yandex_token = yandex_token.get_token()
             if not self.yandex_token:
                 error_msg = "Нет доступа к Яндекс-Диск. Токен недействителен."
