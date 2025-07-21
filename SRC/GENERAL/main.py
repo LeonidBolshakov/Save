@@ -1,3 +1,5 @@
+import time
+import sys
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,7 +19,7 @@ def validate_vars_environments():
     EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
 
     for (
-            handler
+        handler
     ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
         logging.root.removeHandler(handler)
 
@@ -35,15 +37,27 @@ def main():
     TuneLogger().setup_logging()  # Настройка системы логирования
 
     logger.info("Запуск процесса резервного копирования")
+    start_time = time.time()
+
     try:
         BackupManager().main()  # Запуск основного процесса
+    except KeyboardInterrupt:
+        logger.error("Процесс прерван пользователем")
+        raise
+    except SystemExit:
+        logger.info("Корректное завершение работы")
     except Exception as e:
-        # Логирование исключений
-        logger.exception(e)
+        logger.exception(f"Ошибка типа {e.__class__.__name__}: {str(e)}")
         raise  # Повторное возбуждение исключения для видимости в консоли
+    finally:
+        logger.info(f"Время выполнения: {time.time() - start_time:.2f} сек")
 
 
 if __name__ == "__main__":
     """Точка входа в приложение резервного копирования"""
-
-    main()
+    try:
+        main()
+    except Exception:
+        sys.exit(1)
+    except KeyboardInterrupt:
+        sys.exit(130)

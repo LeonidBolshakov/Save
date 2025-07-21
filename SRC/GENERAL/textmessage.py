@@ -4,11 +4,14 @@ class TextMessage(frozenset):
     callback_timeout = "Таймаут ожидания callback"
     cancel_authorization = "Отмена авторизации пользователем"
     critical_error = "Критическая ошибка: {e}"
+    dictionary_expected = (
+        "Ожидался словарь с токеном, получен {type}.\nОтвет: {response}..."
+    )
     env_not_found = "Файл {env} не найден. Текущая директория {dir}"
     error_check_token = "Ошибка проверки токена через API: {e}"
     error_load_tokens = "[Token Load] Ошибка загрузки токенов из keyring: {e}"
     error_processing_request = "Ошибка обработки запроса: {e}"
-    error_refresh_token = "Ошибка {status_code} при обновлении токена"
+    error_refresh_token = "Ошибка {status_code} при обновлении токена - {e}"
     error_saving_tokens = "Ошибка сохранения токенов в keyring: {e}"
     expires_in = "В токен, полученном с сервера expires_in равен {expires_in}"
     failed_access_token = "Не удалось получить access_token"
@@ -16,10 +19,17 @@ class TextMessage(frozenset):
     many_iterations = "Превышена глубина рекурсии при обновлении токена"
     no_auth_code = "Не удалось извлечь код авторизации"
     no_callback_path = "Callback path не установлен"
+    no_correct_redirect_uri = (
+        "Некорректный redirect_uri: {redirect_uri}./n"
+        "Должен соответствовать зарегистрированному в кабинете "
+        "разработчика Яндекса"
+    )
     no_expires_in = "expires_in нет в токен полученном с сервера"
     no_refresh_token = "Refresh token отсутствует"
     no_token_in_response = "Токен доступа не получен в ответе сервера"
     not_float = "[Token Load] Время истечения токена не число с плавающей запятой: {e}"
+    not_safe_uri = "Получен небезопасный callback URI: {callback_path}"
+    not_valid_json = "Невалидный JSON: {e}. Ответ: {response}"
     run_full_auth_flow = "Запуск полного процесса аутентификации"
     successful_access_token = "Успешно получен access_token"
     token_expired = "[Token Load] Токен истек {seconds} сек назад"

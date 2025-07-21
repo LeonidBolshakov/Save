@@ -14,39 +14,27 @@ from __future__ import annotations
 import webbrowser
 import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import secrets
-import base64
-import hashlib
 import time
 import threading
 import requests
 from urllib.parse import urlparse, parse_qs
-
-from oauthlib.oauth2 import WebApplicationClient
 from typing import Any, cast
 import logging
 
 logger = logging.getLogger(__name__)
 
+from oauthlib.oauth2 import WebApplicationClient
+
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
 from SRC.GENERAL.textmessage import TextMessage as T
+from SRC.YADISK.exceptions import AuthError, AuthCancelledError, RefreshTokenError
+from SRC.SECURITY.generate_pkce_pair import generate_pkce_params
+from SRC.SECURITY.is_valid_redirect_uri import is_valid_redirect_uri
 
 ACCESS_TOKEN_IN_TOKEN = "access_token"
 REFRESH_TOKEN_IN_TOKEN = "refresh_token"
 EXPIRES_IN_IN_TOKEN = "expires_in"
-
-
-class AuthError(Exception):
-    """Базовое исключение для ошибок авторизации"""
-
-
-class AuthCancelledError(AuthError):
-    """Исключение при отмене авторизации пользователем"""
-
-
-class RefreshTokenError(AuthError):
-    """Ошибка при обновлении токена"""
 
 
 class OAuthHTTPServer(HTTPServer):
@@ -92,7 +80,16 @@ class CallbackHandler(BaseHTTPRequestHandler):
 
 
 class TokenManager:
-    """Управляет сохранением и загрузкой токенов авторизации через keyring"""
+    """Управляет жизненным циклом OAuth-токенов для Яндекс-Диска.
+
+    Отвечает за:
+    - Сохранение и загрузку токенов из secure storage (keyring)
+    - Проверку валидности и срока действия токенов
+    - Взаимодействие с API Яндекс-Диска для проверки токенов
+
+    Attributes:
+        variables (EnvironmentVariables): Обертка для работы с переменными окружения и keyring
+    """
 
     def __init__(self, env_vars: EnvironmentVariables) -> None:
         self.variables = env_vars
@@ -100,7 +97,16 @@ class TokenManager:
     def save_tokens(
             self, access_token: str, refresh_token: str, expires_in: float
     ) -> None:
-        """Сохраняет токены в keyring"""
+        """Сохраняет токены и время жизни токена в secure storage.
+
+        Args:
+            access_token (str): Токен для API-запросов
+            refresh_token (str): Токен для обновления access token
+            expires_in (float): Время жизни токена для API-запросов в секундах
+
+        Note:
+            Автоматически вычитает 60 секунд из expires_in для раннего обновления
+        """
         try:
             # Время истечения токена(expires_at)
             expires_at = time.time() + expires_in - 60
@@ -148,7 +154,7 @@ class TokenManager:
 
         return True
 
-    def load_and_validate_exist_token(self) -> dict[str, str] | None:
+    def load_and_validate_exist_tokens(self) -> dict[str, str] | None:
         """Загружает и проверяет токены из keyring"""
         try:
             access_token, refresh_token, expires_at = self.get_vars()
@@ -196,7 +202,25 @@ class TokenManager:
 
 
 class OAuthFlow:
-    """Управляет процессом OAuth 2.0 авторизации"""
+    """Реализует полный OAuth 2.0 flow с PKCE для Яндекс.Диска.
+
+    Обрабатывает все этапы авторизации:
+    1. Генерация PKCE параметров (code_verifier, code_challenge)
+    2. Запуск локального сервера для callback
+    3. Открытие браузера для авторизации
+    4. Обмен кода на токены
+
+    Attributes:
+        token_manager (TokenManager): Менеджер для работы с токенами
+        port (int): Порт для локального callback-сервера
+        callback_received (bool): Флаг получения callback
+        callback_path (str): URL callback с кодом авторизации
+        refresh_token (str): Текущий refresh token
+        access_token (str): Текущий access token
+        _token_expires_at (float): Время истечения токена (timestamp)
+        token_state (str): Состояние токена (valid/invalid)
+        variables (EnvironmentVariables): Обертка для переменных окружения
+    """
 
     def __init__(
             self,
@@ -251,11 +275,11 @@ class OAuthFlow:
         return None
 
     def loaded_token(self) -> str | None:
-        token = self.token_manager.load_and_validate_exist_token()
-        if token:
-            self.access_token = token[C.ACCESS_TOKEN]
-            self.refresh_token = token.get(C.REFRESH_TOKEN)
-            self._token_expires_at = float(token[C.EXPIRES_AT])
+        tokens = self.token_manager.load_and_validate_exist_tokens()
+        if tokens:
+            self.access_token = tokens[C.ACCESS_TOKEN]
+            self.refresh_token = tokens.get(C.REFRESH_TOKEN)
+            self._token_expires_at = float(tokens[C.EXPIRES_AT])
             logger.debug(T.loaded_token)
             self.token_state = C.STATE_VALID
             return self.access_token
@@ -267,10 +291,10 @@ class OAuthFlow:
         if refresh_token := self.variables.get_var(C.REFRESH_TOKEN):
             try:
                 self.refresh_token = refresh_token
-                if token := self.refresh_access_token():
+                if tokens := self.refresh_access_token():
                     logger.debug(T.updated_token)
                     self.token_state = C.STATE_VALID
-                    return token
+                    return tokens
             except RefreshTokenError as e:
                 logger.warning(T.updated_token_error.format(e=e))
                 self.refresh_token = None
@@ -292,19 +316,9 @@ class OAuthFlow:
         except Exception as e:
             raise AuthError(T.authorization_error.format(e=e)) from e
 
-    @staticmethod
-    def generate_pkce_params() -> tuple[str, str]:
-        """Генерирует параметры PKCE"""
-        code_verifier = secrets.token_urlsafe(64)
-        code_challenge = (
-            base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest())
-            .decode()
-            .replace("=", "")
-        )
-        return code_verifier, code_challenge
-
     def full_auth_flow(self) -> str:
-        code_verifier, code_challenge = self.generate_pkce_params()
+        """Содержательная часть метода run_full_auth_flow"""
+        code_verifier, code_challenge = generate_pkce_params()
         auth_url = self.build_auth_url(code_challenge)
         self.start_auth_server()
 
@@ -318,7 +332,14 @@ class OAuthFlow:
         return token
 
     def build_auth_url(self, code_challenge: str) -> str:
-        """Строит URL для авторизации"""
+        """Строит URL для авторизации с валидацией redirect_uri."""
+        redirect_uri = self.variables.get_var(C.YANDEX_REDIRECT_URI, "")
+
+        if not is_valid_redirect_uri(redirect_uri):
+            raise ValueError(
+                T.no_correct_redirect_uri.format(redirect_uri=redirect_uri)
+            )
+
         client = WebApplicationClient(
             self.variables.get_var(C.ENV_YANDEX_CLIENT_ID, "")
         )
@@ -357,6 +378,9 @@ class OAuthFlow:
         if not self.callback_path:
             raise AuthError(T.no_callback_path)
 
+        if not is_valid_redirect_uri(self.callback_path):
+            raise AuthError(T.not_safe_uri.format(callback_path=self.callback_path))
+
         query = urlparse(self.callback_path).query
         params = parse_qs(query)
 
@@ -370,7 +394,7 @@ class OAuthFlow:
             raise AuthError(T.no_auth_code)
         return auth_code
 
-    def get_token(self, auth_code: str, code_verifier: str) -> dict:
+    def get_tokens(self, auth_code: str, code_verifier: str) -> dict:
         token_data = {
             "grant_type": "authorization_code",
             "code": auth_code,
@@ -386,12 +410,23 @@ class OAuthFlow:
             timeout=30,
         )
         response.raise_for_status()
-        return response.json()
+        return self.return_tokens(response)
 
     def exchange_token(self, auth_code: str, code_verifier: str) -> str:
-        """Обменивает код авторизации на токены"""
+        """Выполняет обмен authorization code на токены доступа.
 
-        token = self.get_token(auth_code, code_verifier)
+        Args:
+            auth_code (str): Код авторизации из callback
+            code_verifier (str): PKCE code_verifier для проверки
+
+        Returns:
+            str: Полученный access token
+
+        Raises:
+            AuthError: При ошибках обмена токенов
+        """
+
+        token = self.get_tokens(auth_code, code_verifier)
         if ACCESS_TOKEN_IN_TOKEN not in token:
             raise AuthError(T.no_token_in_response)
 
@@ -411,7 +446,17 @@ class OAuthFlow:
         return self.access_token
 
     def refresh_access_token(self, depth: int = 0) -> str | None:
-        """Обновляет access token с помощью refresh token"""
+        """Обновляет access token с помощью refresh token.
+
+        Args:
+            depth (int): Текущая глубина рекурсии для предотвращения бесконечных попыток
+
+        Returns:
+            str | None: Новый access token или None при ошибке
+
+        Raises:
+            RefreshTokenError: При неудачном обновлении токена
+        """
         if depth > 2:
             logger.warning(T.many_iterations)
             return None
@@ -420,7 +465,7 @@ class OAuthFlow:
             logger.warning(T.no_refresh_token)
             return None
 
-        if not (token := self.get_token_from_url()):
+        if not (token := self.get_tokens_from_url()):
             return None
 
         self.access_token = token.get(ACCESS_TOKEN_IN_TOKEN)
@@ -435,7 +480,7 @@ class OAuthFlow:
 
         return self.access_token if self.token_state == C.STATE_VALID else None
 
-    def get_token_from_url(self):
+    def get_tokens_from_url(self) -> dict:
         token_data = {
             "grant_type": "refresh_token",
             "refresh_token": self.variables.get_var(C.REFRESH_TOKEN),
@@ -452,15 +497,36 @@ class OAuthFlow:
 
         if response.status_code >= 400:
             logger.warning(
-                T.error_refresh_token.format(status_code=response.status_code)
+                T.error_refresh_token.format(status_code=response.status_code, e="")
             )
             return None
 
-        return response.json()
+        return self.return_tokens(response)
 
-    def get_expires_in(self, token) -> int:
-        if EXPIRES_IN_IN_TOKEN in token:
-            expires_in = token[EXPIRES_IN_IN_TOKEN]
+    @staticmethod
+    def return_tokens(response: requests.Response) -> dict:
+        try:
+            tokens = response.json()
+        except ValueError as e:
+            raise RefreshTokenError(
+                T.not_valid_json.format(e=e, response=response.text[:200])
+            )
+
+        if not isinstance(tokens, dict):
+            raise RefreshTokenError(
+                T.dictionary_expected.format(type=type(tokens), response=response.text)
+            )
+
+        return tokens
+
+    def get_expires_in(self, tokens) -> int:
+        """
+        Добывает  expires_in из токена
+        :param tokens:
+        :return:
+        """
+        if EXPIRES_IN_IN_TOKEN in tokens:
+            expires_in = tokens[EXPIRES_IN_IN_TOKEN]
 
         else:
             expires_in = float("inf")
@@ -472,7 +538,15 @@ class OAuthFlow:
 
 
 class YandexOAuth:
-    """Фасад для управления OAuth авторизацией"""
+    """Фасадный класс для OAuth авторизации в Яндекс.Диск.
+
+    Предоставляет упрощенный интерфейс для получения access token,
+    инкапсулируя всю логику OAuth 2.0 с PKCE.
+
+    Attributes:
+        token_manager (TokenManager): Менеджер токенов
+        flow (OAuthFlow): OAuth 2.0 flow processor
+    """
 
     def __init__(
             self,
@@ -483,7 +557,7 @@ class YandexOAuth:
         self.token_manager = TokenManager(env_vars)
         self.flow = OAuthFlow(self.token_manager, port, env_vars)
 
-    def get_token(self) -> str | None:
+    def get_access_token(self) -> str | None:
         """Получает действительный access token"""
         try:
             token = self.flow.get_access_token()

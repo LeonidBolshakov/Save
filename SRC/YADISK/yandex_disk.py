@@ -65,7 +65,7 @@ class YandexDisk:
         try:
             logger.info("Получение токена авторизации")
             yandex_token = YandexOAuth(port=12345)
-            self.yandex_token = yandex_token.get_token()
+            self.yandex_token = yandex_token.get_access_token()
             if not self.yandex_token:
                 error_msg = "Нет доступа к Яндекс-Диск. Токен недействителен."
                 logger.critical(error_msg)
