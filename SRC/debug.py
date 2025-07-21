@@ -1,38 +1,17 @@
-import keyring
-import os
+from SRC.GENERAL.environment_variables import EnvironmentVariables
+from SRC.GENERAL.constant import Constant as C
+from pprint import pprint
 
-# Импортируем fallback backend
-try:
-    from keyrings.alt.file import PlaintextKeyring
-except ImportError:
-    raise ImportError("Установите fallback backend: pip install keyrings.alt")
+variables = EnvironmentVariables()
 
-# 1. Устанавливаем file-based keyring
-kr = PlaintextKeyring()
-kr.file_path = os.path.expanduser("~/.bol_save_keyring.cfg")
-keyring.set_keyring(kr)
+ACCESS_TOKEN_IN_TOKEN = "access_token"
+REFRESH_TOKEN_IN_TOKEN = "refresh_token"
+EXPIRES_IN_IN_TOKEN = "expires_in"
 
-# 2. Логируем активный backend
-backend = keyring.get_keyring()
-print(f"📦 Активный backend: {backend}")
-if isinstance(backend, PlaintextKeyring):
-    print(f"📄 Keyring файл: {backend.file_path}")
-
-# 3. Тестовые данные
-SERVICE = "BOL_SAVE"
-KEY = "ACCESS_TOKEN"
-VALUE = "test-token-123"
-
-# 4. Запись
-keyring.set_password(SERVICE, KEY, VALUE)
-print(f"✅ Значение записано: {VALUE}")
-
-# 5. Чтение
-retrieved = keyring.get_password(SERVICE, KEY)
-print(f"📥 Получено из keyring: {retrieved!r}")
-
-# 6. Проверка
-if retrieved == VALUE:
-    print("✅ Всё работает!")
-else:
-    print("❌ Ошибка: данные не сохранены корректно")
+token_data = {
+    "grant_type": "refresh_token",
+    "refresh_token": variables.get_var(C.REFRESH_TOKEN),
+    "client_id": variables.get_var(C.ENV_YANDEX_CLIENT_ID),
+    "client_secret": variables.get_var(C.ENV_CLIENT_SECRET),
+}
+pprint(token_data)

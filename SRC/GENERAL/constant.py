@@ -2,6 +2,8 @@ import logging
 
 
 class Constant(frozenset):
+    ENV_YANDEX_CLIENT_ID = "BOL_SAVE_YANDEX_CLIENT_ID"
+
     ACCESS_TOKEN = "ACCESS_TOKEN"  # token доступа к Яндекс-Диску
     APP_NAME = "bol_save"
     ARCHIVE_SUFFIX = ".exe"
@@ -19,7 +21,7 @@ class Constant(frozenset):
     DEFAULT_LOG_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
     DEFAULT_LOG_BACKUP_COUNT = 3
     DEFAULT_PORT = 12345
-    DOTENV_PATH = ".env"
+    DOTENV_PATH = "env"
     ENCODING = "utf-8"
     EMAIL_ERROR_CONTENT = (
         "🚨 Сообщение:\n\n"
@@ -44,16 +46,16 @@ class Constant(frozenset):
     )
     EMAIL_WARNING_SUBJECT = "🔥 Предупреждение при архивации"
     EMAIL_SEND_TRIGGER = "*Stop"
+    ENV_CLIENT_SECRET = "BOL_SAVE_YANDEX_CLIENT_SECRET"
     ENV_LOGGING_LEVEL_CONSOLE = "LOGGING_LEVEL_CONSOLE"
     ENV_LOGGING_LEVEL_FILE = "LOGGING_LEVEL_FILE"
     ENV_PASSWORD_ARCHIVE = "BOL_SAVE_PASSWORD_ARCHIVE"
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
-    EXPIRES_AT = "EXPIRES_AT"
-    EXPIRES_AT = f"{EXPIRES_AT}"  # Время истечения токена
+    EXPIRES_AT = "EXPIRES_AT"  # Время истечения токена
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
-        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
+            "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
     HTML_WINDOW_SUCCESSFUL = """
             <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
@@ -82,6 +84,7 @@ class Constant(frozenset):
         "critical": logging.CRITICAL,
     }
     MAX_RETRY_ATTEMPTS = 3  # Максимальное количество попыток отправки email
+    MISSING = " ** --> Отсутствуют"
     MONTHS_RU = [
         "",  # Пустой элемент для удобства индексации (месяцы с 1 по 12)
         "января",
@@ -98,35 +101,41 @@ class Constant(frozenset):
         "декабря",
     ]
     PATTERN_7_Z = "7z.exe"
+    PRESENT = "Представлены"
     REFRESH_TOKEN = "REFRESH_TOKEN"  # refresh token к Яндекс-Диску
     REMOTE_ARCHIVE_PATH = "disk:/Архивы"
     REMOTE_ARCHIVE_PREFIX = "archive"
     REMOTE_LINK = "remote_path="
     RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)
     SECRET_KEY_START = "BOL_SAVE_"
+    STATE_INVALID = "invalid"
+    STATE_UNKNOWN = "unknown"
+    STATE_VALID = "valid"
     STOP_SERVICE_MESSAGE = (
         f"***** Не менять! Информация для отправки служебного сообщения "
         f"{EMAIL_SEND_TRIGGER} {REMOTE_LINK}"
     )
+    TOKEN_URL = "TOKEN_URL"
+    TOKEN_URL_DEFAULT = "https://oauth.yandex.ru/token"
+    URL_API_YANDEX_DISK = "https://cloud-api.yandex.net/v1/disk"
+    URL_AUTORIZATION_YANDEX_OAuth = "https://oauth.yandex.ru/authorize"
     VARS_KEYRING = [  # секретные переменные окружения
-        "YANDEX_CLIENT_ID",  # ID Яндекс клиента
-        "SENDER_PASSWORD",  # Почтовый пароль отправителя
-        "PASSWORD_ARCHIVE",  # Пароль создаваемого архива
-        {ACCESS_TOKEN},  # token доступа к Яндекс-Диску
-        {REFRESH_TOKEN},  # refresh token к Яндекс-Диску
-        {EXPIRES_AT},  # Время истечения токена
+        f"{ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента
+        f"{ENV_SENDER_PASSWORD}",  # Почтовый пароль отправителя
+        f"{ENV_PASSWORD_ARCHIVE}",  # Пароль создаваемого архива
+        f"{ENV_CLIENT_SECRET}",  # Секретный ключ клиента
+        f"{ACCESS_TOKEN}",  # token доступа к Яндекс-Диску
+        f"{REFRESH_TOKEN}",  # refresh token к Яндекс-Диску
+        f"{EXPIRES_AT}",  # Время истечения токена
     ]
     VARS_REQUIRED = [  # Обязательные переменные окружения
-        "BOL_SAVE_YANDEX_CLIENT_ID",  # ID OAuth-приложения Яндекс для API доступа
-        "YANDEX_REDIRECT_URI",  # URI перенаправления после авторизации
-        "YANDEX_SCOPE",  # Запрашиваемые разрешения (scope) для API Яндекс
-        "BOL_SAVE_PASSWORD_ARCHIVE",  # Пароль для шифрования архива
-        "SENDER_EMAIL",  # Email для отправки уведомлений
-        "BOL_SAVE_SENDER_PASSWORD",  # Пароль от email отправителя
-        "RECIPIENT_EMAIL",  # Email получателя уведомлений
-        "SENDER_PASSWORD",  # Почтовый пароль отправителя
+        f"{ENV_YANDEX_CLIENT_ID}",  # ID OAuth-приложения Яндекс для API доступа
+        f"{ENV_CLIENT_SECRET}",  # Секретный ключ клиента
+        f"{ENV_PASSWORD_ARCHIVE}",  # Пароль для шифрования архива
+        f"{ENV_SENDER_EMAIL}",  # Email для отправки уведомлений
+        f"{ENV_SENDER_PASSWORD}",  # Пароль от email отправителя
+        f"{ENV_RECIPIENT_EMAIL}",  # Email получателя уведомлений
     ]
-    YANDEX_CLIENT_ID = "BOL_SAVE_YANDEX_CLIENT_ID"
     YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
     YANDEX_SCOPE = "YANDEX_SCOPE"
     YANDEX_SMTP_HOST = "smtp.yandex.ru"

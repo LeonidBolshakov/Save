@@ -21,6 +21,7 @@ import time
 import threading
 import requests
 from urllib.parse import urlparse, parse_qs
+
 from oauthlib.oauth2 import WebApplicationClient
 from typing import Any, cast
 import logging
@@ -29,9 +30,11 @@ logger = logging.getLogger(__name__)
 
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.textmessage import TextMessage as T
 
 ACCESS_TOKEN_IN_TOKEN = "access_token"
-REFRESH_TOKEN_IN_TOKEN = "refresh token"
+REFRESH_TOKEN_IN_TOKEN = "refresh_token"
+EXPIRES_IN_IN_TOKEN = "expires_in"
 
 
 class AuthError(Exception):
@@ -50,7 +53,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -63,8 +66,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
         try:
             super().handle()
         except Exception as e:
-            logger.error(f"Ошибка обработки запроса: {e}")
-            raise RuntimeError(f"Ошибка обработки запроса: {e}") from None
+            raise RuntimeError(T.error_processing_request.format(e=e)) from e
 
     def log_message(self, format_: str, *args: Any) -> None:
         return
@@ -96,39 +98,36 @@ class TokenManager:
         self.variables = env_vars
 
     def save_tokens(
-        self, access_token: str, refresh_token: str, expires_in: float
+            self, access_token: str, refresh_token: str, expires_in: float
     ) -> None:
         """Сохраняет токены в keyring"""
         try:
-            # Сохраняем с временем истечения (expires_at)
-
+            # Время истечения токена(expires_at)
             expires_at = time.time() + expires_in - 60
 
+            # Сохраняем токены и время истечения в памяти (keyring)
             self.variables.put_keyring_var(C.ACCESS_TOKEN, access_token)
             self.variables.put_keyring_var(C.REFRESH_TOKEN, refresh_token)
-            self.variables.put_keyring_var("EXPIRES_AT", str(expires_at))
+            self.variables.put_keyring_var(C.EXPIRES_AT, str(expires_at))
 
-            logger.debug(
-                f"Токены сохранены в keyring. Истекают: {time.ctime(expires_at)}"
-            )
+            logger.debug(T.tokens_saved)
 
         except Exception as e:
-            logger.error(f"Ошибка сохранения токенов в keyring: {e}")
-            raise
+            raise AuthError(T.error_saving_tokens.format(e=e)) from e
 
     def get_vars(self) -> tuple[str, str, str] | None:
         access_token = self.variables.get_var(C.ACCESS_TOKEN)
         refresh_token = self.variables.get_var(C.REFRESH_TOKEN)
-        expires_at = self.variables.get_var("EXPIRES_AT")
+        expires_at = self.variables.get_var(C.EXPIRES_AT)
 
         logger.debug(
-            f"[Token Load] {C.ACCESS_TOKEN}: {'present' if access_token else 'missing'}"
+            f"[Token Load] {C.ACCESS_TOKEN}: {C.PRESENT if access_token else C.MISSING}"
         )
         logger.debug(
-            f"[Token Load] {C.REFRESH_TOKEN}: {'present' if refresh_token else 'missing'}"
+            f"[Token Load] {C.REFRESH_TOKEN}: {C.PRESENT if refresh_token else C.MISSING}"
         )
         logger.debug(
-            f"[Token Load] EXPIRES_AT: {'present' if expires_at else 'missing'}"
+            f"[Token Load] {C.EXPIRES_AT}: {C.PRESENT if expires_at else C.MISSING}"
         )
 
         return access_token, refresh_token, expires_at
@@ -138,16 +137,13 @@ class TokenManager:
         try:
             expires_at_float = float(expires_at)
         except (TypeError, ValueError) as e:
-            logger.warning(
-                f"[Token Load] Время истечения не число с плавающей запятой: {e}"
-            )
+            logger.warning(T.not_float.format(e=e))
             return False
 
         current_time = time.time()
         if current_time >= expires_at_float:
-            logger.info(
-                f"[Token Load] Токен истек {current_time - expires_at_float:.0f} сек назад"
-            )
+            seconds = f"{current_time - expires_at_float:.0f}"
+            logger.info(T.token_expired.format(seconds=seconds))
             return False
 
         return True
@@ -166,15 +162,15 @@ class TokenManager:
             if not self._validate_token_api(access_token):
                 return None
 
-            logger.debug(f"[Token Load] Найден валидный {C.ACCESS_TOKEN} в keyring")
+            logger.debug(T.valid_token_found.format(token=C.ACCESS_TOKEN))
             return {
                 C.ACCESS_TOKEN: access_token,
                 C.REFRESH_TOKEN: refresh_token,
-                "expires_at": expires_at,
+                C.EXPIRES_AT: expires_at,
             }
 
         except Exception as e:
-            logger.error(f"[Token Load] Ошибка загрузки токенов из keyring: {e}")
+            logger.warning(T.error_load_tokens.format(e=e))
             return None
 
     @staticmethod
@@ -182,20 +178,20 @@ class TokenManager:
         """Проверяет валидность токена через API Яндекс-Диска"""
         try:
             response = requests.get(
-                "https://cloud-api.yandex.net/v1/disk",
+                C.URL_API_YANDEX_DISK,
                 headers={"Authorization": f"OAuth {access_token}"},
                 timeout=5,
             )
 
             if response.status_code == 200:
-                logger.debug("Токен успешно прошел проверку через API")
+                logger.debug(T.token_valid)
                 return True
 
-            logger.debug(f"Токен недействителен. Код ответа: {response.status_code}")
+            logger.warning(T.token_invalid.format(status=response.status_code))
             return False
 
         except requests.RequestException as e:
-            logger.warning(f"Ошибка проверки токена через API: {e}")
+            logger.warning(T.error_check_token.format(e=e))
             return False
 
 
@@ -203,10 +199,10 @@ class OAuthFlow:
     """Управляет процессом OAuth 2.0 авторизации"""
 
     def __init__(
-        self,
-        token_manager: TokenManager,
-        port: int,
-        env_vars: EnvironmentVariables,
+            self,
+            token_manager: TokenManager,
+            port: int,
+            env_vars: EnvironmentVariables,
     ):
         self.token_manager = token_manager
         self.port = port
@@ -215,51 +211,72 @@ class OAuthFlow:
         self.refresh_token: str | None = None
         self.access_token: str | None = None
         self._token_expires_at: float = 0
-        self.token_state: str = "unknown"  # valid, expired, invalid
+        self.token_state: str = C.STATE_UNKNOWN  # valid, invalid
         self.variables = env_vars
 
     def get_access_token(self) -> str | None:
         """Получает действительный access token"""
         try:
             # 1. Проверка токена в памяти
-            if (
-                self.access_token
-                and self.token_state == "valid"
-                and not self.is_token_expired()
-            ):
-                logger.debug("Используется существующий валидный токен")
-                return self.access_token
+            token = self.token_in_memory()
+            if token:
+                return token
 
             # 2. Попытка загрузить сохраненные токены
-            tokens = self.token_manager.load_and_validate_exist_token()
-            if tokens:
-                self.access_token = tokens[C.ACCESS_TOKEN]
-                self.refresh_token = tokens.get(C.REFRESH_TOKEN)
-                self._token_expires_at = float(tokens["expires_at"])
-                self.token_state = "valid"
-                logger.debug("Успешно загружены сохраненные токены")
-                return self.access_token
+            token = self.loaded_token()
+            if token:
+                return token
 
             # 3. Попытка обновить токен
-            if self.refresh_token:
-                try:
-                    if token := self.refresh_access_token():
-                        logger.debug("Токен обновлён с помощью refresh_token")
-                        return token
-                except RefreshTokenError as e:
-                    logger.warning(f"Не удалось обновить токен: {e}")
-                    self.refresh_token = None
-                    self.token_state = "invalid"
+            token = self.updated_token()
+            if token:
+                return token
 
             # 4. Полная аутентификация
-            logger.info("Запуск полного процесса аутентификации")
             return self.run_full_auth_flow()
 
-        except AuthCancelledError:
-            return None
+        except AuthCancelledError as e:
+            raise AuthCancelledError(T.cancel_authorization) from e
         except AuthError as e:
-            logger.error(f"Ошибка авторизации: {e}")
-            return None
+            raise AuthError(T.authorization_error.format(e=e)) from e
+
+    def token_in_memory(self) -> str | None:
+        if (
+                self.access_token
+                and self.token_state == C.STATE_VALID
+                and not self.is_token_expired()
+        ):
+            logger.debug(T.token_in_memory)
+            return self.access_token
+        return None
+
+    def loaded_token(self) -> str | None:
+        token = self.token_manager.load_and_validate_exist_token()
+        if token:
+            self.access_token = token[C.ACCESS_TOKEN]
+            self.refresh_token = token.get(C.REFRESH_TOKEN)
+            self._token_expires_at = float(token[C.EXPIRES_AT])
+            logger.debug(T.loaded_token)
+            self.token_state = C.STATE_VALID
+            return self.access_token
+
+        self.token_state = C.STATE_INVALID
+        return None
+
+    def updated_token(self) -> str | None:
+        if refresh_token := self.variables.get_var(C.REFRESH_TOKEN):
+            try:
+                self.refresh_token = refresh_token
+                if token := self.refresh_access_token():
+                    logger.debug(T.updated_token)
+                    self.token_state = C.STATE_VALID
+                    return token
+            except RefreshTokenError as e:
+                logger.warning(T.updated_token_error.format(e=e))
+                self.refresh_token = None
+
+        self.token_state = C.STATE_INVALID
+        return None
 
     def is_token_expired(self) -> bool:
         """Проверяет, истек ли срок действия токена"""
@@ -267,26 +284,13 @@ class OAuthFlow:
 
     def run_full_auth_flow(self) -> str:
         """Выполняет полный цикл OAuth 2.0 аутентификации"""
+        logger.info(T.run_full_auth_flow)
         try:
-            code_verifier, code_challenge = self.generate_pkce_params()
-            auth_url = self.build_auth_url(code_challenge)
-            self.start_auth_server()
-
-            self.open_browser(auth_url)
-            self.wait_for_callback()
-
-            auth_code = self.parse_callback()
-            token = self.exchange_token(auth_code, code_verifier)
-
-            self.token_state = "valid"
-            return token
-
+            return self.full_auth_flow()
         except TimeoutError as e:
-            logger.error(f"Превышено время ожидания авторизации: {e}")
-            raise AuthCancelledError("Превышено время ожидания авторизации") from e
+            raise AuthCancelledError(T.authorization_timeout.format(e=e)) from e
         except Exception as e:
-            logger.error(f"Ошибка в процессе авторизации: {e}")
-            raise AuthError(f"Ошибка авторизации: {e}") from e
+            raise AuthError(T.authorization_error.format(e=e)) from e
 
     @staticmethod
     def generate_pkce_params() -> tuple[str, str]:
@@ -299,11 +303,28 @@ class OAuthFlow:
         )
         return code_verifier, code_challenge
 
+    def full_auth_flow(self) -> str:
+        code_verifier, code_challenge = self.generate_pkce_params()
+        auth_url = self.build_auth_url(code_challenge)
+        self.start_auth_server()
+
+        self.open_browser(auth_url)
+        self.wait_for_callback()
+
+        auth_code = self.parse_callback()
+        token = self.exchange_token(auth_code, code_verifier)
+
+        self.token_state = C.STATE_VALID
+        return token
+
     def build_auth_url(self, code_challenge: str) -> str:
         """Строит URL для авторизации"""
-        client = WebApplicationClient(self.variables.get_var(C.YANDEX_CLIENT_ID, ""))
+        client = WebApplicationClient(
+            self.variables.get_var(C.ENV_YANDEX_CLIENT_ID, "")
+        )
+
         return client.prepare_request_uri(
-            self.variables.get_var(C.AUTH_URL, "https://oauth.yandex.ru/authorize"),
+            self.variables.get_var(C.AUTH_URL, C.URL_AUTORIZATION_YANDEX_OAuth),
             redirect_uri=self.variables.get_var(C.YANDEX_REDIRECT_URI, ""),
             scope=self.variables.get_var(C.YANDEX_SCOPE, ""),
             code_challenge=code_challenge,
@@ -328,13 +349,13 @@ class OAuthFlow:
         start_time = time.time()
         while not self.callback_received:
             if time.time() - start_time > 120:
-                raise TimeoutError("Таймаут ожидания callback")
+                raise TimeoutError(T.callback_timeout)
             time.sleep(0.1)
 
     def parse_callback(self) -> str:
         """Извлекает код авторизации из callback"""
         if not self.callback_path:
-            raise AuthError("Callback path не установлен")
+            raise AuthError(T.no_callback_path)
 
         query = urlparse(self.callback_path).query
         params = parse_qs(query)
@@ -346,27 +367,25 @@ class OAuthFlow:
 
         auth_code = params.get("code", [""])[0]
         if not auth_code:
-            raise AuthError("Не удалось извлечь код авторизации")
-
+            raise AuthError(T.no_auth_code)
         return auth_code
 
     def get_token(self, auth_code: str, code_verifier: str) -> dict:
         token_data = {
             "grant_type": "authorization_code",
             "code": auth_code,
-            "client_id": self.variables.get_var(C.YANDEX_CLIENT_ID, ""),
+            "client_id": self.variables.get_var(C.ENV_YANDEX_CLIENT_ID, ""),
             "code_verifier": code_verifier,
-            "redirect_uri": self.variables.get_var(C.YANDEX_REDIRECT_URI, ""),
+            "redirect_uri": C.YANDEX_REDIRECT_URI,
         }
 
         response = requests.post(
-            self.variables.get_var("TOKEN_URL", "https://oauth.yandex.ru/token"),
+            self.variables.get_var(C.TOKEN_URL, C.TOKEN_URL_DEFAULT),
             data=token_data,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             timeout=30,
         )
         response.raise_for_status()
-
         return response.json()
 
     def exchange_token(self, auth_code: str, code_verifier: str) -> str:
@@ -374,17 +393,17 @@ class OAuthFlow:
 
         token = self.get_token(auth_code, code_verifier)
         if ACCESS_TOKEN_IN_TOKEN not in token:
-            raise AuthError("Токен доступа не получен в ответе")
+            raise AuthError(T.no_token_in_response)
 
         self.access_token = token[ACCESS_TOKEN_IN_TOKEN]
         self.refresh_token = token.get(REFRESH_TOKEN_IN_TOKEN, self.refresh_token)
 
-        if "expires_in" in token:
-            expires_in = token["expires_in"]
-            logger.info(f"В токен, полученном с сервера expires_in равен {expires_in}")
+        if EXPIRES_IN_IN_TOKEN in token:
+            expires_in = token[EXPIRES_IN_IN_TOKEN]
+            logger.info(T.expires_in.format(expires_in=expires_in))
         else:
             expires_in = float("inf")
-            logger.debug("expires_in нет в токен полученном с сервера")
+            logger.debug(T.no_expires_in)
 
         self.token_manager.save_tokens(
             self.access_token, self.refresh_token or "", expires_in
@@ -394,58 +413,70 @@ class OAuthFlow:
     def refresh_access_token(self, depth: int = 0) -> str | None:
         """Обновляет access token с помощью refresh token"""
         if depth > 2:
-            logger.warning("Превышена глубина рекурсии при обновлении токена")
+            logger.warning(T.many_iterations)
             return None
 
         if not self.refresh_token:
-            logger.error("Refresh token отсутствует")
+            logger.warning(T.no_refresh_token)
             return None
 
+        if not (token := self.get_token_from_url()):
+            return None
+
+        self.access_token = token.get(ACCESS_TOKEN_IN_TOKEN)
+        self.token_state = C.STATE_VALID if self.access_token else C.STATE_INVALID
+
+        if REFRESH_TOKEN_IN_TOKEN in token:
+            self.refresh_token = token[REFRESH_TOKEN_IN_TOKEN]
+
+        self.token_manager.save_tokens(
+            self.access_token, self.refresh_token or "", self.get_expires_in(token)
+        )
+
+        return self.access_token if self.token_state == C.STATE_VALID else None
+
+    def get_token_from_url(self):
         token_data = {
-            "grant_type": REFRESH_TOKEN_IN_TOKEN,
-            REFRESH_TOKEN_IN_TOKEN: self.refresh_token,
-            "client_id": self.variables.get_var("YANDEX_CLIENT_ID"),
+            "grant_type": "refresh_token",
+            "refresh_token": self.variables.get_var(C.REFRESH_TOKEN),
+            "client_id": self.variables.get_var(C.ENV_YANDEX_CLIENT_ID),
+            "client_secret": self.variables.get_var(C.ENV_CLIENT_SECRET),
         }
 
         response = requests.post(
-            self.variables.get_var("TOKEN_URL", "https://oauth.yandex.ru/token"),
+            self.variables.get_var(C.TOKEN_URL, C.TOKEN_URL_DEFAULT),
             data=token_data,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             timeout=30,
         )
 
         if response.status_code >= 400:
-            logger.warning(f"Ошибка {response.status_code} при обновлении токена")
+            logger.warning(
+                T.error_refresh_token.format(status_code=response.status_code)
+            )
             return None
 
-        token = response.json()
-        self.access_token = token.get(C.ACCESS_TOKEN)
-        self.token_state = "valid" if self.access_token else "invalid"
+        return response.json()
 
-        if REFRESH_TOKEN_IN_TOKEN in token:
-            self.refresh_token = token[REFRESH_TOKEN_IN_TOKEN]
+    def get_expires_in(self, token) -> int:
+        if EXPIRES_IN_IN_TOKEN in token:
+            expires_in = token[EXPIRES_IN_IN_TOKEN]
 
-        if "expires_in" in token:
-            expires_in = token["expires_in"]
-            self._token_expires_at = time.time() + expires_in - 60
         else:
             expires_in = float("inf")
-            self._token_expires_at = float("inf")
-            logger.info("expires_in отсутствует в token, полученном с сервера")
+            logger.info(T.no_expires_in)
 
-        self.token_manager.save_tokens(
-            self.access_token, self.refresh_token or "", expires_in
-        )
+        self._token_expires_at = time.time() + expires_in - 60
 
-        return self.access_token if self.token_state == "valid" else None
+        return expires_in
 
 
 class YandexOAuth:
     """Фасад для управления OAuth авторизацией"""
 
     def __init__(
-        self,
-        port: int,
+            self,
+            port: int,
     ):
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
         env_vars = EnvironmentVariables()
@@ -457,11 +488,9 @@ class YandexOAuth:
         try:
             token = self.flow.get_access_token()
             if token:
-                logger.info("Успешно получен access_token")
+                logger.info(T.successful_access_token)
                 return token
             else:
-                logger.error("Не удалось получить access_token")
-                return None
+                raise AuthError(T.failed_access_token)
         except Exception as e:
-            logger.error(f"Критическая ошибка: {e}")
-            return None
+            raise AuthError(T.critical_error.format(e=e)) from e
