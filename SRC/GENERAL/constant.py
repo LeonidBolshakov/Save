@@ -9,6 +9,7 @@ class Constant(frozenset):
     APP_NAME = "bol_save"
     ARCHIVE_SUFFIX = ".exe"
     AUTH_URL = "AUTH_URL"
+    CONFIG_KEY_SEVEN_ZIP_PATH = "SEVEN_ZIP_PATH"
     DEFAULT_7Z_PATHS = [
         "C:\\Program Files\\7-Zip\\7z.exe",
         "C:\\Program Files (x86)\\7-Zip\\7z.exe",

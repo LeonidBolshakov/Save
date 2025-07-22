@@ -8,6 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.textmessage import TextMessage as T
 
 
 class SevenZManager:
@@ -31,54 +32,54 @@ class SevenZManager:
         if not self.file_config or not Path(self.file_config).exists():
             return
 
-        self._load_config()
-        self._validate_config_path()
+        if not self._load_config():
+            return
 
-    def _load_config(self) -> None:
+        path = self._get_config_path()
+        if path:
+            self.seven_zip_path = path
+
+    def _load_config(self) -> bool:
         """Загружает JSON-конфигурацию."""
         if not self.file_config or not Path(self.file_config).exists():
-            logger.warning(
-                f"Файл с путём на 7z не задан или не существует {self.file_config}"
-            )
-            return
+            logger.warning(T.not_found_config_file.format(file_config=self.file_config))
+            return False
         try:
             with open(self.file_config, "r", encoding="utf-8") as f:
                 self.config = json.load(f)
+                return True
         except Exception as e:
-            logger.warning(
-                f"Ошибка загрузки файла с путём на 7z {self.file_config}: {e}"
-            )
-            return
+            logger.warning(T.error_load_7z.format(file_config=self.file_config, e=e))
+            return False
 
-    def _validate_config_path(self) -> None:
-        """Проверяет путь из конфига на валидность."""
+    def _get_config_path(self) -> str:
+        """Возвращает из конфига, путь на архиватор"""
         try:
-            path = self.config["SEVEN_ZIP_PATH"]
-            match self._check_working_path(path):
-                case 0:
-                    self.seven_zip_path = path
-                case _:
-                    error_msg = f"Некорректный путь к 7z.exe в конфиге: {path}"
-                    logger.error(error_msg)
-                    raise ValueError(error_msg)
+            path = self.config[C.CONFIG_KEY_SEVEN_ZIP_PATH]
+            if not self._check_working_path(path):
+                logger.warning(T.invalid_path_7z.format(path=path))
+                return None
+
+            return path
         except KeyError:
-            logger.warning('В конфиге нет ключа "SEVEN_ZIP_PATH"')
+            logger.warning(T.not_key_in_config)
+            return None
 
     @staticmethod
-    def _check_working_path(path: str) -> int:
+    def _check_working_path(path: str) -> bool:
         """
         Проверяет работоспособность 7z.exe по указанному пути.
 
         :return:
-            0 - программа работоспособна,
-            1 - программа неработоспособна,
-            2 - файл не существует
+            True - программа работоспособна,
+            False - программа неработоспособна,
         """
         if not path or not Path(path).exists():
-            return 2
+            return False
         if not SevenZManager._test_7z_execution(path):
-            return 1
-        return 0
+            return False
+
+        return True
 
     @staticmethod
     def _test_7z_execution(path: str) -> bool:
@@ -133,6 +134,13 @@ class SevenZManager:
                 return path
         return None
 
+    @staticmethod
+    def _get_available_drives() -> list[Path]:
+        """Возвращает список доступных дисков."""
+        return [
+            Path(f"{d}:\\") for d in string.ascii_uppercase if Path(f"{d}:\\").exists()
+        ]
+
     def _global_search_in_disk(self, path: str) -> str | None:
         """Рекурсивный поиск 7z.exe в указанном диске."""
         try:
@@ -140,14 +148,15 @@ class SevenZManager:
                 if self._check_working_path(str(item)) == 0:
                     return str(item)
         except PermissionError:
-            logger.debug(f"Нет доступа к {path}")
+            logger.info(f"Нет доступа к {path}")
+
         return None
 
     def _save_config(self, path: Path | str) -> None:
         """Сохраняет путь к 7z в конфигурацию."""
         str_path = str(path)
         self.seven_zip_path = str_path
-        self.config["SEVEN_ZIP_PATH"] = str_path
+        self.config[C.CONFIG_KEY_SEVEN_ZIP_PATH] = str_path
 
         if self.file_config:
             try:
@@ -155,13 +164,6 @@ class SevenZManager:
                     json.dump(self.config, f, ensure_ascii=False, indent=4)
             except Exception as e:
                 logger.warning(f"Ошибка сохранения конфига: {e}")
-
-    @staticmethod
-    def _get_available_drives() -> list[Path]:
-        """Возвращает список доступных дисков."""
-        return [
-            Path(f"{d}:\\") for d in string.ascii_uppercase if Path(f"{d}:\\").exists()
-        ]
 
 
 def main():

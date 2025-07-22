@@ -158,7 +158,7 @@ class YandexDisk:
         return re.compile(
             rf"^{escaped_prefix}(?P<file_num>\d+){escaped_ext}$",
             # (?P<file_num>\d+) - группа file_num для номера файла за дату
-            re.IGNORECASE,  # Регистронезависимый поиск
+            re.IGNORECASE,  # Независимый от регистра поиск
         )
 
     def write_file(self, local_path: str) -> bool:
@@ -235,7 +235,9 @@ class YandexDisk:
 
             # Проверка на успешную загрузку (ошибки вызовут исключение)
             response.raise_for_status()
-            logger.info(f"Файл {local_path} успешно загружен в {remote_path}")
+            logger.info(
+                T.load_success.format(local_path=local_path, remote_path=remote_path)
+            )
             return remote_path
 
         except Exception as err:

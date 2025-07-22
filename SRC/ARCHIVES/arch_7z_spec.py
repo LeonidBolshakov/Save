@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
 from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.textmessage import TextMessage as T
 
 
 class Arch7zSpec:
@@ -51,7 +52,7 @@ class Arch7zSpec:
             ValueError: Если архив имеет неверное расширение (не .exe)
             FileNotFoundError: Если файл со списком архивируемых файлов не существует
         """
-        logger.debug("Инициализация Arch7zSpec")
+        logger.debug(T.init_arch)
 
         self.password = password
         self.arch_path = arch_path
@@ -105,9 +106,7 @@ class Arch7zSpec:
         if self.arch_path:
             return Path(self.arch_path)
         else:
-            error_msg = "Не задан путь на архив, в который собираются сохраняемые файлы"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
+            raise ValueError(T.no_path_local)
 
     @staticmethod
     def check_arch_exists(arch_path: Path):
@@ -124,12 +123,9 @@ class Arch7zSpec:
             return
 
         obj_type = "файл" if arch_path.is_file() else "директория"
-        error_msg = (
-            f"существует {obj_type} {arch_path}, имя которого, совпадает с именем архива."
-            f"Архивация невозможна."
+        raise FileExistsError(
+            T.arch_exists.format(obj_type=obj_type, arch_path=arch_path)
         )
-        logger.error(error_msg)
-        raise FileExistsError(error_msg)
 
     @staticmethod
     def check_arch_ext(arch_path: Path):
@@ -143,12 +139,12 @@ class Arch7zSpec:
             ValueError: Если расширение архива не .exe
         """
         if arch_path.suffix != C.ARCHIVE_SUFFIX:
-            error_msg = (
-                f"Недопустимое расширение файла архива: {arch_path.suffix} "
-                f"- должно быть {C.ARCHIVE_SUFFIX}"
+            logger.critical("")
+            raise ValueError(
+                T.invalid_file_extension.format(
+                    suffix=arch_path.suffix, archive_suffix=C.ARCHIVE_SUFFIX
+                )
             )
-            logger.critical(error_msg)
-            raise ValueError(error_msg)
 
     def check_list_file(self):
         """
@@ -159,11 +155,12 @@ class Arch7zSpec:
         """
         # Проверяем существует ли список архивируемых файлов
         list_file_path = Path(self.list_file)
-        error_msg = f"Не найден файл списка для архивации: {list_file_path}"
         if not list_file_path.exists():
-            logger.critical(error_msg)
-            raise FileNotFoundError(error_msg)
-        logger.debug(f"Файл списка файлов архивации существует: {list_file_path}")
+            logger.critical("")
+            raise FileNotFoundError(
+                T.not_found_list_file_path.format(list_file_path=list_file_path)
+            )
+        logger.debug(T.exists_list_file.format(list_file_path=list_file_path))
 
     def make_archive(self) -> int:
         """
@@ -185,12 +182,12 @@ class Arch7zSpec:
 
         # Запускаем программу 7z
         cmd = self.get_cmd_archiver()
-        logger.info(f"Запуск архивации: {self._mask_password_in_cmd(cmd)}")
+        logger.debug(T.starting_archiving.format(cmd=self._mask_password_in_cmd(cmd)))
         try:
             process = self._run_archive_process(cmd, encoding)
             return self._handle_process_result(process)
         except Exception as e:
-            logger.critical(f"Ошибка при запуске процесса архивации: {e}")
+            logger.critical(T.error_starting_archiving.format(e=e))
             return 2
 
     def _run_archive_process(
@@ -211,15 +208,15 @@ class Arch7zSpec:
         # noinspection PyUnreachableCode
         match process.returncode:
             case 0:
-                logger.info("Архивация завершена успешно")
+                logger.info(T.successful_archiving)
                 return 0
             case 1:
                 logger.warning(f"stderr: {process.stderr}")
-                logger.warning("Архивация завершена с НЕ фатальными ошибками")
+                logger.warning(T.no_fatal_error)
                 return 1
             case _:
                 logger.error(f"stderr: {process.stderr}")
-                logger.error("Архивация завершена с ФАТАЛЬНЫМИ ошибками")
+                logger.error(T.fatal_error)
                 return 2
 
     def get_cmd_archiver(self) -> list[str]:

@@ -41,7 +41,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -95,7 +95,7 @@ class TokenManager:
         self.variables = env_vars
 
     def save_tokens(
-            self, access_token: str, refresh_token: str, expires_in: float
+        self, access_token: str, refresh_token: str, expires_in: float
     ) -> None:
         """Сохраняет токены и время жизни токена в secure storage.
 
@@ -223,10 +223,10 @@ class OAuthFlow:
     """
 
     def __init__(
-            self,
-            token_manager: TokenManager,
-            port: int,
-            env_vars: EnvironmentVariables,
+        self,
+        token_manager: TokenManager,
+        port: int,
+        env_vars: EnvironmentVariables,
     ):
         self.token_manager = token_manager
         self.port = port
@@ -266,9 +266,9 @@ class OAuthFlow:
 
     def token_in_memory(self) -> str | None:
         if (
-                self.access_token
-                and self.token_state == C.STATE_VALID
-                and not self.is_token_expired()
+            self.access_token
+            and self.token_state == C.STATE_VALID
+            and not self.is_token_expired()
         ):
             logger.debug(T.token_in_memory)
             return self.access_token
@@ -288,6 +288,7 @@ class OAuthFlow:
         return None
 
     def updated_token(self) -> str | None:
+        logger.info(T.start_update_token)
         if refresh_token := self.variables.get_var(C.REFRESH_TOKEN):
             try:
                 self.refresh_token = refresh_token
@@ -295,9 +296,14 @@ class OAuthFlow:
                     logger.debug(T.updated_token)
                     self.token_state = C.STATE_VALID
                     return tokens
+                logger.debug(T.updated_token_error.format(e=""))
             except RefreshTokenError as e:
                 logger.warning(T.updated_token_error.format(e=e))
                 self.refresh_token = None
+        else:
+            logger.warning(
+                T.not_found_refresh_token.format(refresh_token=refresh_token)
+            )
 
         self.token_state = C.STATE_INVALID
         return None
@@ -445,11 +451,8 @@ class OAuthFlow:
         )
         return self.access_token
 
-    def refresh_access_token(self, depth: int = 0) -> str | None:
+    def refresh_access_token(self) -> str | None:
         """Обновляет access token с помощью refresh token.
-
-        Args:
-            depth (int): Текущая глубина рекурсии для предотвращения бесконечных попыток
 
         Returns:
             str | None: Новый access token или None при ошибке
@@ -457,10 +460,6 @@ class OAuthFlow:
         Raises:
             RefreshTokenError: При неудачном обновлении токена
         """
-        if depth > 2:
-            logger.warning(T.many_iterations)
-            return None
-
         if not self.refresh_token:
             logger.warning(T.no_refresh_token)
             return None
@@ -549,8 +548,8 @@ class YandexOAuth:
     """
 
     def __init__(
-            self,
-            port: int,
+        self,
+        port: int,
     ):
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
         env_vars = EnvironmentVariables()

@@ -9,6 +9,7 @@ from SRC.ARCHIVES.seven_z_manager import SevenZManager
 from SRC.ARCHIVES.arch_7z_spec import Arch7zSpec
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.textmessage import TextMessage as T
 
 
 class File7ZArchiving:
@@ -44,7 +45,7 @@ class File7ZArchiving:
         Raises:
             OSError: Если 7z.exe не найден на системе
         """
-        logger.debug("Инициализация FileArchiving")
+        logger.debug(T.init_FileArchiving)
 
         # Получение пути к 7z.exe из конфигурации
         seven_z_manager = SevenZManager(config_file)
@@ -52,9 +53,8 @@ class File7ZArchiving:
 
         # Проверка наличия 7z.exe
         if not self.seven_z_exe_path:
-            error_msg = "На компьютере не найден архиватор 7z.exe. Надо установить"
-            logger.critical(error_msg)
-            raise OSError(error_msg)
+            logger.critical("")
+            raise OSError(T.not_found_7z)
 
     def make_local_archive(self, temp_dir: str) -> str:
         """Создает 7z-архив в указанной временной директории.
@@ -68,14 +68,14 @@ class File7ZArchiving:
         Raises:
             RuntimeError: Если произошла ошибка при создании архива
         """
-        logger.debug("Начало создания и загрузки архива")
+        logger.debug(T.start_create_archive)
         try:
             # Доступ к переменным окружения
             variables = EnvironmentVariables()
             # Формирование пути к архиву
             local_path = Path(temp_dir, self.archive_name)
             local_path_str = str(local_path)
-            logger.debug(f"Путь к архиву на локальном диске: {local_path_str}")
+            logger.debug(T.path_local_archive.format(local_path_str=local_path_str))
 
             # Создание спецификации архива
             arch_7z_spec = Arch7zSpec(
@@ -92,6 +92,4 @@ class File7ZArchiving:
             return local_path_str
 
         except Exception as e:
-            error_msg = f"Ошибка при создании локального архива {e}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg) from e
+            raise RuntimeError(T.error_local_archive.format(e=e)) from e

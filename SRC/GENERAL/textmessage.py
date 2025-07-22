@@ -1,4 +1,11 @@
+from SRC.GENERAL.constant import Constant as C
+
+
 class TextMessage(frozenset):
+    arch_exists = (
+        "Существует {obj_type} {arch_path}, имя которого, совпадает с именем архива. "
+        "Архивация невозможна."
+    )
     archive_name_generation = "Генерация имени архива"
     authorization_error = "Ошибка авторизации {e}"
     authorization_timeout = "Превышено время ожидания авторизации {e}"
@@ -12,15 +19,23 @@ class TextMessage(frozenset):
     env_not_found = "Файл {env} не найден. Текущая директория {dir}"
     error_check_token = "Ошибка проверки токена через API: {e}"
     error_list_files = "Ошибка получения списка файлов: {e}"
+    error_load_7z = (
+        f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
+        + "{file_config}: {e}"
+    )
     error_load_file = "Ошибка при загрузке файла: {err}"
     error_load_tokens = "[Token Load] Ошибка загрузки токенов из keyring: {e}"
+    error_local_archive = "Ошибка при создании локального архива {e}"
     error_processing_request = "Ошибка обработки запроса: {e}"
     error_refresh_token = "Ошибка {status_code} при обновлении токена - {e}"
     error_saving_tokens = "Ошибка сохранения токенов в keyring: {e}"
+    error_starting_archiving = "Ошибка при запуске процесса архивации: {e}"
     error_upload_URL = "Ошибка получения upload URL: {text}"
+    exists_list_file = "Файл списка файлов архивации существует: {list_file_path}"
     expires_in = "В токен, полученном с сервера expires_in равен {expires_in}"
     failed_access_token = "Не удалось получить access_token"
     fast_load = "Быстрая загрузка файла {local_path}"
+    fatal_error = "Архивация завершена с ФАТАЛЬНЫМИ ошибками"
     file_exists = "Файл {remote_path} уже существует"
     file_numbers_found = "Найдены номера файлов: {file_nums}"
     folder_created = "Папка {archive_path} создана"
@@ -28,39 +43,66 @@ class TextMessage(frozenset):
     get_token = "Получение токена авторизации"
     get_token_error = "Ошибка получения токена: {e}"
     getting_file_numbers = "Получение номеров файлов из {archive}"
+    init_arch = "Инициализация Arch7zSpec"
+    init_FileArchiving = "Инициализация FileArchiving"
     init_yadisk = "Инициализация YandexDisk"
+    invalid_file_extension = (
+        "Недопустимое расширение файла архива: {suffix} - "
+        "должно быть {archive_suffix}"
+    )
+    invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге:" + "{path}"
     invalid_token = "Недействительный токен Яндекс.Диск!"
     load = "Загрузка {local_path} -> {remote_path}"
+    load_success = "Файл {local_path} успешно загружен в {remote_path}"
     loaded_token = "Успешно загружены сохраненные токены"
     many_iterations = "Превышена глубина рекурсии при обновлении токена"
     no_auth_code = "Не удалось извлечь код авторизации"
     no_callback_path = "Callback path не установлен"
     no_correct_redirect_uri = (
         "Некорректный redirect_uri: {redirect_uri}./n"
-        "Должен соответствовать зарегистрированному в кабинете "
-        "разработчика Яндекса"
+        "Должен соответствовать зарегистрированному в "
+        "кабинете разработчика Яндекса"
     )
     no_expires_in = "expires_in нет в токен полученном с сервера"
+    no_fatal_error = "Архивация завершена с НЕ фатальными ошибками"
+    no_path_local = "Не задан путь на архив, в который собираются сохраняемые файлы"
     no_refresh_token = "Refresh token отсутствует"
     no_token_in_response = "Токен доступа не получен в ответе сервера"
     no_valid_token = "Нет доступа к Яндекс-Диск. Токен недействителен."
     none_element = "Обнаружен None-элемент в списке файлов Яндекс-Диска."
+    not_key_in_config = f"В конфиге нет ключа {C.CONFIG_KEY_SEVEN_ZIP_PATH}"
     not_enough_rights = "Недостаточно прав для записи в {remote_path}"
+    not_found_7z = f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
     not_float = "[Token Load] Время истечения токена не число с плавающей запятой: {e}"
+    not_found_config_file = (
+        f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует"
+        + "{file_config}"
+    )
+    not_found_list_file_path = (
+        "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"
+    )
+    not_found_refresh_token = (
+        "В переменных окружения не найден refresh_token. Ключ - {refresh_token} "
+    )
     not_safe_uri = "Получен небезопасный callback URI: {callback_path}"
     not_valid_json = "Невалидный JSON: {e}. Ответ: {response}"
+    path_local_archive = "Путь к архиву на локальном диске: {local_path_str}"
     path_to_cloud = "Путь на архив в облаке: {remote_path}"
-    start_load_file = "Начало загрузки файла {local_path}"
     run_full_auth_flow = "Запуск полного процесса аутентификации"
+    start_create_archive = "Начало создания архива"
     start_fast_load = "Начало быстрой загрузки файла {local_path}"
+    start_load_file = "Начало загрузки файла {local_path}"
+    start_update_token = "Начало формирование токена доступа посредством refresh_token"
+    starting_archiving = "Запуск архивации: {cmd}"
     successful_access_token = "Успешно получен access_token"
+    successful_archiving = "Архивация завершена успешно"
     token_expired = "[Token Load] Токен истек {seconds} сек назад"
     token_in_memory = "Используется существующий валидный токен"
     token_invalid = "Токен недействителен. Код ответа API Яндекс-Диска: {status}"
     token_valid = "Токен успешно прошел проверку через API"
     tokens_saved = "Токены сохранены в keyring"
     updated_token = "Токен обновлён с помощью refresh_token"
-    updated_token_error = "Не удалось обновить токен: {e}"
+    updated_token_error = "Не удалось обновить токен доступа: {e}"
     url_received = "Получен upload URL: {upload_url}"
     valid_token = "Токен успешно получен"
     valid_token_found = "[Token Load] Найден валидный {token} в keyring"
