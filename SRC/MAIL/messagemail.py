@@ -8,6 +8,7 @@ from SRC.MAIL.yagmailhandler import YaGmailHandler
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
+from SRC.debug import variables
 
 # Инициализация логгера для текущего модуля
 logger = logging.getLogger(__name__)
@@ -27,10 +28,10 @@ class MessageMail:
 
     @staticmethod
     def create_email_handler() -> YaGmailHandler:
-        variables = EnvironmentVariables()
-        sender = variables.get_var(C.ENV_SENDER_EMAIL, "")
-        password = variables.get_var(C.ENV_SENDER_PASSWORD, "")
-        recipient = variables.get_var(C.ENV_RECIPIENT_EMAIL, "")
+        _variables = EnvironmentVariables()
+        sender = _variables.get_var(C.ENV_SENDER_EMAIL, "")
+        password = _variables.get_var(C.ENV_SENDER_PASSWORD, "")
+        recipient = _variables.get_var(C.ENV_RECIPIENT_EMAIL, "")
         return YaGmailHandler(sender, password, recipient)
 
     def compose_and_send_email(self) -> None:
@@ -137,18 +138,21 @@ class MessageMail:
         return False
 
 
-def setup_logging(log_file: str = "message_mail.log"):
-    """Настраивает систему логирования с выводом в консоль и файл."""
+def setup_logging(log_file: str = C.DEFAULT_LOG_FILE):
+    """
+    Настраивает систему логирования с выводом в консоль и файл.
+    Действует после завершения работы основной системы логирования
+    """
     formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Обработчик для вывода в консоль (только сообщения уровня INFO и выше)
     console_handler = StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(variables.get_var(C.ENV_LOGGING_LEVEL_CONSOLE))
     console_handler.setFormatter(formatter)
 
     # Обработчик для записи в файл (все сообщения уровня DEBUG и выше)
     file_handler = FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(variables.get_var(C.ENV_LOGGING_LEVEL_FILE))
     file_handler.setFormatter(formatter)
 
     # Настройка корневого логгера
@@ -165,11 +169,11 @@ def setup_logging(log_file: str = "message_mail.log"):
 
 
 def get_email_credentials() -> tuple[str, str, str]:
-    variables = EnvironmentVariables()
+    _variables = EnvironmentVariables()
     """Получает и проверяет учетные данные для отправки email."""
-    sender = variables.get_var("SENDER_EMAIL", "")
-    password = variables.get_var("SENDER_PASSWORD", "")
-    recipient = variables.get_var("RECIPIENT_EMAIL", "")
+    sender = _variables.get_var("SENDER_EMAIL", "")
+    password = _variables.get_var("SENDER_PASSWORD", "")
+    recipient = _variables.get_var("RECIPIENT_EMAIL", "")
 
     if not sender or not password:
         logging.critical("Отсутствуют учетные данные email")

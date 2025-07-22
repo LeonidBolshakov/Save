@@ -5,6 +5,7 @@ class Constant(frozenset):
     ENV_YANDEX_CLIENT_ID = "BOL_SAVE_YANDEX_CLIENT_ID"
 
     ACCESS_TOKEN = "ACCESS_TOKEN"  # token доступа к Яндекс-Диску
+    API_YANDEX_LOAD_FILE = "https://cloud-api.yandex.net/v1/disk/resources/upload"
     APP_NAME = "bol_save"
     ARCHIVE_SUFFIX = ".exe"
     AUTH_URL = "AUTH_URL"
@@ -55,7 +56,7 @@ class Constant(frozenset):
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
     EXPIRES_AT = "EXPIRES_AT"  # Время истечения токена
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
-            "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
+        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
     HTML_WINDOW_SUCCESSFUL = """
             <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">

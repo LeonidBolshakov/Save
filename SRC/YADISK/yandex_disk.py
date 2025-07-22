@@ -27,6 +27,7 @@ from yadisk.exceptions import PathNotFoundError, PathExistsError
 
 from SRC.YADISK.yandex_token import YandexOAuth  # Модуль для работы с OAuth
 from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.textmessage import TextMessage as T
 
 
 class YandexDisk:
@@ -39,7 +40,7 @@ class YandexDisk:
         archive_ext: str = C.ARCHIVE_SUFFIX,  # Расширение файла архива
         archive_path: str = C.REMOTE_ARCHIVE_PATH,  # Каталог архивов на Яндекс-Диске
     ):
-        logger.info("Инициализация YandexDisk")
+        logger.info(T.init_yadisk)
 
         self.target_date = target_date
         self.archive_prefix = archive_prefix
@@ -63,26 +64,23 @@ class YandexDisk:
     def get_token_for_API(self):
         # Получение токена для API
         try:
-            logger.info("Получение токена авторизации")
+            logger.info(T.get_token)
             yandex_token = YandexOAuth(port=12345)
             self.yandex_token = yandex_token.get_access_token()
             if not self.yandex_token:
-                error_msg = "Нет доступа к Яндекс-Диск. Токен недействителен."
-                logger.critical(error_msg)
-                raise PermissionError(error_msg)
+                logger.critical("")
+                raise PermissionError(T.no_valid_token)
             self.disk.token = self.yandex_token
-            logger.debug("Токен успешно получен")
+            logger.debug(T.no_valid_token)
         except Exception as e:
-            error_msg = f"Ошибка получения токена: {e}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg) from e
+            raise RuntimeError(T.get_token_error.format(e=e)) from e
 
     def remote_archive_name(self) -> str:
         """
         Генерирует уникальное имя архива на основе существующих файлов
         :return: (str) - Имя архива, сгенерированное по шаблону.
         """
-        logger.info("Генерация имени архива")
+        logger.info(T.archive_name_generation)
         # Вычисляем следующий порядковый номер архива на заданную дату
         next_num = max(self._get_file_nums(), default=0) + 1
 
@@ -94,30 +92,28 @@ class YandexDisk:
         Возвращает список номеров файлов на заданную дату в целевой директории
         :return: list[int] - Список номеров файлов архивов на заданную дату
         """
-        logger.debug(f"Получение номеров файлов из {self.archive_path}")
+        logger.debug(T.getting_file_numbers.format(archive=self.archive_prefix))
 
         try:
             # Получаем список элементов в папке архивов
             file_nums = self._list_file_nums()
-            logger.debug(f"Найдены номера файлов: {file_nums}")
+            logger.debug(T.file_numbers_found.format(file_nums=file_nums))
             return file_nums  # Возвращаем список номеров файлов архивов
         # Создание папки для архивов при необходимости
         except PathNotFoundError:  # Папки с архивами не существует
-            logger.info(f"Папка {self.archive_path} не найдена, создаем")
+            logger.info(T.folder_not_found.format(archive_path=self.archive_path))
             self.disk.mkdir(self.archive_path)  # Создаём папку с архивами
-            logger.info(f"Папка {self.archive_path} создана")
+            logger.info(T.folder_created.format(archive_path=self.archive_path))
             return []
         except Exception as e:
-            error_msg = f"Ошибка получения списка файлов: {e}"
-            logger.error(error_msg, exc_info=True)
-            raise RuntimeError(error_msg) from e
+            raise RuntimeError(T.error_list_files.format(e=e)) from e
 
     def _list_file_nums(self) -> list[int]:
         file_nums = []
         for item in self.disk.listdir(self.archive_path):
             # Извлекаем номер из имени файла
             if item.name is None:
-                logger.info("Обнаружен None-элемент в списке файлов Яндекс-Диска.")
+                logger.info(T.none_element)
                 continue
             file_num_str = self._extract_file_num(item.name)
 
@@ -172,7 +168,7 @@ class YandexDisk:
         :param local_path: Путь к локальному файлу
         :return: Статус операции (True/False)
         """
-        logger.info(f"Начало загрузки файла {local_path}")
+        logger.info(T.start_load_file.format(local_path=local_path))
 
         # Формируем полный путь на Яндекс. Диске
         remote_path = f"{self.remote_archive_name}/{self.remote_archive_name()}"
@@ -183,25 +179,19 @@ class YandexDisk:
             return True
         # Обработка специфических ошибок API
         except yadisk.exceptions.UnauthorizedError:
-            error_msg = "Недействительный токен Яндекс.Диск!"
-            logger.critical(error_msg, exc_info=True)
-            raise PermissionError(error_msg) from None
+            logger.critical("")
+            raise PermissionError(T.invalid_token)
         except yadisk.exceptions.PathExistsError:
-            error_msg = f"Файл {remote_path} уже существует"
-            logger.error(error_msg, exc_info=True)
-            raise PathExistsError(error_msg) from None
+            raise PathExistsError(T.file_exists.format(remote_path=remote_path))
         except yadisk.exceptions.ForbiddenError:
-            error_msg = f"Недостаточно прав для записи в {remote_path}"
-            logger.critical(error_msg, exc_info=True)
-            raise PermissionError(error_msg) from None
+            logger.critical("")
+            raise PermissionError(T.not_enough_rights.format(remote_path=remote_path))
         except Exception as err:
-            error_msg = f"Ошибка при загрузке файла: {err}"
-            logger.error(error_msg, exc_info=True)
-            raise Exception(error_msg) from None
+            raise Exception(T.error_load_file.format(err=err)) from err
 
     def _upload_file(self, local_path: str, remote_path: str) -> None:
         """Выполняет загрузку файла и логирует время."""
-        logger.debug(f"Загрузка {local_path} -> {remote_path}")
+        logger.debug(T.load.format(local_path=local_path, remote_path=remote_path))
         t_start = time.time()
         self.disk.upload(
             local_path,
@@ -210,7 +200,8 @@ class YandexDisk:
             timeout=120,
             chunk_size=4 * 1024 * 1024,
         )
-        logger.info(f"Файл загружен за {time.time() - t_start:.2f} сек.")
+        during = f"{time.time() - t_start:.2f}"
+        logger.info(T.during.format(during=during))
 
     def write_file_fast(self, local_path: str) -> str | None:
         """
@@ -233,13 +224,13 @@ class YandexDisk:
             Непосредственно не выбрасывает исключения наружу, но печатает ошибки,
             возникшие при получении URL или при самой загрузке файла.
         """
-        logger.info(f"Быстрая загрузка файла {local_path}")
+        logger.info(T.fast_load.format(local_path=local_path))
         upload_url, remote_path = self.get_file_download_URL()
         try:
             # Открываем локальный файл в бинарном режиме
             with open(local_path, "rb") as f:
                 # Шаг 2: загружаем файл напрямую на полученный URL через HTTP PUT
-                logger.info(f"Начало быстрой загрузки файла {local_path}")
+                logger.info(T.start_fast_load.format(local_path=local_path))
                 response = requests.put(upload_url, data=f)
 
             # Проверка на успешную загрузку (ошибки вызовут исключение)
@@ -247,9 +238,9 @@ class YandexDisk:
             logger.info(f"Файл {local_path} успешно загружен в {remote_path}")
             return remote_path
 
-        except Exception as e:
+        except Exception as err:
             # Обработка любых исключений при загрузке
-            logger.error(f"Ошибка при загрузке файла: {e}", exc_info=True)
+            logger.error(T.error_load_file.format(err=err))
             return None
 
     def get_file_download_URL(self) -> tuple[str, str]:
@@ -261,25 +252,25 @@ class YandexDisk:
         # Генерация имени архива и удаленного пути
         archive_name = self.remote_archive_name()
         remote_path = f"{self.archive_path}/{archive_name}"
-        logger.debug(f"Путь на архив в облаке: {remote_path}")
+        logger.debug(T.path_to_cloud.format(remote_path=remote_path))
         upload_url = self._get_upload_url(remote_path)
 
-        logger.debug(f"Получен upload URL: {upload_url}")
-        return upload_url, archive_name
+        logger.debug(T.url_received.format(upload_url=upload_url))
+        return upload_url, remote_path
 
     def _get_upload_url(self, remote_path: str) -> str:
         """Выполняет запрос к API для получения URL загрузки."""
         response = requests.get(
-            "https://cloud-api.yandex.net/v1/disk/resources/upload",
+            C.API_YANDEX_LOAD_FILE,
             headers={"Authorization": f"OAuth {self.yandex_token}"},
             params={"path": remote_path, "overwrite": "false"},
         )
         if not response.ok:
-            raise RuntimeError(f"Ошибка получения upload URL: {response.text}")
+            raise RuntimeError(T.error_upload_URL.format(text=response.text))
         return response.json()["href"]
 
 
 if __name__ == "__main__":
     # Пример использования
     yandex_disk = YandexDisk()
-    print(yandex_disk.write_file(r"yandex_disk.py"))
+    print(yandex_disk.write_file("yandex_disk.py"))

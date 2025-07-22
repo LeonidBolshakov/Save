@@ -1,7 +1,7 @@
 YANDEX_REDIRECT_URI=http://localhost:12345
 YANDEX_SCOPE=cloud_api:disk.app_folder cloud_api:disk.read cloud_api:disk.write
-LOGGING_LEVEL_CONSOLE=ERROR
-LOGGING_LEVEL_FILE=INFO
+LOGGING_LEVEL_CONSOLE=DEBUG
+LOGGING_LEVEL_FILE=DEBUG
 SENDER_EMAIL=API.Bolshakov@yandex.ru
 RECIPIENT_EMAIL=bolleoa@gmail.com
 
