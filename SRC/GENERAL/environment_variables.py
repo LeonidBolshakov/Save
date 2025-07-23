@@ -77,9 +77,7 @@ class EnvironmentVariables:
         """
         for var in C.VARS_KEYRING:
             current = self.get_var(var)
-            prompt = T.prompt.format(
-                var=var, concurrent=current if current else T.empty
-            )
+            prompt = T.prompt.format(var=var, current=current if current else T.empty)
             new_val = input(prompt)
             if new_val:
                 self.put_keyring_var(var, new_val)

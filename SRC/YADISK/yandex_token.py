@@ -24,7 +24,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 from oauthlib.oauth2 import WebApplicationClient
-
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
 from SRC.GENERAL.textmessage import TextMessage as T
@@ -250,6 +249,7 @@ class OAuthFlow:
             token = self.token_in_memory()
             if token:
                 return token
+            self.token_state = C.STATE_INVALID
 
             # 2. Попытка загрузить сохраненные токены
             token = self.loaded_token()
@@ -260,6 +260,7 @@ class OAuthFlow:
             token = self.updated_token()
             if token:
                 return token
+            self.token_state = C.STATE_INVALID
 
             # 4. Полная аутентификация
             return self.run_full_auth_flow()
@@ -276,6 +277,7 @@ class OAuthFlow:
                 and not self.is_token_expired()
         ):
             logger.debug(T.token_in_memory)
+            self.token_state = C.STATE_VALID
             return self.access_token
         return None
 
@@ -289,14 +291,13 @@ class OAuthFlow:
             self.token_state = C.STATE_VALID
             return self.access_token
 
-        self.token_state = C.STATE_INVALID
         return None
 
     def updated_token(self) -> str | None:
         logger.info(T.start_update_token)
-        if refresh_token := self.variables.get_var(C.REFRESH_TOKEN):
+        self.refresh_token = self.variables.get_var(C.REFRESH_TOKEN)
+        if self.refresh_token:
             try:
-                self.refresh_token = refresh_token
                 if tokens := self.refresh_access_token():
                     logger.debug(T.updated_token)
                     self.token_state = C.STATE_VALID
@@ -307,10 +308,9 @@ class OAuthFlow:
                 self.refresh_token = None
         else:
             logger.warning(
-                T.not_found_refresh_token.format(refresh_token=refresh_token)
+                T.not_found_refresh_token.format(key_refresh_token=C.REFRESH_TOKEN)
             )
 
-        self.token_state = C.STATE_INVALID
         return None
 
     def is_token_expired(self) -> bool:
@@ -469,18 +469,11 @@ class OAuthFlow:
             logger.warning(T.no_refresh_token)
             return None
 
-        if not (token := self.get_tokens_from_url()):
+        if not (tokens := self.get_tokens_from_url()):
             return None
 
-        self.access_token = str(token.get(ACCESS_TOKEN_IN_TOKEN))
+        self.access_token = str(tokens.get(ACCESS_TOKEN_IN_TOKEN))
         self.token_state = C.STATE_VALID if self.access_token else C.STATE_INVALID
-
-        if REFRESH_TOKEN_IN_TOKEN in token:
-            self.refresh_token = token[REFRESH_TOKEN_IN_TOKEN]
-
-        self.token_manager.save_tokens(
-            self.access_token, self.refresh_token or "", self.get_expires_in(token)
-        )
 
         return self.access_token if self.token_state == C.STATE_VALID else None
 
@@ -523,20 +516,23 @@ class OAuthFlow:
 
         return tokens
 
-    def get_expires_in(self, tokens) -> int:
+    @staticmethod
+    def get_expires_in(tokens) -> int:
         """
         Добывает  expires_in из токена
         :param tokens:
         :return:
         """
         if EXPIRES_IN_IN_TOKEN in tokens:
-            expires_in = tokens[EXPIRES_IN_IN_TOKEN]
-
+            expires_in_str = tokens[EXPIRES_IN_IN_TOKEN]
+            try:
+                expires_in = float(expires_in_str)
+            except ValueError:
+                expires_in = 0.0
+                logger.info(T.expires_in_error.format(key=expires_in_str))
         else:
             expires_in = float("inf")
             logger.info(T.no_expires_in)
-
-        self._token_expires_at = time.time() + expires_in - 60
 
         return expires_in
 

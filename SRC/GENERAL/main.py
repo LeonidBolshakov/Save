@@ -51,7 +51,7 @@ def main():
         logger.exception(T.critical_error_type.format(type=e.__class__.__name__, e=e))
         raise  # Повторное возбуждение исключения для видимости в консоли
     finally:
-        logger.info(T.time_run.format(time=f"time.time()-start_time:.2f"))
+        logger.info(T.time_run.format(time=f"{time.time() - start_time:.2f}"))
 
 
 if __name__ == "__main__":

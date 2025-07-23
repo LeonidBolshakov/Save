@@ -43,6 +43,7 @@ class TextMessage(frozenset):
     )
     exists_list_file = "Файл списка файлов архивации существует: {list_file_path}"
     expires_in = "В токен доступа, полученном с сервера время жизни токена равно {expires_in} сек."
+    expires_in_error = "В токен доступа, полученном с сервера время жизни токена не плавающее число {key}"
     failed_access_token = "Не удалось получить токен доступа"
     failed_send_email = "Все попытки отправки email провалились"
     fast_load = "Быстрая загрузка файла {local_path}"
@@ -114,7 +115,7 @@ class TextMessage(frozenset):
         "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"
     )
     not_found_refresh_token = (
-        "В переменных окружения не найден refresh_token. Ключ - {refresh_token} "
+        "В переменных окружения не найден refresh_token. Ключ - {key_refresh_token} "
     )
     not_safe_uri = "Получен небезопасный callback URI: {callback_path}"
     not_save_env = "❌ {var_name} не сохранён в keyring! Записываемое значение не равно прочитанному."

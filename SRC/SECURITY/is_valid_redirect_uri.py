@@ -1,6 +1,8 @@
 from urllib.parse import urlparse
 import re
 
+from SRC.GENERAL.textmessage import TextMessage as T
+
 
 def is_valid_redirect_uri(uri: str) -> bool:
     """Проверяет валидность redirect URI согласно спецификации OAuth 2.0 и требованиям Яндекс.
@@ -33,13 +35,13 @@ def is_valid_redirect_uri(uri: str) -> bool:
         return False
 
     # 2. Для localhost разрешаем только HTTP (в development)
-    if parsed.hostname == "localhost" and parsed.scheme != "http":
+    if parsed.hostname == "localhost" and parsed.scheme != "https":
         return False
 
     # 3. Проверка домена (требования Яндекса)
     if not re.match(
-        r"^(localhost|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.[a-zA-Z]{2,})$",
-        parsed.hostname or "",
+            r"^(localhost|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.[a-zA-Z]{2,})$",
+            parsed.hostname or "",
     ):
         return False
 
