@@ -41,7 +41,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -95,7 +95,7 @@ class TokenManager:
         self.variables = env_vars
 
     def save_tokens(
-        self, access_token: str, refresh_token: str, expires_in: float
+            self, access_token: str, refresh_token: str, expires_in: float
     ) -> None:
         """Сохраняет токены и время жизни токена в secure storage.
 
@@ -157,7 +157,12 @@ class TokenManager:
     def load_and_validate_exist_tokens(self) -> dict[str, str] | None:
         """Загружает и проверяет токены из keyring"""
         try:
-            access_token, refresh_token, expires_at = self.get_vars()
+            _vars = self.get_vars()
+
+            if _vars is None:
+                return None
+
+            access_token, refresh_token, expires_at = _vars
 
             if not all([access_token, expires_at]):
                 return None
@@ -223,10 +228,10 @@ class OAuthFlow:
     """
 
     def __init__(
-        self,
-        token_manager: TokenManager,
-        port: int,
-        env_vars: EnvironmentVariables,
+            self,
+            token_manager: TokenManager,
+            port: int,
+            env_vars: EnvironmentVariables,
     ):
         self.token_manager = token_manager
         self.port = port
@@ -260,15 +265,15 @@ class OAuthFlow:
             return self.run_full_auth_flow()
 
         except AuthCancelledError as e:
-            raise AuthCancelledError(T.cancel_authorization) from e
+            raise AuthCancelledError(T.canceled_authorization) from e
         except AuthError as e:
             raise AuthError(T.authorization_error.format(e=e)) from e
 
     def token_in_memory(self) -> str | None:
         if (
-            self.access_token
-            and self.token_state == C.STATE_VALID
-            and not self.is_token_expired()
+                self.access_token
+                and self.token_state == C.STATE_VALID
+                and not self.is_token_expired()
         ):
             logger.debug(T.token_in_memory)
             return self.access_token
@@ -314,7 +319,7 @@ class OAuthFlow:
 
     def run_full_auth_flow(self) -> str:
         """Выполняет полный цикл OAuth 2.0 аутентификации"""
-        logger.info(T.run_full_auth_flow)
+        logger.info(T.start_full_auth_flow)
         try:
             return self.full_auth_flow()
         except TimeoutError as e:
@@ -323,7 +328,7 @@ class OAuthFlow:
             raise AuthError(T.authorization_error.format(e=e)) from e
 
     def full_auth_flow(self) -> str:
-        """Содержательная часть метода run_full_auth_flow"""
+        """Содержательная часть метода start_full_auth_flow"""
         code_verifier, code_challenge = generate_pkce_params()
         auth_url = self.build_auth_url(code_challenge)
         self.start_auth_server()
@@ -467,7 +472,7 @@ class OAuthFlow:
         if not (token := self.get_tokens_from_url()):
             return None
 
-        self.access_token = token.get(ACCESS_TOKEN_IN_TOKEN)
+        self.access_token = str(token.get(ACCESS_TOKEN_IN_TOKEN))
         self.token_state = C.STATE_VALID if self.access_token else C.STATE_INVALID
 
         if REFRESH_TOKEN_IN_TOKEN in token:
@@ -479,7 +484,7 @@ class OAuthFlow:
 
         return self.access_token if self.token_state == C.STATE_VALID else None
 
-    def get_tokens_from_url(self) -> dict:
+    def get_tokens_from_url(self) -> dict | None:
         token_data = {
             "grant_type": "refresh_token",
             "refresh_token": self.variables.get_var(C.REFRESH_TOKEN),
@@ -548,8 +553,8 @@ class YandexOAuth:
     """
 
     def __init__(
-        self,
-        port: int,
+            self,
+            port: int,
     ):
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
         env_vars = EnvironmentVariables()

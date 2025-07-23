@@ -8,7 +8,6 @@ from SRC.MAIL.yagmailhandler import YaGmailHandler
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
-from SRC.debug import variables
 
 # Инициализация логгера для текущего модуля
 logger = logging.getLogger(__name__)
@@ -59,7 +58,7 @@ class MessageMail:
         logger.info("Служебное сообщение отправлено по e-mail")
 
     def _compose_message_content(
-        self, last_time: float, max_level: int, remote_archive_path: str
+            self, last_time: float, max_level: int, remote_archive_path: str
     ) -> tuple[str, str]:
         """Формирует тему и содержание email в зависимости от уровня важности."""
         level_name = logging.getLevelName(max_level)
@@ -80,7 +79,7 @@ class MessageMail:
 
     @staticmethod
     def _create_info_email(
-        last_time_str: str, remote_archive_path: str
+            last_time_str: str, remote_archive_path: str
     ) -> tuple[str, str]:
         """Создает email-уведомление об успешном выполнении операции."""
         # noinspection PyUnusedLocal
@@ -92,7 +91,7 @@ class MessageMail:
 
     @staticmethod
     def _create_warning_email(
-        last_time_str: str, remote_archive_path: str, log_path: str
+            last_time_str: str, remote_archive_path: str, log_path: str | None
     ) -> tuple[str, str]:
         """Создает email-уведомление с предупреждением."""
         # noinspection PyUnusedLocal
@@ -106,7 +105,7 @@ class MessageMail:
 
     @staticmethod
     def _create_error_email(
-        last_time_str: str, level_name: str, log_path: str
+            last_time_str: str, level_name: str, log_path: str | None
     ) -> tuple[str, str]:
         """Создает email-уведомление об ошибке."""
         subject = C.EMAIL_ERROR_SUBJECT
@@ -147,12 +146,12 @@ def setup_logging(log_file: str = C.DEFAULT_LOG_FILE):
 
     # Обработчик для вывода в консоль (только сообщения уровня INFO и выше)
     console_handler = StreamHandler(sys.stdout)
-    console_handler.setLevel(variables.get_var(C.ENV_LOGGING_LEVEL_CONSOLE))
+    console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(formatter)
 
     # Обработчик для записи в файл (все сообщения уровня DEBUG и выше)
     file_handler = FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(variables.get_var(C.ENV_LOGGING_LEVEL_FILE))
+    file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
     # Настройка корневого логгера

@@ -8,6 +8,7 @@ from SRC.LOGGING.tunelogger import TuneLogger  # Для настройки си�
 from SRC.GENERAL.backupmanager import BackupManager
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.textmessage import TextMessage as T
 
 
 def validate_vars_environments():
@@ -19,7 +20,7 @@ def validate_vars_environments():
     EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
 
     for (
-        handler
+            handler
     ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
         logging.root.removeHandler(handler)
 
@@ -36,21 +37,21 @@ def main():
     validate_vars_environments()  # Проверка наличия переменных окружения
     TuneLogger().setup_logging()  # Настройка системы логирования
 
-    logger.info("Запуск процесса резервного копирования")
+    logger.info(T.start_main)
     start_time = time.time()
 
     try:
         BackupManager().main()  # Запуск основного процесса
     except KeyboardInterrupt:
-        logger.error("Процесс прерван пользователем")
+        logger.error(T.canceled_by_user)
         raise
     except SystemExit:
-        logger.info("Корректное завершение работы")
+        logger.info(T.successful)
     except Exception as e:
-        logger.exception(f"Ошибка типа {e.__class__.__name__}: {str(e)}")
+        logger.exception(T.critical_error_type.format(type=e.__class__.__name__, e=e))
         raise  # Повторное возбуждение исключения для видимости в консоли
     finally:
-        logger.info(f"Время выполнения: {time.time() - start_time:.2f} сек")
+        logger.info(T.time_run.format(time=f"time.time()-start_time:.2f"))
 
 
 if __name__ == "__main__":

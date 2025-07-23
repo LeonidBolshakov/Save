@@ -22,10 +22,10 @@ class EnvironmentVariables:
         Загружает имя приложения из констант и читает переменные из .env файла.
         """
         self.app_name = C.APP_NAME
-        self._read_env_vars()
+        self._custom_dot_env()
 
     @staticmethod
-    def _read_env_vars():
+    def _custom_dot_env():
         """
         Загружает переменные из env файла.
         """
@@ -38,9 +38,9 @@ class EnvironmentVariables:
         if not load_dotenv(dotenv_path=C.DOTENV_PATH):
             logger.info(T.env_not_found.format(env=C.DOTENV_PATH, dir=Path.cwd()))
 
-    def get_var(self, var_name: str, default: str = "") -> str | None:
+    def get_var(self, var_name: str, default: str = "") -> str:
         """
-        Получает значение переменной из keyring или из окружения.
+        Получает значение переменной из keyring или окружения.
 
         :param var_name: Название переменной
         :param default: Значение по умолчанию, если переменная не найдена
@@ -64,15 +64,11 @@ class EnvironmentVariables:
                 keyring.set_password(self.app_name, var_name, value)
                 result = keyring.get_password(self.app_name, var_name)
                 if result != value:
-                    raise RuntimeError(
-                        f"❌ {var_name} не сохранён в keyring! Записываемое значение не равно прочитанному."
-                    )
+                    raise RuntimeError(T.not_save_env)
             else:
-                raise RuntimeError(
-                    f"❌ {var_name} не сохранён в keyring! Задано пустое значение."
-                )
+                raise RuntimeError(T.not_save_env_empty)
         except Exception as e:
-            raise RuntimeError(f"Ошибка сохранения {var_name}: {str(e)}")
+            raise RuntimeError(T.error_saving_env.format(var_name=var_name, e=e))
 
     def write_keyring_vars(self):
         """
@@ -81,7 +77,9 @@ class EnvironmentVariables:
         """
         for var in C.VARS_KEYRING:
             current = self.get_var(var)
-            prompt = f"{var} = {current if current else '[пусто]'}, введите новое или Enter: "
+            prompt = T.prompt.format(
+                var=var, concurrent=current if current else T.empty
+            )
             new_val = input(prompt)
             if new_val:
                 self.put_keyring_var(var, new_val)
@@ -95,9 +93,12 @@ class EnvironmentVariables:
         """
         missing = [var for var in C.VARS_REQUIRED if not self.get_var(var)]
         if missing:
-            error_msg = f"❌ Отсутствуют переменные, задаваемые в файле {C.DOTENV_PATH} или в keyring:/n{', '.join(missing)}"
-            logger.critical(error_msg)
-            raise EnvironmentError(error_msg)
+            logger.critical("")
+            raise EnvironmentError(
+                T.missing_mandatory_variables.format(
+                    dot_env=C.DOTENV_PATH, missing=", ".join(missing)
+                )
+            )
 
 
 if __name__ == "__main__":

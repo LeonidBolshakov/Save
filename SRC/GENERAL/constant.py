@@ -14,9 +14,9 @@ class Constant(frozenset):
         "C:\\Program Files\\7-Zip\\7z.exe",
         "C:\\Program Files (x86)\\7-Zip\\7z.exe",
     ]
+    DEFAULT_CONFIG_FILE = "config_file.txt"
     DEFAULT_LEVEL_LIB = logging.WARNING
     DEFAULT_LEVEL_GENERAL = logging.INFO
-    DEFAULT_CONFIG_FILE = "config_file.txt"
     DEFAULT_LOCAL_ARCHIVE_FILE = f"archive{ARCHIVE_SUFFIX}"
     DEFAULT_LOG_LEVEL = "INFO"
     DEFAULT_LOG_FILE = "save.log"
@@ -55,6 +55,7 @@ class Constant(frozenset):
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
+    ENV_YANDEX_PORT = "BOL_SAVE_YANDEX_PORT"
     EXPIRES_AT = "EXPIRES_AT"  # Время истечения токена
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
         "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
@@ -126,6 +127,7 @@ class Constant(frozenset):
         f"{ENV_SENDER_PASSWORD}",  # Почтовый пароль отправителя
         f"{ENV_PASSWORD_ARCHIVE}",  # Пароль создаваемого архива
         f"{ENV_CLIENT_SECRET}",  # Секретный ключ клиента
+        f"{ENV_YANDEX_PORT}",  # Номер порта, заданный в приложении Яндекс
         f"{ACCESS_TOKEN}",  # token доступа к Яндекс-Диску
         f"{REFRESH_TOKEN}",  # refresh token к Яндекс-Диску
         f"{EXPIRES_AT}",  # Время истечения токена
@@ -137,6 +139,7 @@ class Constant(frozenset):
         f"{ENV_SENDER_EMAIL}",  # Email для отправки уведомлений
         f"{ENV_SENDER_PASSWORD}",  # Пароль от email отправителя
         f"{ENV_RECIPIENT_EMAIL}",  # Email получателя уведомлений
+        f"{ENV_YANDEX_PORT}",  # Номер порта, заданный в приложении Яндекс
     ]
     YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
     YANDEX_SCOPE = "YANDEX_SCOPE"

@@ -31,17 +31,19 @@ from SRC.GENERAL.textmessage import TextMessage as T
 
 
 class YandexDisk:
-    """Класс для работы с архивами на Яндекс. Диске"""
+    """Класс для работы с файлами (архивами) на Яндекс-Диске"""
 
     def __init__(
-        self,
-        target_date: date = date.today(),  # Дата для именования
-        archive_prefix: str = C.REMOTE_ARCHIVE_PREFIX,  # Префикс имени файла архива
-        archive_ext: str = C.ARCHIVE_SUFFIX,  # Расширение файла архива
-        archive_path: str = C.REMOTE_ARCHIVE_PATH,  # Каталог архивов на Яндекс-Диске
+            self,
+            port: int,  # Номер порта, заданный в приложении Яндекс
+            target_date: date = date.today(),  # Дата для именования
+            archive_prefix: str = C.REMOTE_ARCHIVE_PREFIX,  # Префикс имени файла архива
+            archive_ext: str = C.ARCHIVE_SUFFIX,  # Расширение файла архива
+            archive_path: str = C.REMOTE_ARCHIVE_PATH,  # Каталог архивов на Яндекс-Диске
     ):
         logger.info(T.init_yadisk)
 
+        self.port = port
         self.target_date = target_date
         self.archive_prefix = archive_prefix
         self.archive_ext = archive_ext
@@ -65,7 +67,7 @@ class YandexDisk:
         # Получение токена для API
         try:
             logger.info(T.get_token)
-            yandex_token = YandexOAuth(port=12345)
+            yandex_token = YandexOAuth(port=self.port)
             self.yandex_token = yandex_token.get_access_token()
             if not self.yandex_token:
                 logger.critical("")
@@ -274,5 +276,5 @@ class YandexDisk:
 
 if __name__ == "__main__":
     # Пример использования
-    yandex_disk = YandexDisk()
+    yandex_disk = YandexDisk(12345)
     print(yandex_disk.write_file("yandex_disk.py"))
