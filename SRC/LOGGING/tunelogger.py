@@ -10,6 +10,10 @@ from SRC.LOGGING.customrotatingfilehandler import CustomRotatingFileHandler
 from SRC.GENERAL.constant import Constant as C
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 
+FILE = "file"
+MAX_LEVEL = "max_level"
+CONSOLE = "console"
+
 
 class TuneLogger:
     def __init__(self):
@@ -28,9 +32,9 @@ class TuneLogger:
 
         self.log_format = C.LOG_FORMAT  # Формат для всех обработчиков логгеров
         self.log_handlers = {  # Словарь обработчиков логгеров
-            "file": self.create_file_handler(),
-            "max_level": MaxLevelHandler(),
-            "console": CustomStreamHandler(sys.stdout),
+            FILE: self.create_file_handler(),
+            MAX_LEVEL: MaxLevelHandler(),
+            CONSOLE: CustomStreamHandler(sys.stdout),
         }
 
     def setup_logging(self):
@@ -73,7 +77,7 @@ class TuneLogger:
         )
 
     def configure_handlers(
-        self, log_format: str, log_level_console: int, log_level_file: int
+            self, log_format: str, log_level_console: int, log_level_file: int
     ) -> None:
         """Конфигурация всех обработчиков"""
         handlers = list(self.log_handlers.values())
@@ -83,9 +87,9 @@ class TuneLogger:
             handler.setFormatter(logging.Formatter(log_format))
 
         # Настройка уровней
-        self.log_handlers["file"].setLevel(log_level_file)
-        self.log_handlers["max_level"].setLevel(logging.NOTSET)
-        self.log_handlers["console"].setLevel(log_level_console)
+        self.log_handlers[FILE].setLevel(log_level_file)
+        self.log_handlers[MAX_LEVEL].setLevel(logging.NOTSET)
+        self.log_handlers[CONSOLE].setLevel(log_level_console)
 
         self.configure_root_handlers(handlers)
 

@@ -7,6 +7,7 @@ import logging
 from SRC.MAIL.yagmailhandler import YaGmailHandler
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.textmessage import TextMessage as T
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 
 # Инициализация логгера для текущего модуля
@@ -46,16 +47,14 @@ class MessageMail:
             subject, content = self._compose_message_content(
                 last_time, max_level, remote_archive_path
             )
-            logger.debug(f"Отправка email: {subject}")
+            logger.debug(T.start_send_email.format(subject=subject))
             if not self._send_email_with_retry(subject, content):
-                error_msg = "Все попытки отправки email провалились"
-                logger.error(error_msg)
+                logger.error(T.failed_send_email)
                 return
         except Exception as e:
-            error_msg = f"Ошибка отправки email: {str(e)}"
-            logger.error(error_msg)
+            logger.error(T.error_send_email.format(e=e))
 
-        logger.info("Служебное сообщение отправлено по e-mail")
+        logger.info(T.start_send_email)
 
     def _compose_message_content(
             self, last_time: float, max_level: int, remote_archive_path: str
@@ -142,7 +141,7 @@ def setup_logging(log_file: str = C.DEFAULT_LOG_FILE):
     Настраивает систему логирования с выводом в консоль и файл.
     Действует после завершения работы основной системы логирования
     """
-    formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = Formatter(T.format_log)
 
     # Обработчик для вывода в консоль (только сообщения уровня INFO и выше)
     console_handler = StreamHandler(sys.stdout)
@@ -150,7 +149,7 @@ def setup_logging(log_file: str = C.DEFAULT_LOG_FILE):
     console_handler.setFormatter(formatter)
 
     # Обработчик для записи в файл (все сообщения уровня DEBUG и выше)
-    file_handler = FileHandler(log_file, encoding="utf-8")
+    file_handler = FileHandler(log_file, encoding=C.ENCODING)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
@@ -170,21 +169,15 @@ def setup_logging(log_file: str = C.DEFAULT_LOG_FILE):
 def get_email_credentials() -> tuple[str, str, str]:
     _variables = EnvironmentVariables()
     """Получает и проверяет учетные данные для отправки email."""
-    sender = _variables.get_var("SENDER_EMAIL", "")
-    password = _variables.get_var("SENDER_PASSWORD", "")
-    recipient = _variables.get_var("RECIPIENT_EMAIL", "")
+    sender = _variables.get_var(C.ENV_SENDER_EMAIL, "")
+    password = _variables.get_var(C.ENV_SENDER_PASSWORD, "")
+    recipient = _variables.get_var(C.ENV_RECIPIENT_EMAIL, "")
 
     if not sender or not password:
-        logging.critical("Отсутствуют учетные данные email")
+        logging.critical(T.missing_email_credentials)
         sys.exit(1)
 
     return sender, password, recipient
-
-
-def configure_email_logging() -> None:
-    """Настраивает обработчик для отправки логов по email (заглушка)."""
-    # Реализация должна быть добавлена позже
-    logger.info("Email обработчик инициализирован")
 
 
 def run_test_scenarios() -> None:
@@ -203,7 +196,6 @@ def main() -> None:
     """Точка входа в приложение - выполняет настройку и тестовые сценарии."""
     try:
         setup_logging()
-        configure_email_logging()
         run_test_scenarios()
     except Exception as e:
         logging.critical(f"Фатальная ошибка: {e}", exc_info=True)
