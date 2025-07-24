@@ -24,8 +24,8 @@ class TextMessage(frozenset):
     error_check_token = "Ошибка проверки токена доступа через API: {e}"
     error_list_files = "Ошибка получения списка файлов: {e}"
     error_load_7z = (
-        f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
-        + "{config_file}: {e}"
+            f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
+            + "{config_file}: {e}"
     )
     error_load_file = "Ошибка при загрузке файла: {err}"
     error_load_tokens = (
@@ -72,9 +72,9 @@ class TextMessage(frozenset):
     )
     invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге:" + "{path}"
     invalid_port = (
-        "В переменных окружения не задан, или задан как не целое число, номер порта, заданный в приложении Яндекс. "
-        + f"Имя переменной окружения - {C.ENV_YANDEX_PORT}. "
-        + "{e}"
+            "В переменных окружения не задан, или задан как не целое число, номер порта, заданный в приложении Яндекс. "
+            + f"Имя переменной окружения - {C.ENV_YANDEX_PORT}. "
+            + "{e}"
     )
     invalid_token = "Недействительный токен доступа к Яндекс.Диск!"
     load = "Загрузка {local_path} -> {remote_path}"
@@ -113,8 +113,8 @@ class TextMessage(frozenset):
     not_found_7z = f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
     not_float = "[Token Load] Время истечения токена не число с плавающей запятой: {e}"
     not_found_config_file = (
-        f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует"
-        + "{config_file}"
+            f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует"
+            + "{config_file}"
     )
     not_found_list_file_path = (
         "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"
@@ -136,7 +136,6 @@ class TextMessage(frozenset):
     start_update_token = "Начало формирование токена доступа посредством refresh_token"
     start_update_tokens = "Получаем токены от Яндекс с помощью refresh_token"
     starting_archiving = "Запуск архивации: {cmd}"
-    successful = "Корректное завершение работы"
     successful_access_token = "Успешно получен access_token"
     successful_archiving = "Архивация завершена успешно"
     successful_send_email = "Служебное сообщение отправлено по e-mail"
