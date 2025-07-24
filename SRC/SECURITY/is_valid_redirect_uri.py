@@ -35,7 +35,7 @@ def is_valid_redirect_uri(uri: str) -> bool:
         return False
 
     # 2. Для localhost разрешаем только HTTP (в development)
-    if parsed.hostname == "localhost" and parsed.scheme != "https":
+    if parsed.hostname == "localhost" and parsed.scheme != "http":
         return False
 
     # 3. Проверка домена (требования Яндекса)
@@ -59,7 +59,7 @@ def is_valid_redirect_uri(uri: str) -> bool:
 
     # 7. Проверка на опасные символы
     if re.search(r'[<>"\'\s]', uri):  # Запрет HTML-тегов и кавычек
-        raise ValueError("Redirect URI содержит опасные символы")
+        raise ValueError(T.dangerous_symbols)
 
     # 8. Дополнительные требования Яндекса
     if len(uri) > 200:  # Максимальная длина URI

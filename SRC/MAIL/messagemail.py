@@ -57,7 +57,7 @@ class MessageMail:
         logger.info(T.start_send_email)
 
     def _compose_message_content(
-            self, last_time: float, max_level: int, remote_archive_path: str
+        self, last_time: float, max_level: int, remote_archive_path: str
     ) -> tuple[str, str]:
         """Формирует тему и содержание email в зависимости от уровня важности."""
         level_name = logging.getLevelName(max_level)
@@ -78,7 +78,7 @@ class MessageMail:
 
     @staticmethod
     def _create_info_email(
-            last_time_str: str, remote_archive_path: str
+        last_time_str: str, remote_archive_path: str
     ) -> tuple[str, str]:
         """Создает email-уведомление об успешном выполнении операции."""
         # noinspection PyUnusedLocal
@@ -90,7 +90,7 @@ class MessageMail:
 
     @staticmethod
     def _create_warning_email(
-            last_time_str: str, remote_archive_path: str, log_path: str | None
+        last_time_str: str, remote_archive_path: str, log_path: str | None
     ) -> tuple[str, str]:
         """Создает email-уведомление с предупреждением."""
         # noinspection PyUnusedLocal
@@ -104,7 +104,7 @@ class MessageMail:
 
     @staticmethod
     def _create_error_email(
-            last_time_str: str, level_name: str, log_path: str | None
+        last_time_str: str, level_name: str, log_path: str | None
     ) -> tuple[str, str]:
         """Создает email-уведомление об ошибке."""
         subject = C.EMAIL_ERROR_SUBJECT

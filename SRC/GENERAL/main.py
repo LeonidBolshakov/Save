@@ -20,7 +20,7 @@ def validate_vars_environments():
     EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
 
     for (
-            handler
+        handler
     ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
         logging.root.removeHandler(handler)
 

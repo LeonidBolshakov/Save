@@ -94,26 +94,23 @@ class TokenManager:
         self.variables = env_vars
 
     def save_tokens(
-            self, access_token: str, refresh_token: str, expires_in: float
+            self, access_token: str, refresh_token: str, expires_at: str
     ) -> None:
         """Сохраняет токены и время жизни токена в secure storage.
 
         Args:
             access_token (str): Токен для API-запросов
             refresh_token (str): Токен для обновления access token
-            expires_in (float): Время жизни токена для API-запросов в секундах
+            expires_at (str): Время окончания действия токена для API-запросов
 
         Note:
             Автоматически вычитает 60 секунд из expires_in для раннего обновления
         """
         try:
-            # Время истечения токена(expires_at)
-            expires_at = time.time() + expires_in - 60
-
             # Сохраняем токены и время истечения в памяти (keyring)
             self.variables.put_keyring_var(C.ACCESS_TOKEN, access_token)
             self.variables.put_keyring_var(C.REFRESH_TOKEN, refresh_token)
-            self.variables.put_keyring_var(C.EXPIRES_AT, str(expires_at))
+            self.variables.put_keyring_var(C.EXPIRES_AT, expires_at)
 
             logger.debug(T.tokens_saved)
 
@@ -222,7 +219,6 @@ class OAuthFlow:
         refresh_token (str): Текущий refresh token
         access_token (str): Текущий access token
         _token_expires_at (float): Время истечения токена (timestamp)
-        token_state (str): Состояние токена (valid/invalid)
         variables (EnvironmentVariables): Обертка для переменных окружения
     """
 
@@ -239,7 +235,6 @@ class OAuthFlow:
         self.refresh_token: str | None = None
         self.access_token: str | None = None
         self._token_expires_at: float = 0
-        self.token_state: str = C.STATE_UNKNOWN  # valid, invalid
         self.variables = env_vars
 
     def get_access_token(self) -> str | None:
@@ -248,19 +243,20 @@ class OAuthFlow:
             # 1. Проверка токена в памяти
             token = self.token_in_memory()
             if token:
-                return token
-            self.token_state = C.STATE_INVALID
+                return self.access_token
+            self.access_token = None
 
-            # 2. Попытка загрузить сохраненные токены
-            token = self.loaded_token()
-            if token:
-                return token
+            # 2. Попытка загрузить сохраненные токены из хранилища компьютера (keyring)
+            tokens = self.loaded_tokens()
+            if tokens:
+                return self.access_token
+            self.access_token = None
 
             # 3. Попытка обновить токен
-            token = self.updated_token()
-            if token:
-                return token
-            self.token_state = C.STATE_INVALID
+            tokens = self.updated_tokens()
+            if tokens:
+                return self.access_token
+            self.access_token = None
 
             # 4. Полная аутентификация
             return self.run_full_auth_flow()
@@ -271,45 +267,39 @@ class OAuthFlow:
             raise AuthError(T.authorization_error.format(e=e)) from e
 
     def token_in_memory(self) -> str | None:
-        if (
-                self.access_token
-                and self.token_state == C.STATE_VALID
-                and not self.is_token_expired()
-        ):
+        if self.access_token and not self.is_token_expired():
             logger.debug(T.token_in_memory)
-            self.token_state = C.STATE_VALID
             return self.access_token
         return None
 
-    def loaded_token(self) -> str | None:
+    def loaded_tokens(self) -> str | None:
         tokens = self.token_manager.load_and_validate_exist_tokens()
         if tokens:
             self.access_token = tokens[C.ACCESS_TOKEN]
             self.refresh_token = tokens.get(C.REFRESH_TOKEN)
             self._token_expires_at = float(tokens[C.EXPIRES_AT])
             logger.debug(T.loaded_token)
-            self.token_state = C.STATE_VALID
-            return self.access_token
+            return tokens
 
         return None
 
-    def updated_token(self) -> str | None:
-        logger.info(T.start_update_token)
-        self.refresh_token = self.variables.get_var(C.REFRESH_TOKEN)
-        if self.refresh_token:
-            try:
-                if tokens := self.refresh_access_token():
-                    logger.debug(T.updated_token)
-                    self.token_state = C.STATE_VALID
-                    return tokens
-                logger.debug(T.updated_token_error.format(e=""))
-            except RefreshTokenError as e:
-                logger.warning(T.updated_token_error.format(e=e))
-                self.refresh_token = None
-        else:
-            logger.warning(
-                T.not_found_refresh_token.format(key_refresh_token=C.REFRESH_TOKEN)
-            )
+    def updated_tokens(self) -> dict[str, str] | None:
+        logger.debug(T.start_update_tokens)
+        try:
+            if tokens := self.get_tokens_from_url():
+                logger.debug(T.updated_tokens)
+
+                self.access_token = tokens[ACCESS_TOKEN_IN_TOKEN]
+                self.refresh_token = tokens.get(REFRESH_TOKEN_IN_TOKEN)
+                token_expires_at = self.create_expires_at(tokens)
+                self.token_manager.save_tokens(
+                    self.access_token, self.refresh_token, token_expires_at
+                )
+                return tokens
+            else:
+                logger.warning(T.updated_tokens_error.format(e=""))
+        except RefreshTokenError as e:
+            logger.warning(T.updated_tokens_error.format(e=e))
 
         return None
 
@@ -339,7 +329,6 @@ class OAuthFlow:
         auth_code = self.parse_callback()
         token = self.exchange_token(auth_code, code_verifier)
 
-        self.token_state = C.STATE_VALID
         return token
 
     def build_auth_url(self, code_challenge: str) -> str:
@@ -389,8 +378,8 @@ class OAuthFlow:
         if not self.callback_path:
             raise AuthError(T.no_callback_path)
 
-        if not is_valid_redirect_uri(self.callback_path):
-            raise AuthError(T.not_safe_uri.format(callback_path=self.callback_path))
+        # if not is_valid_redirect_uri(self.callback_path):
+        #     raise AuthError(T.not_safe_uri.format(callback_path=self.callback_path))
 
         query = urlparse(self.callback_path).query
         params = parse_qs(query)
@@ -444,38 +433,13 @@ class OAuthFlow:
         self.access_token = token[ACCESS_TOKEN_IN_TOKEN]
         self.refresh_token = token.get(REFRESH_TOKEN_IN_TOKEN, self.refresh_token)
 
-        if EXPIRES_IN_IN_TOKEN in token:
-            expires_in = token[EXPIRES_IN_IN_TOKEN]
-            logger.info(T.expires_in.format(expires_in=expires_in))
-        else:
-            expires_in = float("inf")
-            logger.debug(T.no_expires_in)
+        # Время истечения токена(expires_at)
+        expires_at = self.create_expires_at(token)
 
         self.token_manager.save_tokens(
-            self.access_token, self.refresh_token or "", expires_in
+            self.access_token, self.refresh_token or "", expires_at
         )
         return self.access_token
-
-    def refresh_access_token(self) -> str | None:
-        """Обновляет access token с помощью refresh token.
-
-        Returns:
-            str | None: Новый access token или None при ошибке
-
-        Raises:
-            RefreshTokenError: При неудачном обновлении токена
-        """
-        if not self.refresh_token:
-            logger.warning(T.no_refresh_token)
-            return None
-
-        if not (tokens := self.get_tokens_from_url()):
-            return None
-
-        self.access_token = str(tokens.get(ACCESS_TOKEN_IN_TOKEN))
-        self.token_state = C.STATE_VALID if self.access_token else C.STATE_INVALID
-
-        return self.access_token if self.token_state == C.STATE_VALID else None
 
     def get_tokens_from_url(self) -> dict | None:
         token_data = {
@@ -516,8 +480,7 @@ class OAuthFlow:
 
         return tokens
 
-    @staticmethod
-    def get_expires_in(tokens) -> int:
+    def create_expires_at(self, tokens) -> str:
         """
         Добывает  expires_in из токена
         :param tokens:
@@ -534,7 +497,9 @@ class OAuthFlow:
             expires_in = float("inf")
             logger.info(T.no_expires_in)
 
-        return expires_in
+        self._token_expires_at = time.time() + expires_in - 60.0
+
+        return str(self._token_expires_at)
 
 
 class YandexOAuth:

@@ -34,6 +34,7 @@ class BackupManager:
         Логирует все этапы процесса и обрабатывает возможные ошибки.
         """
         logger.info(T.init_main)
+        remote_path = None
         try:
             # Используем TemporaryDirectory для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:

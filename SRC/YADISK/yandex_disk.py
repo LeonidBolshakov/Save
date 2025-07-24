@@ -73,7 +73,7 @@ class YandexDisk:
                 logger.critical("")
                 raise PermissionError(T.no_valid_token)
             self.disk.token = self.yandex_token
-            logger.debug(T.no_valid_token)
+            logger.debug(T.valid_token)
         except Exception as e:
             raise RuntimeError(T.get_token_error.format(e=e)) from e
 

@@ -13,6 +13,7 @@ class TextMessage(frozenset):
     canceled_authorization = "Отмена авторизации пользователем"
     canceled_by_user = "Процесс прерван пользователем"
     critical_error = "Критическая ошибка: {e}"
+    dangerous_symbols = "Redirect URI содержит опасные символы"
     dictionary_expected = "Ожидался словарь, получен {type}.\nОтвет: {response}..."
     during = "Файл загружен за {during} сек."
     empty = "Пусто"
@@ -114,9 +115,6 @@ class TextMessage(frozenset):
     not_found_list_file_path = (
         "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"
     )
-    not_found_refresh_token = (
-        "В переменных окружения не найден refresh_token. Ключ - {key_refresh_token} "
-    )
     not_safe_uri = "Получен небезопасный callback URI: {callback_path}"
     not_save_env = "❌ {var_name} не сохранён в keyring! Записываемое значение не равно прочитанному."
     not_save_env_empty = "❌ {var_name} не сохранён в keyring! Задано пустое значение."
@@ -132,6 +130,7 @@ class TextMessage(frozenset):
     start_main = "Запуск процесса резервного копирования"
     start_send_email = "Отправка email: {subject}"
     start_update_token = "Начало формирование токена доступа посредством refresh_token"
+    start_update_tokens = "Получаем токены от Яндекс с помощью refresh_token"
     starting_archiving = "Запуск архивации: {cmd}"
     successful = "Корректное завершение работы"
     successful_access_token = "Успешно получен access_token"
@@ -146,8 +145,10 @@ class TextMessage(frozenset):
     token_invalid = "Токен недействителен. Код ответа API Яндекс-Диска: {status}"
     token_valid = "Токен успешно прошел проверку через API"
     tokens_saved = "Токены сохранены в keyring"
-    updated_token = "Токен обновлён с помощью refresh_token"
-    updated_token_error = "Не удалось обновить токен доступа: {e}"
+    updated_tokens = "С помощью refresh_token получены обновлённые токены от Яндекс."
+    updated_tokens_error = (
+        "Не удалось получить обновлённые токены от Яндекс с помощью refresh_token. {e}"
+    )
     url_received = "Получен upload URL: {upload_url}"
     valid_token = "Токен успешно получен"
     valid_token_found = "[Token Load] Найден валидный {token} в keyring"

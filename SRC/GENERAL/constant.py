@@ -58,7 +58,7 @@ class Constant(frozenset):
     ENV_YANDEX_PORT = "BOL_SAVE_YANDEX_PORT"
     EXPIRES_AT = "EXPIRES_AT"  # Время истечения токена
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
-        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
+            "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
     HTML_WINDOW_SUCCESSFUL = """
             <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
@@ -111,9 +111,6 @@ class Constant(frozenset):
     REMOTE_LINK = "remote_path="
     RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)
     SECRET_KEY_START = "BOL_SAVE_"
-    STATE_INVALID = "invalid"
-    STATE_UNKNOWN = "unknown"
-    STATE_VALID = "valid"
     STOP_SERVICE_MESSAGE = (
         f"***** Не менять! Информация для отправки служебного сообщения "
         f"{EMAIL_SEND_TRIGGER} {REMOTE_LINK}"
