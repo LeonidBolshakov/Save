@@ -43,13 +43,15 @@ def main():
     try:
         BackupManager().main()  # Запуск основного процесса
     except KeyboardInterrupt:
-        logger.error(T.canceled_by_user)
+        logger.error(T.canceled_by_user, exc_info=True)
         raise
     except SystemExit:
         logger.info(T.successful)
     except Exception as e:
-        logger.exception(T.critical_error_type.format(type=e.__class__.__name__, e=e))
-        raise  # Повторное возбуждение исключения для видимости в консоли
+        logger.error(
+            T.critical_error_type.format(type=e.__class__.__name__, e=e), exc_info=True
+        )
+        raise
     finally:
         logger.info(T.time_run.format(time=f"{time.time() - start_time:.2f}"))
 

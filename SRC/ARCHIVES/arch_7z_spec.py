@@ -174,6 +174,9 @@ class Arch7zSpec:
         Returns:
             int: 0 если архивация успешна, 1 не фатальные ошибки, 2 - фатальные ошибки
 
+        Raises:
+            RunTimeError: При провале архивации или завершении архивации с фатальными ошибками
+
         Note:
             Для Windows используется кодировка cp866 для корректного отображения вывода
         """
@@ -187,8 +190,8 @@ class Arch7zSpec:
             process = self._run_archive_process(cmd, encoding)
             return self._handle_process_result(process)
         except Exception as e:
-            logger.critical(T.error_starting_archiving.format(e=e))
-            return 2
+            logger.critical("")
+            raise RuntimeError(T.error_starting_archiving.format(e=e))
 
     def _run_archive_process(
         self, cmd: list[str], encoding: str
@@ -211,13 +214,12 @@ class Arch7zSpec:
                 logger.info(T.successful_archiving)
                 return 0
             case 1:
-                logger.warning(f"stderr: {process.stderr}")
-                logger.warning(T.no_fatal_error)
+                logger.error(f"{process.stderr}")
+                logger.error(T.no_fatal_error)
                 return 1
             case _:
-                logger.error(f"stderr: {process.stderr}")
-                logger.error(T.fatal_error)
-                return 2
+                logger.critical(f"{process.stderr}")
+                raise RuntimeError(T.fatal_error)
 
     def get_cmd_archiver(self) -> list[str]:
         """

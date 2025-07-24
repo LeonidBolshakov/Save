@@ -40,7 +40,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -94,7 +94,7 @@ class TokenManager:
         self.variables = env_vars
 
     def save_tokens(
-            self, access_token: str, refresh_token: str, expires_at: str
+        self, access_token: str, refresh_token: str, expires_at: str
     ) -> None:
         """Сохраняет токены и время жизни токена в secure storage.
 
@@ -223,10 +223,10 @@ class OAuthFlow:
     """
 
     def __init__(
-            self,
-            token_manager: TokenManager,
-            port: int,
-            env_vars: EnvironmentVariables,
+        self,
+        token_manager: TokenManager,
+        port: int,
+        env_vars: EnvironmentVariables,
     ):
         self.token_manager = token_manager
         self.port = port
@@ -514,8 +514,8 @@ class YandexOAuth:
     """
 
     def __init__(
-            self,
-            port: int,
+        self,
+        port: int,
     ):
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
         env_vars = EnvironmentVariables()

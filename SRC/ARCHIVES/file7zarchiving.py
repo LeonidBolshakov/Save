@@ -92,4 +92,4 @@ class File7ZArchiving:
             return local_path_str
 
         except Exception as e:
-            raise RuntimeError(T.error_local_archive.format(e=e)) from e
+            raise

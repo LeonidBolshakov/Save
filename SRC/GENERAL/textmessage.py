@@ -13,19 +13,19 @@ class TextMessage(frozenset):
     canceled_authorization = "Отмена авторизации пользователем"
     canceled_by_user = "Процесс прерван пользователем"
     critical_error = "Критическая ошибка: {e}"
+    critical_error_type = "Ошибка типа {type}: {e}"
     dangerous_symbols = "Redirect URI содержит опасные символы"
     dictionary_expected = "Ожидался словарь, получен {type}.\nОтвет: {response}..."
     during = "Файл загружен за {during} сек."
     empty = "Пусто"
     env_not_found = "Файл {env} не найден. Текущая директория {dir}"
-    critical_error_type = "Ошибка типа {type}: {e}"
     error_address_email = "Ошибка в email адресе: {e}"
     error_API_Yandex_disk = "API Яндекс.Диска не вернуло путь к файлу"
     error_check_token = "Ошибка проверки токена доступа через API: {e}"
     error_list_files = "Ошибка получения списка файлов: {e}"
     error_load_7z = (
-            f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
-            + "{config_file}: {e}"
+        f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
+        + "{config_file}: {e}"
     )
     error_load_file = "Ошибка при загрузке файла: {err}"
     error_load_tokens = (
@@ -34,6 +34,10 @@ class TextMessage(frozenset):
     error_local_archive = "Ошибка при создании локального архива {e}"
     error_processing_request = "Ошибка обработки запроса авторизации Яндекс: {e}"
     error_refresh_token = "Ошибка {status_code} при обновлении токена доступа с помощью refresh токена- {e}"
+    error_run_7z = (
+        "[Поиск программы 7z]. Вариант программы по адресу {path} вернул ошибку {e}"
+    )
+    error_run_7z_except = "[Поиск программы 7z]. Вариант программы по адресу {path} выдал грубую ошибку {e}"
     error_saving_config = "Ошибка сохранения в конфиг файл: {e}"
     error_saving_env = "Ошибка сохранения {var_name}: {e}"
     error_saving_tokens = "Ошибка сохранения закрытой информации в keyring: {e}"
@@ -68,9 +72,9 @@ class TextMessage(frozenset):
     )
     invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге:" + "{path}"
     invalid_port = (
-            "В переменных окружения не задан, или задан как не целое число, номер порта, заданный в приложении Яндекс "
-            + f"{C.ENV_YANDEX_PORT}"
-            + "{e}"
+        "В переменных окружения не задан, или задан как не целое число, номер порта, заданный в приложении Яндекс "
+        + f"{C.ENV_YANDEX_PORT}"
+        + "{e}"
     )
     invalid_token = "Недействительный токен доступа к Яндекс.Диск!"
     load = "Загрузка {local_path} -> {remote_path}"
@@ -109,8 +113,8 @@ class TextMessage(frozenset):
     not_found_7z = f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
     not_float = "[Token Load] Время истечения токена не число с плавающей запятой: {e}"
     not_found_config_file = (
-            f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует"
-            + "{config_file}"
+        f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует"
+        + "{config_file}"
     )
     not_found_list_file_path = (
         "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"
@@ -121,7 +125,7 @@ class TextMessage(frozenset):
     not_valid_json = "Невалидный JSON: {e}. Ответ: {response}"
     path_local_archive = "Путь к архиву на локальном диске: {local_path_str}"
     path_to_cloud = "Путь на архив в облаке: {remote_path}"
-    permission_error = "Нет доступа к {path}"
+    permission_error = "[Поиск программы 7z]. Нет доступа к {path}"
     prompt = "{var} = {current}, введите новое или Enter, чтобы оставить прежнее:"
     start_full_auth_flow = "Запуск полного процесса аутентификации"
     start_create_archive = "Начало создания архива"

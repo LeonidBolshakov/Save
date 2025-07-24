@@ -40,8 +40,8 @@ def is_valid_redirect_uri(uri: str) -> bool:
 
     # 3. Проверка домена (требования Яндекса)
     if not re.match(
-            r"^(localhost|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.[a-zA-Z]{2,})$",
-            parsed.hostname or "",
+        r"^(localhost|([a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+\.[a-zA-Z]{2,})$",
+        parsed.hostname or "",
     ):
         return False
 

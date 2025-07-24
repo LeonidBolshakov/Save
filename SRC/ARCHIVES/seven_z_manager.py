@@ -89,8 +89,11 @@ class SevenZManager:
                     stderr=subprocess.DEVNULL,
                     timeout=2,
                 )
+                if result.returncode != 0:
+                    logger.debug(T.error_run_7z.format(path=path, e=result.stderr))
                 return result.returncode == 0
-            except Exception:
+            except Exception as e:
+                logger.debug(T.error_run_7z_except.format(path=path, e=e))
                 return False
 
     def get_7z_path(self) -> str | None:

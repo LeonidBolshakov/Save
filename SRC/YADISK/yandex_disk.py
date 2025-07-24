@@ -34,12 +34,12 @@ class YandexDisk:
     """Класс для работы с файлами (архивами) на Яндекс-Диске"""
 
     def __init__(
-            self,
-            port: int,  # Номер порта, заданный в приложении Яндекс
-            target_date: date = date.today(),  # Дата для именования
-            archive_prefix: str = C.REMOTE_ARCHIVE_PREFIX,  # Префикс имени файла архива
-            archive_ext: str = C.ARCHIVE_SUFFIX,  # Расширение файла архива
-            archive_path: str = C.REMOTE_ARCHIVE_PATH,  # Каталог архивов на Яндекс-Диске
+        self,
+        port: int,  # Номер порта, заданный в приложении Яндекс
+        target_date: date = date.today(),  # Дата для именования
+        archive_prefix: str = C.REMOTE_ARCHIVE_PREFIX,  # Префикс имени файла архива
+        archive_ext: str = C.ARCHIVE_SUFFIX,  # Расширение файла архива
+        archive_path: str = C.REMOTE_ARCHIVE_PATH,  # Каталог архивов на Яндекс-Диске
     ):
         logger.info(T.init_yadisk)
 
