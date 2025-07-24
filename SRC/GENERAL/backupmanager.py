@@ -42,9 +42,9 @@ class BackupManager:
                 local_path = local_archive.make_local_archive(temp_dir)
                 remote_path = self.write_file(local_path)
         except Exception as e:
-            logger.exception(T.critical_error.format(e=e))
-
-        self.completion(remote_path=remote_path)
+            raise
+        finally:
+            self.completion(remote_path=remote_path)
 
     @staticmethod
     def write_file(local_path: str) -> str:
@@ -67,6 +67,7 @@ class BackupManager:
         except ValueError as e:
             logger.critical("")
             raise ValueError(T.invalid_port.format(e=e)) from e
+
         yandex_disk = YandexDisk(port=port)
 
         try:
@@ -76,7 +77,7 @@ class BackupManager:
 
             return _remote_path
         except Exception as e:
-            raise RuntimeError from e
+            raise
 
     # noinspection PyUnusedLocal
     def completion(self, remote_path: str | None = None) -> None:

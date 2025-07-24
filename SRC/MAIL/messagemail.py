@@ -47,14 +47,13 @@ class MessageMail:
             subject, content = self._compose_message_content(
                 last_time, max_level, remote_archive_path
             )
-            logger.debug(T.start_send_email.format(subject=subject))
             if not self._send_email_with_retry(subject, content):
                 logger.error(T.failed_send_email)
                 return
         except Exception as e:
             logger.error(T.error_send_email.format(e=e))
-
-        logger.info(T.start_send_email)
+        else:
+            logger.info(T.start_send_email.format(subject=subject))
 
     def _compose_message_content(
         self, last_time: float, max_level: int, remote_archive_path: str

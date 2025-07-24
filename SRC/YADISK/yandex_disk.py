@@ -165,19 +165,19 @@ class YandexDisk:
 
     def write_file(self, local_path: str) -> bool:
         """
-        Загружает локальный файл на Яндекс. Диск
+        Загружает локальный файл на Яндекс-Диск
 
         :param local_path: Путь к локальному файлу
         :return: Статус операции (True/False)
         """
         logger.info(T.start_load_file.format(local_path=local_path))
 
-        # Формируем полный путь на Яндекс. Диске
+        # Формируем полный путь на Яндекс-Диске
         remote_path = f"{self.remote_archive_name}/{self.remote_archive_name()}"
-
         try:
             # Загрузка файла
             self._upload_file(local_path, remote_path)
+
             return True
         # Обработка специфических ошибок API
         except yadisk.exceptions.UnauthorizedError:
@@ -227,8 +227,8 @@ class YandexDisk:
             возникшие при получении URL или при самой загрузке файла.
         """
         logger.info(T.fast_load.format(local_path=local_path))
-        upload_url, remote_path = self.get_file_download_URL()
         try:
+            upload_url, remote_path = self.get_file_download_URL()
             # Открываем локальный файл в бинарном режиме
             with open(local_path, "rb") as f:
                 # Шаг 2: загружаем файл напрямую на полученный URL через HTTP PUT
@@ -270,7 +270,7 @@ class YandexDisk:
             params={"path": remote_path, "overwrite": "false"},
         )
         if not response.ok:
-            raise RuntimeError(T.error_upload_URL.format(text=response.text))
+            raise RuntimeError(T.error_upload_URL)
         return response.json()["href"]
 
 

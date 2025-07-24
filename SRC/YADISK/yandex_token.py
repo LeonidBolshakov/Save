@@ -94,7 +94,7 @@ class TokenManager:
         self.variables = env_vars
 
     def save_tokens(
-        self, access_token: str, refresh_token: str, expires_at: str
+        self, access_token: str, refresh_token: str | None, expires_at: str
     ) -> None:
         """Сохраняет токены и время жизни токена в secure storage.
 
@@ -109,8 +109,9 @@ class TokenManager:
         try:
             # Сохраняем токены и время истечения в памяти (keyring)
             self.variables.put_keyring_var(C.ACCESS_TOKEN, access_token)
-            self.variables.put_keyring_var(C.REFRESH_TOKEN, refresh_token)
             self.variables.put_keyring_var(C.EXPIRES_AT, expires_at)
+            if refresh_token:
+                self.variables.put_keyring_var(C.REFRESH_TOKEN, refresh_token)
 
             logger.debug(T.tokens_saved)
 
@@ -272,7 +273,7 @@ class OAuthFlow:
             return self.access_token
         return None
 
-    def loaded_tokens(self) -> str | None:
+    def loaded_tokens(self) -> dict[str, str] | None:
         tokens = self.token_manager.load_and_validate_exist_tokens()
         if tokens:
             self.access_token = tokens[C.ACCESS_TOKEN]
