@@ -1,6 +1,6 @@
 import logging.handlers
 
-from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.constants import Constants as C
 
 
 class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):

@@ -26,8 +26,9 @@ import yadisk
 from yadisk.exceptions import PathNotFoundError, PathExistsError
 
 from SRC.YADISK.yandex_token import YandexOAuth  # Модуль для работы с OAuth
-from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
 class YandexDisk:
@@ -265,7 +266,7 @@ class YandexDisk:
     def _get_upload_url(self, remote_path: str) -> str:
         """Выполняет запрос к API для получения URL загрузки."""
         response = requests.get(
-            C.API_YANDEX_LOAD_FILE,
+            YC.API_YANDEX_LOAD_FILE,
             headers={"Authorization": f"OAuth {self.yandex_token}"},
             params={"path": remote_path, "overwrite": "false"},
         )

@@ -25,11 +25,12 @@ logger = logging.getLogger(__name__)
 
 from oauthlib.oauth2 import WebApplicationClient
 from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.constant import Constant as C
-from SRC.GENERAL.textmessage import TextMessage as T
 from SRC.YADISK.exceptions import AuthError, AuthCancelledError, RefreshTokenError
 from SRC.SECURITY.generate_pkce_pair import generate_pkce_params
 from SRC.SECURITY.is_valid_redirect_uri import is_valid_redirect_uri
+from SRC.GENERAL.constants import Constants as C
+from SRC.GENERAL.textmessage import TextMessage as T
+from SRC.YADISK.yandexconst import YandexConstants as YC
 
 ACCESS_TOKEN_IN_TOKEN = "access_token"
 REFRESH_TOKEN_IN_TOKEN = "refresh_token"
@@ -71,7 +72,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", f"text/html; charset={C.ENCODING}")
             self.end_headers()
-            html: str = C.HTML_WINDOW_SUCCESSFUL
+            html: str = YC.YANDEX_HTML_WINDOW_SUCCESSFUL
             self.wfile.write(html.encode(C.ENCODING))
         else:
             self.send_response(204)
@@ -108,10 +109,10 @@ class TokenManager:
         """
         try:
             # Сохраняем токены и время истечения в памяти (keyring)
-            self.variables.put_keyring_var(C.ACCESS_TOKEN, access_token)
-            self.variables.put_keyring_var(C.EXPIRES_AT, expires_at)
+            self.variables.put_keyring_var(YC.YANDEX_ACCESS_TOKEN, access_token)
+            self.variables.put_keyring_var(YC.YANDEX_EXPIRES_AT, expires_at)
             if refresh_token:
-                self.variables.put_keyring_var(C.REFRESH_TOKEN, refresh_token)
+                self.variables.put_keyring_var(YC.YANDEX_REFRESH_TOKEN, refresh_token)
 
             logger.debug(T.tokens_saved)
 
@@ -119,18 +120,18 @@ class TokenManager:
             raise AuthError(T.error_saving_tokens.format(e=e)) from e
 
     def get_vars(self) -> tuple[str, str, str] | None:
-        access_token = self.variables.get_var(C.ACCESS_TOKEN)
-        refresh_token = self.variables.get_var(C.REFRESH_TOKEN)
-        expires_at = self.variables.get_var(C.EXPIRES_AT)
+        access_token = self.variables.get_var(YC.YANDEX_ACCESS_TOKEN)
+        refresh_token = self.variables.get_var(YC.YANDEX_REFRESH_TOKEN)
+        expires_at = self.variables.get_var(YC.YANDEX_EXPIRES_AT)
 
         logger.debug(
-            f"[Token Load] {C.ACCESS_TOKEN}: {C.PRESENT if access_token else C.MISSING}"
+            f"[Token Load] {YC.YANDEX_ACCESS_TOKEN}: {C.PRESENT if access_token else C.MISSING}"
         )
         logger.debug(
-            f"[Token Load] {C.REFRESH_TOKEN}: {C.PRESENT if refresh_token else C.MISSING}"
+            f"[Token Load] {YC.YANDEX_REFRESH_TOKEN}: {C.PRESENT if refresh_token else C.MISSING}"
         )
         logger.debug(
-            f"[Token Load] {C.EXPIRES_AT}: {C.PRESENT if expires_at else C.MISSING}"
+            f"[Token Load] {YC.YANDEX_EXPIRES_AT}: {C.PRESENT if expires_at else C.MISSING}"
         )
 
         return access_token, refresh_token, expires_at
@@ -170,11 +171,11 @@ class TokenManager:
             if not self._validate_token_api(access_token):
                 return None
 
-            logger.debug(T.valid_token_found.format(token=C.ACCESS_TOKEN))
+            logger.debug(T.valid_token_found.format(token=YC.YANDEX_ACCESS_TOKEN))
             return {
-                C.ACCESS_TOKEN: access_token,
-                C.REFRESH_TOKEN: refresh_token,
-                C.EXPIRES_AT: expires_at,
+                YC.YANDEX_ACCESS_TOKEN: access_token,
+                YC.YANDEX_REFRESH_TOKEN: refresh_token,
+                YC.YANDEX_EXPIRES_AT: expires_at,
             }
 
         except Exception as e:
@@ -186,7 +187,7 @@ class TokenManager:
         """Проверяет валидность токена через API Яндекс-Диска"""
         try:
             response = requests.get(
-                C.URL_API_YANDEX_DISK,
+                YC.URL_API_YANDEX_DISK,
                 headers={"Authorization": f"OAuth {access_token}"},
                 timeout=5,
             )
@@ -247,8 +248,9 @@ class OAuthFlow:
                 return self.access_token
             self.access_token = None
 
-            # 2. Попытка загрузить сохраненные токены из хранилища компьютера (keyring)
             tokens = self.loaded_tokens()
+
+            # 2. Попытка загрузить сохраненные токены из хранилища компьютера (keyring)
             if tokens:
                 return self.access_token
             self.access_token = None
@@ -276,9 +278,9 @@ class OAuthFlow:
     def loaded_tokens(self) -> dict[str, str] | None:
         tokens = self.token_manager.load_and_validate_exist_tokens()
         if tokens:
-            self.access_token = tokens[C.ACCESS_TOKEN]
-            self.refresh_token = tokens.get(C.REFRESH_TOKEN)
-            self._token_expires_at = float(tokens[C.EXPIRES_AT])
+            self.access_token = tokens[YC.YANDEX_ACCESS_TOKEN]
+            self.refresh_token = tokens.get(YC.YANDEX_REFRESH_TOKEN)
+            self._token_expires_at = float(tokens[YC.YANDEX_EXPIRES_AT])
             logger.debug(T.loaded_token)
             return tokens
 
@@ -334,7 +336,7 @@ class OAuthFlow:
 
     def build_auth_url(self, code_challenge: str) -> str:
         """Строит URL для авторизации с валидацией redirect_uri."""
-        redirect_uri = self.variables.get_var(C.YANDEX_REDIRECT_URI, "")
+        redirect_uri = self.variables.get_var(YC.YANDEX_REDIRECT_URI, "")
 
         if not is_valid_redirect_uri(redirect_uri):
             raise ValueError(
@@ -342,13 +344,13 @@ class OAuthFlow:
             )
 
         client = WebApplicationClient(
-            self.variables.get_var(C.ENV_YANDEX_CLIENT_ID, "")
+            self.variables.get_var(YC.ENV_YANDEX_CLIENT_ID, "")
         )
 
         return client.prepare_request_uri(
-            self.variables.get_var(C.AUTH_URL, C.URL_AUTORIZATION_YANDEX_OAuth),
-            redirect_uri=self.variables.get_var(C.YANDEX_REDIRECT_URI, ""),
-            scope=self.variables.get_var(C.YANDEX_SCOPE, ""),
+            self.variables.get_var(YC.YANDEX_AUTH_URL, YC.URL_AUTORIZATION_YANDEX_OAuth),
+            redirect_uri=self.variables.get_var(YC.YANDEX_REDIRECT_URI, ""),
+            scope=self.variables.get_var(YC.YANDEX_SCOPE, ""),
             code_challenge=code_challenge,
             code_challenge_method="S256",
         )
@@ -399,13 +401,13 @@ class OAuthFlow:
         token_data = {
             "grant_type": "authorization_code",
             "code": auth_code,
-            "client_id": self.variables.get_var(C.ENV_YANDEX_CLIENT_ID, ""),
+            "client_id": self.variables.get_var(YC.ENV_YANDEX_CLIENT_ID, ""),
             "code_verifier": code_verifier,
-            "redirect_uri": C.YANDEX_REDIRECT_URI,
+            "redirect_uri": YC.YANDEX_REDIRECT_URI,
         }
 
         response = requests.post(
-            self.variables.get_var(C.TOKEN_URL, C.TOKEN_URL_DEFAULT),
+            self.variables.get_var(YC.YANDEX_TOKEN_URL, YC.YANDEX_TOKEN_URL_DEFAULT),
             data=token_data,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             timeout=30,
@@ -445,13 +447,13 @@ class OAuthFlow:
     def get_tokens_from_url(self) -> dict | None:
         token_data = {
             "grant_type": "refresh_token",
-            "refresh_token": self.variables.get_var(C.REFRESH_TOKEN),
-            "client_id": self.variables.get_var(C.ENV_YANDEX_CLIENT_ID),
-            "client_secret": self.variables.get_var(C.ENV_CLIENT_SECRET),
+            "refresh_token": self.variables.get_var(YC.YANDEX_REFRESH_TOKEN),
+            "client_id": self.variables.get_var(YC.ENV_YANDEX_CLIENT_ID),
+            "client_secret": self.variables.get_var(YC.ENV_YANDEX_CLIENT_SECRET),
         }
 
         response = requests.post(
-            self.variables.get_var(C.TOKEN_URL, C.TOKEN_URL_DEFAULT),
+            self.variables.get_var(YC.YANDEX_TOKEN_URL, YC.YANDEX_TOKEN_URL_DEFAULT),
             data=token_data,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             timeout=30,

@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
-from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
@@ -28,12 +28,12 @@ class Arch7zSpec:
     """
 
     def __init__(
-            self,
-            arch_path: str,
-            list_file: str,
-            seven_zip_exe_path: str,
-            password: str = "",
-            work_dir: str | None = None,
+        self,
+        arch_path: str,
+        list_file: str,
+        seven_zip_exe_path: str,
+        password: str = "",
+        work_dir: str | None = None,
     ):
         """
         Инициализирует экземпляр класса для создания SFX-архива.
@@ -194,7 +194,7 @@ class Arch7zSpec:
             raise RuntimeError(T.error_starting_archiving.format(e=e))
 
     def _run_archive_process(
-            self, cmd: list[str], encoding: str
+        self, cmd: list[str], encoding: str
     ) -> subprocess.CompletedProcess:
         """Запускает процесс архивации."""
         return subprocess.run(

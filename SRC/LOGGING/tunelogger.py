@@ -7,7 +7,7 @@ from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 from SRC.MAIL.yagmailhandler import YaGmailHandler
 from SRC.LOGGING.customstreamhandler import CustomStreamHandler
 from SRC.LOGGING.customrotatingfilehandler import CustomRotatingFileHandler
-from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 
 FILE = "file"
@@ -44,7 +44,7 @@ class TuneLogger:
         self.configure_handlers(self.log_format, log_level_console, log_level_file)
 
         # Для библиотек устанавливаем более высокий уровень
-        for lib in C.LIBS:
+        for lib in C.YANDEX_LIBS:
             logging.getLogger(lib).setLevel(C.DEFAULT_LEVEL_LIB)
 
     def get_log_level_console(self) -> int:
@@ -77,7 +77,7 @@ class TuneLogger:
         )
 
     def configure_handlers(
-            self, log_format: str, log_level_console: int, log_level_file: int
+        self, log_format: str, log_level_console: int, log_level_file: int
     ) -> None:
         """Конфигурация всех обработчиков"""
         handlers = list(self.log_handlers.values())

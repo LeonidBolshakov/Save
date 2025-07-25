@@ -1,5 +1,5 @@
 import logging
-from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.constants import Constants as C
 
 
 class CustomStreamHandler(logging.StreamHandler):

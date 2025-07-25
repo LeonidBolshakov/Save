@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 from SRC.ARCHIVES.seven_z_manager import SevenZManager
 from SRC.ARCHIVES.arch_7z_spec import Arch7zSpec
 from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 

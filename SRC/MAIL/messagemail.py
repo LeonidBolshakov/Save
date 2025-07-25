@@ -6,7 +6,7 @@ import logging
 
 from SRC.MAIL.yagmailhandler import YaGmailHandler
 from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 

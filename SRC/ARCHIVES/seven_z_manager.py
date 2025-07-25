@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from SRC.GENERAL.constant import Constant as C
+from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
