@@ -54,7 +54,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
         try:
             super().handle()
         except Exception as e:
-            raise RuntimeError(T.error_processing_request.format(e=e)) from e
+            raise RuntimeError(T.error_processing_request.format(e=e))
 
     def log_message(self, format_: str, *args: Any) -> None:
         return
@@ -117,7 +117,7 @@ class TokenManager:
             logger.debug(T.tokens_saved)
 
         except Exception as e:
-            raise AuthError(T.error_saving_tokens.format(e=e)) from e
+            raise AuthError(T.error_saving_tokens.format(e=e))
 
     def get_vars(self) -> tuple[str, str, str] | None:
         access_token = self.variables.get_var(YC.YANDEX_ACCESS_TOKEN)
@@ -265,9 +265,9 @@ class OAuthFlow:
             return self.run_full_auth_flow()
 
         except AuthCancelledError as e:
-            raise AuthCancelledError(T.canceled_authorization) from e
+            raise AuthCancelledError(T.canceled_authorization)
         except AuthError as e:
-            raise AuthError(T.authorization_error.format(e=e)) from e
+            raise AuthError(T.authorization_error.format(e=e))
 
     def token_in_memory(self) -> str | None:
         if self.access_token and not self.is_token_expired():
@@ -316,9 +316,9 @@ class OAuthFlow:
         try:
             return self.full_auth_flow()
         except TimeoutError as e:
-            raise AuthCancelledError(T.authorization_timeout.format(e=e)) from e
+            raise AuthCancelledError(T.authorization_timeout.format(e=e))
         except Exception as e:
-            raise AuthError(T.authorization_error.format(e=e)) from e
+            raise AuthError(T.authorization_error.format(e=e))
 
     def full_auth_flow(self) -> str:
         """Содержательная часть метода start_full_auth_flow"""
@@ -348,7 +348,9 @@ class OAuthFlow:
         )
 
         return client.prepare_request_uri(
-            self.variables.get_var(YC.YANDEX_AUTH_URL, YC.URL_AUTORIZATION_YANDEX_OAuth),
+            self.variables.get_var(
+                YC.YANDEX_AUTH_URL, YC.URL_AUTORIZATION_YANDEX_OAuth
+            ),
             redirect_uri=self.variables.get_var(YC.YANDEX_REDIRECT_URI, ""),
             scope=self.variables.get_var(YC.YANDEX_SCOPE, ""),
             code_challenge=code_challenge,
@@ -535,4 +537,4 @@ class YandexOAuth:
             else:
                 raise AuthError(T.failed_access_token)
         except Exception as e:
-            raise AuthError(T.critical_error.format(e=e)) from e
+            raise AuthError(T.critical_error.format(e=e))

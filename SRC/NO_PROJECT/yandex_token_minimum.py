@@ -51,7 +51,7 @@ webbrowser.open(
     f"response_type=code&client_id=46e7a99ef2d6482ba87b8799df736906&"
     f"redirect_uri=http://localhost:12345&"
     f"code_challenge={code_challenge}&code_challenge_method=S256&"
-    f"scope=cloud_api:disk.app_folder%20cloud_api:disk.read%20cloud_api:disk.write"
+    f"scope=cloud_api:ya_disk.app_folder%20cloud_api:ya_disk.read%20cloud_api:ya_disk.write"
 )
 
 # Ожидаем callback

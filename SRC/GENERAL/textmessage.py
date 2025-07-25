@@ -1,4 +1,5 @@
 from SRC.GENERAL.constants import Constants as C
+from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
 class TextMessage(frozenset):
@@ -22,7 +23,7 @@ class TextMessage(frozenset):
     error_address_email = "Ошибка в email адресе: {e}"
     error_API_Yandex_disk = "API Яндекс.Диска не вернуло путь к файлу"
     error_check_token = "Ошибка проверки токена доступа через API: {e}"
-    error_list_files = "Ошибка получения списка файлов: {e}"
+    error_list_files = "Ошибка проверки существования директории с архивами в облаке: {e}"
     error_load_7z = (
         f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
         + "{config_file}: {e}"
@@ -46,6 +47,7 @@ class TextMessage(frozenset):
     error_upload_URL = (
         "Ошибка получения upload URL для быстрой загрузки на Яндекс-Диск."
     )
+    error_ya_disk = "Ошибка Яндекс.Диска: {e}"
     exists_list_file = "Файл списка файлов архивации существует: {list_file_path}"
     expires_in = "В токен доступа, полученном с сервера время жизни токена равно {expires_in} сек."
     expires_in_error = "В токен доступа, полученном с сервера время жизни токена не плавающее число {key}"
@@ -73,9 +75,10 @@ class TextMessage(frozenset):
     invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге:" + "{path}"
     invalid_port = (
         "В переменных окружения не задан, или задан как не целое число, номер порта, заданный в приложении Яндекс. "
-        + f"Имя переменной окружения - {C.ENV_YANDEX_PORT}. "
+        + f"Имя переменной окружения - {YC.ENV_YANDEX_PORT}. "
         + "{e}"
     )
+    invalid_request = "Некорректный запрос для создания доступа к Яндекс-Диску"
     invalid_token = "Недействительный токен доступа к Яндекс.Диск!"
     load = "Загрузка {local_path} -> {remote_path}"
     load_success = "Файл {local_path} успешно загружен в {remote_path}"
@@ -97,6 +100,7 @@ class TextMessage(frozenset):
         "Полагается, что время жизни не ограничено."
     )
     no_fatal_error = "Архивация завершена с НЕ фатальными ошибками"
+    no_internet = "Нет подключения к интернету -> Нет доступа к Яндекс-Диску"
     no_path_local = "Не задан путь на архив, в который собираются сохраняемые файлы"
     no_refresh_token = (
         "Refresh token отсутствует/n"
@@ -148,6 +152,7 @@ class TextMessage(frozenset):
     token_invalid = "Токен недействителен. Код ответа API Яндекс-Диска: {status}"
     token_valid = "Токен успешно прошел проверку через API"
     tokens_saved = "Токены сохранены в keyring"
+    unknown_error = "Неизвестная ошибка доступа у Яндекс-Диску: {e}"
     updated_tokens = "С помощью refresh_token получены обновлённые токены от Яндекс."
     updated_tokens_error = (
         "Не удалось получить обновлённые токены от Яндекс с помощью refresh_token. {e}"

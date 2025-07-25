@@ -10,7 +10,7 @@ from SRC.LOGGING.tunelogger import TuneLogger  # Для настройки си�
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 from SRC.MAIL.messagemail import MessageMail
-from SRC.YADISK.writefileyandexdisk import write_file_yandex_disk
+from SRC.GENERAL.managerwritefile import write_file
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
@@ -115,7 +115,8 @@ class BackupManager:
             self.completion(remote_path=remote_path)
             logger.info(T.time_run.format(time=f"{time.time() - start_time:.2f}"))
 
-    def main_program_loop(self) -> str:
+    @staticmethod
+    def main_program_loop() -> str:
         """Основной метод выполнения полного цикла резервного копирования.
 
         Процесс включает:
@@ -133,25 +134,11 @@ class BackupManager:
             with TemporaryDirectory() as temp_dir:
                 local_archive = File7ZArchiving()
                 local_path = local_archive.make_local_archive(temp_dir)
-                remote_path = self.write_file(local_path)
+                remote_path = write_file(local_path)
                 return remote_path
 
         except Exception as e:
             raise
-
-    @staticmethod
-    def write_file(local_path: str) -> str:
-        """
-        Диспетчер вызова систем загрузки на разные типы облачного хранилища.
-        Пока реализовано только сохранение на Яндекс-Диск
-
-        Args:
-            local_path: Абсолютный путь к локальному файлу для загрузки
-
-        Returns:
-            str: Путь к загруженному файлу на Яндекс-Диске
-        """
-        return write_file_yandex_disk(local_path)
 
 
 if __name__ == "__main__":

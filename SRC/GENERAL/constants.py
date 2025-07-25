@@ -17,7 +17,6 @@ class Constants(frozenset):
     DEFAULT_LOG_FILE = "save.log"
     DEFAULT_LOG_LEVEL = "INFO"
     DEFAULT_LOG_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
-    DEFAULT_PORT = 12345
     DOTENV_PATH = "env"
     EMAIL_ERROR_CONTENT = (
         "🚨 Сообщение:\n\n"
@@ -81,7 +80,7 @@ class Constants(frozenset):
     ]
     PATTERN_7_Z = "7z.exe"
     PRESENT = "Представлены"
-    REMOTE_ARCHIVE_PATH = "disk:/Архивы"
+    REMOTE_ARCHIVE_DIR = "ya_disk:/Архивы"
     REMOTE_ARCHIVE_PREFIX = "archive"
     REMOTE_LINK = "remote_path="
     RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)
