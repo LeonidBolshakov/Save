@@ -14,7 +14,7 @@ class RemoteNameServiceProtokol(Protocol):
     generate_remote_name: Callable[[], str]
 
 
-class RemoteNameService:
+class RemoteNameService(RemoteNameServiceProtokol):
     def __init__(
         self,
         archive_ext: str = C.ARCHIVE_SUFFIX,
@@ -26,7 +26,7 @@ class RemoteNameService:
         self.remote_archive_path: str = (
             C.REMOTE_ARCHIVE_DIR
         )  # Каталог архивов на облачном диске
-        self.file_nums = []
+        self.file_nums: list[int] = []
         self.archive_name_format = self.get_archive_name_format()
 
     def generate_remote_name(self) -> str:
@@ -40,7 +40,7 @@ class RemoteNameService:
         logger.debug(T.file_numbers_found.format(file_nums=self.file_nums))
         logger.info(T.archive_name_generation)
         # Вычисляем следующий порядковый номер архива на заданную дату
-        next_num = max(self.file_nums, default=0) + 1
+        next_num: int = max(self.file_nums, default=0) + 1
 
         # Формируем имя файла архива в соответствии с шаблоном
         return f"{self.archive_name_format.format(file_num=next_num)}{self.archive_ext}"

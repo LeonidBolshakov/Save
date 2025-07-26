@@ -4,9 +4,12 @@ class YandexConstants(frozenset):
     YANDEX_REFRESH_TOKEN = "YANDEX_REFRESH_TOKEN"  # refresh token к Яндекс-Диску
 
     API_YANDEX_LOAD_FILE = "https://cloud-api.yandex.net/v1/disk/resources/upload"
+    ENCODING = "utf-8"
     ENV_YANDEX_CLIENT_ID = "BOL_SAVE_YANDEX_CLIENT_ID"
     ENV_YANDEX_CLIENT_SECRET = "BOL_SAVE_YANDEX_CLIENT_SECRET"
     ENV_YANDEX_PORT = "BOL_SAVE_YANDEX_PORT"
+    MISSING = " ** --> Отсутствуют"
+    PRESENT = "Представлены"
     URL_API_YANDEX_DISK = "https://cloud-api.yandex.net/v1/disk"
     URL_AUTORIZATION_YANDEX_OAuth = "https://oauth.yandex.ru/authorize"
     YANDEX_VARS_KEYRING = [  # секретные переменные окружения

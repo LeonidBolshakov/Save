@@ -24,12 +24,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 from oauthlib.oauth2 import WebApplicationClient
+
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.YADISK.exceptions import AuthError, AuthCancelledError, RefreshTokenError
-from SRC.SECURITY.generate_pkce_pair import generate_pkce_params
-from SRC.SECURITY.is_valid_redirect_uri import is_valid_redirect_uri
-from SRC.GENERAL.constants import Constants as C
-from SRC.GENERAL.textmessage import TextMessage as T
+from SRC.YADISK.generate_pkce_pair import generate_pkce_params
+from SRC.YADISK.is_valid_redirect_uri import is_valid_redirect_uri
+from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
 ACCESS_TOKEN_IN_TOKEN = "access_token"
@@ -54,7 +54,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
         try:
             super().handle()
         except Exception as e:
-            raise RuntimeError(T.error_processing_request.format(e=e))
+            raise RuntimeError(YT.error_processing_request.format(e=e))
 
     def log_message(self, format_: str, *args: Any) -> None:
         return
@@ -70,10 +70,10 @@ class CallbackHandler(BaseHTTPRequestHandler):
             threading.Thread(target=server.shutdown, daemon=True).start()
 
             self.send_response(200)
-            self.send_header("Content-type", f"text/html; charset={C.ENCODING}")
+            self.send_header("Content-type", f"text/html; charset={YC.ENCODING}")
             self.end_headers()
             html: str = YC.YANDEX_HTML_WINDOW_SUCCESSFUL
-            self.wfile.write(html.encode(C.ENCODING))
+            self.wfile.write(html.encode(YC.ENCODING))
         else:
             self.send_response(204)
             self.end_headers()
@@ -114,10 +114,10 @@ class TokenManager:
             if refresh_token:
                 self.variables.put_keyring_var(YC.YANDEX_REFRESH_TOKEN, refresh_token)
 
-            logger.debug(T.tokens_saved)
+            logger.debug(YT.tokens_saved)
 
         except Exception as e:
-            raise AuthError(T.error_saving_tokens.format(e=e))
+            raise AuthError(YT.error_saving_tokens.format(e=e))
 
     def get_vars(self) -> tuple[str, str, str] | None:
         access_token = self.variables.get_var(YC.YANDEX_ACCESS_TOKEN)
@@ -125,13 +125,13 @@ class TokenManager:
         expires_at = self.variables.get_var(YC.YANDEX_EXPIRES_AT)
 
         logger.debug(
-            f"[Token Load] {YC.YANDEX_ACCESS_TOKEN}: {C.PRESENT if access_token else C.MISSING}"
+            f"[Token Load] {YC.YANDEX_ACCESS_TOKEN}: {YC.PRESENT if access_token else YC.MISSING}"
         )
         logger.debug(
-            f"[Token Load] {YC.YANDEX_REFRESH_TOKEN}: {C.PRESENT if refresh_token else C.MISSING}"
+            f"[Token Load] {YC.YANDEX_REFRESH_TOKEN}: {YC.PRESENT if refresh_token else YC.MISSING}"
         )
         logger.debug(
-            f"[Token Load] {YC.YANDEX_EXPIRES_AT}: {C.PRESENT if expires_at else C.MISSING}"
+            f"[Token Load] {YC.YANDEX_EXPIRES_AT}: {YC.PRESENT if expires_at else YC.MISSING}"
         )
 
         return access_token, refresh_token, expires_at
@@ -141,13 +141,13 @@ class TokenManager:
         try:
             expires_at_float = float(expires_at)
         except (TypeError, ValueError) as e:
-            logger.warning(T.not_float.format(e=e))
+            logger.warning(YT.not_float.format(e=e))
             return False
 
         current_time = time.time()
         if current_time >= expires_at_float:
             seconds = f"{current_time - expires_at_float:.0f}"
-            logger.info(T.token_expired.format(seconds=seconds))
+            logger.info(YT.token_expired.format(seconds=seconds))
             return False
 
         return True
@@ -171,7 +171,7 @@ class TokenManager:
             if not self._validate_token_api(access_token):
                 return None
 
-            logger.debug(T.valid_token_found.format(token=YC.YANDEX_ACCESS_TOKEN))
+            logger.debug(YT.valid_token_found.format(token=YC.YANDEX_ACCESS_TOKEN))
             return {
                 YC.YANDEX_ACCESS_TOKEN: access_token,
                 YC.YANDEX_REFRESH_TOKEN: refresh_token,
@@ -179,7 +179,7 @@ class TokenManager:
             }
 
         except Exception as e:
-            logger.warning(T.error_load_tokens.format(e=e))
+            logger.warning(YT.error_load_tokens.format(e=e))
             return None
 
     @staticmethod
@@ -193,14 +193,14 @@ class TokenManager:
             )
 
             if response.status_code == 200:
-                logger.debug(T.token_valid)
+                logger.debug(YT.token_valid)
                 return True
 
-            logger.warning(T.token_invalid.format(status=response.status_code))
+            logger.warning(YT.token_invalid.format(status=response.status_code))
             return False
 
         except requests.RequestException as e:
-            logger.warning(T.error_check_token.format(e=e))
+            logger.warning(YT.error_check_token.format(e=e))
             return False
 
 
@@ -265,13 +265,13 @@ class OAuthFlow:
             return self.run_full_auth_flow()
 
         except AuthCancelledError as e:
-            raise AuthCancelledError(T.canceled_authorization)
+            raise AuthCancelledError(YT.canceled_authorization)
         except AuthError as e:
-            raise AuthError(T.authorization_error.format(e=e))
+            raise AuthError(YT.authorization_error.format(e=e))
 
     def token_in_memory(self) -> str | None:
         if self.access_token and not self.is_token_expired():
-            logger.debug(T.token_in_memory)
+            logger.debug(YT.token_in_memory)
             return self.access_token
         return None
 
@@ -281,16 +281,16 @@ class OAuthFlow:
             self.access_token = tokens[YC.YANDEX_ACCESS_TOKEN]
             self.refresh_token = tokens.get(YC.YANDEX_REFRESH_TOKEN)
             self._token_expires_at = float(tokens[YC.YANDEX_EXPIRES_AT])
-            logger.debug(T.loaded_token)
+            logger.debug(YT.loaded_token)
             return tokens
 
         return None
 
     def updated_tokens(self) -> dict[str, str] | None:
-        logger.debug(T.start_update_tokens)
+        logger.debug(YT.start_update_tokens)
         try:
             if tokens := self.get_tokens_from_url():
-                logger.debug(T.updated_tokens)
+                logger.debug(YT.updated_tokens)
 
                 self.access_token = tokens[ACCESS_TOKEN_IN_TOKEN]
                 self.refresh_token = tokens.get(REFRESH_TOKEN_IN_TOKEN)
@@ -300,9 +300,9 @@ class OAuthFlow:
                 )
                 return tokens
             else:
-                logger.warning(T.updated_tokens_error.format(e=""))
+                logger.warning(YT.updated_tokens_error.format(e=""))
         except RefreshTokenError as e:
-            logger.warning(T.updated_tokens_error.format(e=e))
+            logger.warning(YT.updated_tokens_error.format(e=e))
 
         return None
 
@@ -312,13 +312,13 @@ class OAuthFlow:
 
     def run_full_auth_flow(self) -> str:
         """Выполняет полный цикл OAuth 2.0 аутентификации"""
-        logger.info(T.start_full_auth_flow)
+        logger.info(YT.start_full_auth_flow)
         try:
             return self.full_auth_flow()
         except TimeoutError as e:
-            raise AuthCancelledError(T.authorization_timeout.format(e=e))
+            raise AuthCancelledError(YT.authorization_timeout.format(e=e))
         except Exception as e:
-            raise AuthError(T.authorization_error.format(e=e))
+            raise AuthError(YT.authorization_error.format(e=e))
 
     def full_auth_flow(self) -> str:
         """Содержательная часть метода start_full_auth_flow"""
@@ -340,7 +340,7 @@ class OAuthFlow:
 
         if not is_valid_redirect_uri(redirect_uri):
             raise ValueError(
-                T.no_correct_redirect_uri.format(redirect_uri=redirect_uri)
+                YT.no_correct_redirect_uri.format(redirect_uri=redirect_uri)
             )
 
         client = WebApplicationClient(
@@ -375,16 +375,16 @@ class OAuthFlow:
         start_time = time.time()
         while not self.callback_received:
             if time.time() - start_time > 120:
-                raise TimeoutError(T.callback_timeout)
+                raise TimeoutError(YT.callback_timeout)
             time.sleep(0.1)
 
     def parse_callback(self) -> str:
         """Извлекает код авторизации из callback"""
         if not self.callback_path:
-            raise AuthError(T.no_callback_path)
+            raise AuthError(YT.no_callback_path)
 
         # if not is_valid_redirect_uri(self.callback_path):
-        #     raise AuthError(T.not_safe_uri.format(callback_path=self.callback_path))
+        #     raise AuthError(YT.not_safe_uri.format(callback_path=self.callback_path))
 
         query = urlparse(self.callback_path).query
         params = parse_qs(query)
@@ -396,7 +396,7 @@ class OAuthFlow:
 
         auth_code = params.get("code", [""])[0]
         if not auth_code:
-            raise AuthError(T.no_auth_code)
+            raise AuthError(YT.no_auth_code)
         return auth_code
 
     def get_tokens(self, auth_code: str, code_verifier: str) -> dict:
@@ -433,7 +433,7 @@ class OAuthFlow:
 
         token = self.get_tokens(auth_code, code_verifier)
         if ACCESS_TOKEN_IN_TOKEN not in token:
-            raise AuthError(T.no_token_in_response)
+            raise AuthError(YT.no_token_in_response)
 
         self.access_token = token[ACCESS_TOKEN_IN_TOKEN]
         self.refresh_token = token.get(REFRESH_TOKEN_IN_TOKEN, self.refresh_token)
@@ -463,7 +463,7 @@ class OAuthFlow:
 
         if response.status_code >= 400:
             logger.warning(
-                T.error_refresh_token.format(status_code=response.status_code, e="")
+                YT.error_refresh_token.format(status_code=response.status_code, e="")
             )
             return None
 
@@ -475,12 +475,12 @@ class OAuthFlow:
             tokens = response.json()
         except ValueError as e:
             raise RefreshTokenError(
-                T.not_valid_json.format(e=e, response=response.text[:200])
+                YT.not_valid_json.format(e=e, response=response.text[:200])
             )
 
         if not isinstance(tokens, dict):
             raise RefreshTokenError(
-                T.dictionary_expected.format(type=type(tokens), response=response.text)
+                YT.dictionary_expected.format(type=type(tokens), response=response.text)
             )
 
         return tokens
@@ -497,10 +497,10 @@ class OAuthFlow:
                 expires_in = float(expires_in_str)
             except ValueError:
                 expires_in = 0.0
-                logger.info(T.expires_in_error.format(key=expires_in_str))
+                logger.info(YT.expires_in_error.format(key=expires_in_str))
         else:
             expires_in = float("inf")
-            logger.info(T.no_expires_in)
+            logger.info(YT.no_expires_in)
 
         self._token_expires_at = time.time() + expires_in - 60.0
 
@@ -532,9 +532,9 @@ class YandexOAuth:
         try:
             token = self.flow.get_access_token()
             if token:
-                logger.info(T.successful_access_token)
+                logger.info(YT.successful_access_token)
                 return token
             else:
-                raise AuthError(T.failed_access_token)
+                raise AuthError(YT.failed_access_token)
         except Exception as e:
-            raise AuthError(T.critical_error.format(e=e))
+            raise AuthError(YT.critical_error.format(e=e))

@@ -31,7 +31,7 @@ from yadisk.exceptions import (
 from SRC.YADISK.yandex_token import YandexOAuth  # Модуль для работы с OAuth
 from SRC.GENERAL.remotenameservice import RemoteNameServiceProtokol
 from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.textmessage import TextMessage as T
+from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
@@ -62,7 +62,7 @@ class YandexDisk:
         self.remote_dir = remote_dir
         self.call_back_obj = call_back_obj  # Объект с call_back функциями.
 
-        self.yandex_token: str = (
+        self.yandex_token: str | None = (
             self.get_token_for_API()
         )  # токен доступа к Яндекс-Диску
 
@@ -71,9 +71,9 @@ class YandexDisk:
 
     def check_remote_dir(self) -> None:
         if not self.ya_disk.exists(self.remote_dir):
-            logger.info(T.folder_not_found.format(archive_path=self.remote_dir))
+            logger.info(YT.folder_not_found.format(archive_path=self.remote_dir))
             self.ya_disk.mkdir(self.remote_dir)  # Создаём папку с архивами
-            logger.info(T.folder_created.format(archive_path=self.remote_dir))
+            logger.info(YT.folder_created.format(archive_path=self.remote_dir))
 
     def get_token_for_API(self) -> str:
         """
@@ -81,16 +81,16 @@ class YandexDisk:
         :return: (str) токен доступа к Яндекс-Диску
         """
         try:
-            logger.info(T.get_token)
+            logger.info(YT.get_token)
             yandex_token = YandexOAuth(port=self.port)
             self.yandex_token = yandex_token.get_access_token()
             if not self.yandex_token:
                 logger.critical("")
-                raise PermissionError(T.no_valid_token)
-            logger.debug(T.valid_token)
+                raise PermissionError(YT.no_valid_token)
+            logger.debug(YT.valid_token)
             return self.yandex_token
         except Exception as e:
-            raise PermissionError(T.get_token_error.format(e=e))
+            raise PermissionError(YT.get_token_error.format(e=e))
 
     @staticmethod
     def init_ya_disk(yandex_token: str) -> YaDisk:
@@ -99,27 +99,28 @@ class YandexDisk:
             # Проверка доступности диска
             if disk.check_token(token=yandex_token):
                 return disk
-            raise PermissionError(T.authorization_error.format(e=""))
+            raise PermissionError(YT.authorization_error.format(e=""))
         except UnauthorizedError:
-            raise PermissionError(T.authorization_error.format(e=""))
+            raise PermissionError(YT.authorization_error.format(e=""))
         except BadRequestError:
-            raise PermissionError(T.invalid_request)
+            raise PermissionError(YT.invalid_request)
         except YaDiskError as e:
-            raise RuntimeError(T.error_ya_disk.format(e=e))
+            raise RuntimeError(YT.error_ya_disk.format(e=e))
         except ConnectionError:
-            raise RuntimeError(T.no_internet)
+            raise RuntimeError(YT.no_internet)
         except Exception as e:
-            raise RuntimeError(T.unknown_error.format(e=e))
+            raise RuntimeError(YT.unknown_error.format(e=e))
 
     def create_remote_name(self, remote_dir) -> str:
         for item in self.ya_disk.listdir(remote_dir):
-            self.call_back_obj.accept_remote_directory_element(item.name)
+            if item is not None and item.name is not None:
+                self.call_back_obj.accept_remote_directory_element(item.name)
 
         return self.call_back_obj.generate_remote_name()
 
     def _upload_file(self, local_path: str, remote_path: str) -> None:
         """Выполняет загрузку файла и логирует время."""
-        logger.debug(T.load.format(local_path=local_path, remote_path=remote_path))
+        logger.debug(YT.load.format(local_path=local_path, remote_path=remote_path))
         t_start = time.time()
         self.ya_disk.upload(
             local_path,
@@ -129,7 +130,7 @@ class YandexDisk:
             chunk_size=4 * 1024 * 1024,
         )
         during = f"{time.time() - t_start:.2f}"
-        logger.info(T.during.format(during=during))
+        logger.info(YT.during.format(during=during))
 
     def write_file_fast(self, local_path: str) -> str | None:
         """
@@ -152,28 +153,28 @@ class YandexDisk:
             Непосредственно не выбрасывает исключения наружу, но печатает ошибки,
             возникшие при получении URL или при самой загрузке файла.
         """
-        logger.info(T.fast_load.format(local_path=local_path))
+        logger.info(YT.fast_load.format(local_path=local_path))
         try:
             remote_path = self.get_remote_path()
 
             upload_url = self._get_upload_url(remote_path)
-            logger.debug(T.url_received.format(upload_url=upload_url))
+            logger.debug(YT.url_received.format(upload_url=upload_url))
             # Открываем локальный файл в бинарном режиме
             with open(local_path, "rb") as f:
                 # Шаг 2: загружаем файл напрямую на полученный URL через HTTP PUT
-                logger.info(T.start_fast_load.format(local_path=local_path))
+                logger.info(YT.start_fast_load.format(local_path=local_path))
                 response = requests.put(upload_url, data=f)
 
             # Проверка на успешную загрузку (ошибки вызовут исключение)
             response.raise_for_status()
             logger.info(
-                T.load_success.format(local_path=local_path, remote_path=remote_path)
+                YT.load_success.format(local_path=local_path, remote_path=remote_path)
             )
             return remote_path
 
         except Exception as err:
             # Обработка любых исключений при загрузке
-            logger.error(T.error_load_file.format(err=err))
+            logger.error(YT.error_load_file.format(err=err))
             return None
 
     def get_remote_path(self) -> str:
@@ -185,7 +186,7 @@ class YandexDisk:
         # Генерация имени архива и удаленного пути
         remote_name = self.create_remote_name(self.remote_dir)
         remote_path = f"{self.remote_dir}/{remote_name}"
-        logger.debug(T.path_to_cloud.format(remote_path=remote_path))
+        logger.debug(YT.path_to_cloud.format(remote_path=remote_path))
 
         return remote_path
 
@@ -197,5 +198,5 @@ class YandexDisk:
             params={"path": remote_path, "overwrite": "false"},
         )
         if not response.ok:
-            raise RuntimeError(T.error_upload_URL)
+            raise RuntimeError(YT.error_upload_URL)
         return response.json()["href"]

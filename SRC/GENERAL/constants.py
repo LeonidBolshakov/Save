@@ -79,7 +79,6 @@ class Constants(frozenset):
         "декабря",
     ]
     PATTERN_7_Z = "7z.exe"
-    PRESENT = "Представлены"
     REMOTE_ARCHIVE_DIR = "/Архивы"
     REMOTE_ARCHIVE_PREFIX = "archive"
     REMOTE_LINK = "remote_path="

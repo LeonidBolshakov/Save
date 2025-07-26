@@ -34,7 +34,7 @@ class BackupManager:
         EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
 
         for (  # Подготовка к настройке основного логирования
-                handler
+            handler
         ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
             logging.root.removeHandler(handler)
         # noinspection PyUnusedLocal
@@ -58,7 +58,7 @@ class BackupManager:
         sys.exit(1 if logging.ERROR <= max_level else 0)
 
     @staticmethod
-    def start_completion_work(remote_path: str, max_level: int) -> None:
+    def start_completion_work(remote_path: str | None, max_level: int) -> None:
         # Специальное сообщение для системы уведомлений
         logger.critical(f"{C.STOP_SERVICE_MESSAGE}{remote_path}")
         message_mail = MessageMail()

@@ -7,7 +7,7 @@ from yadisk.exceptions import (
     PathExistsError,
 )
 
-from SRC.GENERAL.textmessage import TextMessage as T
+from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 
 
 def write_file(self, local_path: str) -> bool:
@@ -17,7 +17,6 @@ def write_file(self, local_path: str) -> bool:
     :param local_path: Путь к локальному файлу
     :return: Статус операции (True/False)
     """
-    logger.info(T.start_load_file.format(local_path=local_path))
 
     # Формируем полный путь на Яндекс-Диске
     remote_path = f"{self.remote_dir}/{self.create_remote_name()}"
@@ -29,11 +28,11 @@ def write_file(self, local_path: str) -> bool:
     # Обработка специфических ошибок API
     except yadisk.exceptions.UnauthorizedError:
         logger.critical("")
-        raise PermissionError(T.invalid_token)
+        raise PermissionError(YT.invalid_token)
     except yadisk.exceptions.PathExistsError:
-        raise PathExistsError(T.file_exists.format(remote_path=remote_path))
+        raise PermissionError
     except yadisk.exceptions.ForbiddenError:
         logger.critical("")
-        raise PermissionError(T.not_enough_rights.format(remote_path=remote_path))
+        raise PermissionError
     except Exception as err:
-        raise Exception(T.error_load_file.format(err=err)) from err
+        raise Exception(YT.error_load_file.format(err=err)) from err

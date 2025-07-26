@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 from SRC.YADISK.yandex_disk import YandexDisk
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.remotenameservice import RemoteNameServiceProtokol
-from SRC.GENERAL.textmessage import TextMessage as T
+from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
@@ -26,13 +26,13 @@ def write_file_yandex_disk(
         OSError: Если загрузка файла не удалась
         RuntimeError: При проблемах с API Яндекс-Диска
     """
-    logger.info(T.init_load_to_disk)
+    logger.info(YT.init_load_to_disk)
     variables = EnvironmentVariables()
     try:
         port = int(variables.get_var(YC.ENV_YANDEX_PORT))
     except ValueError as e:
         logger.critical("")
-        raise ValueError(T.invalid_port.format(e=e))
+        raise ValueError(YT.invalid_port.format(e=e))
 
     try:
         yandex_disk = YandexDisk(
@@ -40,7 +40,7 @@ def write_file_yandex_disk(
         )
         if not (_remote_path := yandex_disk.write_file_fast(local_path)):
             logger.critical("")
-            raise OSError(T.error_API_Yandex_disk)
+            raise OSError(YT.error_API_Yandex_disk)
 
         return _remote_path
     except Exception as e:
