@@ -34,7 +34,7 @@ class BackupManager:
         EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
 
         for (  # Подготовка к настройке основного логирования
-            handler
+                handler
         ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
             logging.root.removeHandler(handler)
         # noinspection PyUnusedLocal
@@ -146,6 +146,7 @@ if __name__ == "__main__":
     try:
         backup_manager = BackupManager()
         backup_manager.main()
+        exit(0)
     except Exception:
         sys.exit(1)
     except KeyboardInterrupt:

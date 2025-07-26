@@ -26,13 +26,11 @@ from yadisk.exceptions import (
     YaDiskError,
     UnauthorizedError,
     BadRequestError,
-    PathNotFoundError,
 )
 
 from SRC.YADISK.yandex_token import YandexOAuth  # Модуль для работы с OAuth
-from SRC.GENERAL.createremotepath import RemotePathProtokol
+from SRC.GENERAL.remotenameservice import RemoteNameServiceProtokol
 from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
@@ -40,23 +38,28 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 class YandexDisk:
     """Класс для работы с файлами (архивами) на Яндекс-Диске"""
 
-    def __init__(self, port: int, call_back_obj: RemotePathProtokol):
+    def __init__(
+        self, port: int, remote_dir: str, call_back_obj: RemoteNameServiceProtokol
+    ):
         """
         :param port: (int) Номер порта из описания приложения на Яндекс
+        :param remote_dir: (str) Директория на Яндекс-Диске с архивами
         :param call_back_obj: объект класса, удовлетворяющего протоколу:
 
-            class RemotePathProtokol(Protocol):
+            class RemoteNameServiceProtokol:
+
                 accept_remote_directory_element: Callable[[str], None]
                 generate_remote_name: Callable[[], str]
 
                 accept_remote_directory_element -   должен вызываться для каждого элемента удалённой директории,
                                                     передавая параметром имя файла элемента
-                generate_remote_name            -   вызывается для получения сгенерированного имени удалённого файла
+                generate_remote_name            -   возвращает сгенерированное имя удалённого файла
         """
 
         variables = EnvironmentVariables()
 
         self.port = port  # generate_remote_name:
+        self.remote_dir = remote_dir
         self.call_back_obj = call_back_obj  # Объект с call_back функциями.
 
         self.yandex_token: str = (
@@ -64,23 +67,13 @@ class YandexDisk:
         )  # токен доступа к Яндекс-Диску
 
         self.ya_disk = self.init_ya_disk(self.yandex_token)  # Яндекс-Диск
-        self.remote_dir = (
-            self.get_remote_dir()
-        )  # Каталог с архивом, расположенным в облаке
+        self.check_remote_dir()
 
-    def get_remote_dir(self) -> str:
-        remote_dir = C.REMOTE_ARCHIVE_DIR
-        try:
-            self.ya_disk.listdir(remote_dir, max_items=1, limit=1)
-        # Создание папки для архивов при необходимости
-        except PathNotFoundError:  # Папки с архивами не существует
-            logger.info(T.folder_not_found.format(archive_path=remote_dir))
-            self.ya_disk.mkdir(remote_dir)  # Создаём папку с архивами
-            logger.info(T.folder_created.format(archive_path=remote_dir))
-        except Exception as e:
-            raise RuntimeError(T.error_list_files.format(e=e))
-
-        return remote_dir
+    def check_remote_dir(self) -> None:
+        if not self.ya_disk.exists(self.remote_dir):
+            logger.info(T.folder_not_found.format(archive_path=self.remote_dir))
+            self.ya_disk.mkdir(self.remote_dir)  # Создаём папку с архивами
+            logger.info(T.folder_created.format(archive_path=self.remote_dir))
 
     def get_token_for_API(self) -> str:
         """
@@ -102,10 +95,11 @@ class YandexDisk:
     @staticmethod
     def init_ya_disk(yandex_token: str) -> YaDisk:
         try:
-            disk = yadisk.YaDisk(token="your_token_here")
+            disk = yadisk.YaDisk(token=yandex_token)
             # Проверка доступности диска
-            disk.check_token()
-            return disk
+            if disk.check_token(token=yandex_token):
+                return disk
+            raise PermissionError(T.authorization_error.format(e=""))
         except UnauthorizedError:
             raise PermissionError(T.authorization_error.format(e=""))
         except BadRequestError:

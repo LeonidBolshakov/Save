@@ -1,7 +1,6 @@
 import re
 from typing import Protocol, Callable
 from datetime import date
-from yadisk.exceptions import PathNotFoundError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,24 +9,22 @@ from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class RemotePathProtokol(Protocol):
+class RemoteNameServiceProtokol(Protocol):
     accept_remote_directory_element: Callable[[str], None]
     generate_remote_name: Callable[[], str]
 
 
-class CreateRemotePath:
+class RemoteNameService:
     def __init__(
         self,
         archive_ext: str = C.ARCHIVE_SUFFIX,
         remote_archive_path: str = C.REMOTE_ARCHIVE_DIR,  # Каталог архивов на Яндекс-Диске
     ):
         self.target_date: date = date.today()  # Дата для наименования
-        self.archive_prefix: str = (
-            C.REMOTE_ARCHIVE_PREFIX,
-        )  # Префикс имени файла архива
-        self.archive_ext: str = (C.ARCHIVE_SUFFIX,)  # Расширение файла архива
+        self.archive_prefix: str = C.REMOTE_ARCHIVE_PREFIX  # Префикс имени файла архива
+        self.archive_ext: str = C.ARCHIVE_SUFFIX  # Расширение файла архива
         self.remote_archive_path: str = (
-            C.REMOTE_ARCHIVE_DIR,
+            C.REMOTE_ARCHIVE_DIR
         )  # Каталог архивов на облачном диске
         self.file_nums = []
         self.archive_name_format = self.get_archive_name_format()
@@ -69,6 +66,7 @@ class CreateRemotePath:
 
         # Преобразуем в число
         self.file_nums.append(int(file_num_str))
+        return
 
     def get_archive_name_format(self):
         return C.GENERAL_REMOTE_ARCHIVE_FORMAT.format(
@@ -103,7 +101,6 @@ class CreateRemotePath:
         prefix = self.archive_name_format.format(
             file_num="",  # Убираем часть с номером файла
         )
-
         # Экранируем спецсимволы для regex
         escaped_prefix = re.escape(prefix)
         escaped_ext = re.escape(self.archive_ext)

@@ -80,7 +80,7 @@ class Constants(frozenset):
     ]
     PATTERN_7_Z = "7z.exe"
     PRESENT = "Представлены"
-    REMOTE_ARCHIVE_DIR = "ya_disk:/Архивы"
+    REMOTE_ARCHIVE_DIR = "/Архивы"
     REMOTE_ARCHIVE_PREFIX = "archive"
     REMOTE_LINK = "remote_path="
     RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)
@@ -100,3 +100,5 @@ class Constants(frozenset):
         f"{ENV_SENDER_PASSWORD}",  # Пароль от email отправителя
         f"{ENV_RECIPIENT_EMAIL}",  # Email получателя уведомлений
     ]
+    YANDEX_SMTP_HOST = "smtp.yandex.ru"
+    YANDEX_SMTP_PORT = 465

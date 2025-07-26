@@ -42,7 +42,5 @@ class YandexConstants(frozenset):
     YANDEX_LIBS = ["urllib3", "yadisk"]
     YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
     YANDEX_SCOPE = "YANDEX_SCOPE"
-    YANDEX_SMTP_HOST = "smtp.yandex.ru"
-    YANDEX_SMTP_PORT = 465
     YANDEX_TOKEN_URL = "YANDEX_TOKEN_URL"
     YANDEX_TOKEN_URL_DEFAULT = "https://oauth.yandex.ru/token"
