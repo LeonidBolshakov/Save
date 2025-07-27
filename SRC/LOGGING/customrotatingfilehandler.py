@@ -13,13 +13,13 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
     """
 
     def __init__(
-        self,
-        filename: str,
-        mode: str = "a",
-        maxBytes: int = 0,
-        backupCount: int = 0,
-        encoding: str | None = None,
-        delay: bool = False,
+            self,
+            filename: str,
+            mode: str = "a",
+            maxBytes: int = 0,
+            backupCount: int = 0,
+            encoding: str | None = None,
+            delay: bool = False,
     ):
         """
         Инициализирует обработчик логов.
@@ -57,8 +57,9 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
         try:
             # Фильтрация сообщений
             if self.email_send_trigger not in record.getMessage():
-                # Ротация и запись обрабатываются родительским классом
-                super().emit(record)
+                if len(record.getMessage()):
+                    # Ротация и запись обрабатываются родительским классом
+                    super().emit(record)
 
         except Exception:
             self.handleError(record)

@@ -20,16 +20,17 @@ class YaGmailHandler:
         """Отправляет email с обработкой ошибок"""
         try:
             with yagmail.SMTP(
-                user=self.sender_email,
-                password=self.sender_password,
-                host=C.YANDEX_SMTP_HOST,
-                port=C.YANDEX_SMTP_PORT,
-                smtp_ssl=True,
+                    user=self.sender_email,
+                    password=self.sender_password,
+                    host=C.YANDEX_SMTP_HOST,
+                    port=C.YANDEX_SMTP_PORT,
+                    smtp_ssl=True,
             ) as yag:
                 yag.send(to=self.recipient_email, subject=subject, contents=content)
             return True
         except (YagAddressError, YagInvalidEmailAddress) as e:
-            logging.critical(T.error_address_email.format(e))
+            logger.error(T.error_address_email.format(e=e))
         except Exception as e:
-            logging.warning(T.error_send_email.format(e))
+            logger.warning(T.error_send_email.format(e=e))
+
         return False

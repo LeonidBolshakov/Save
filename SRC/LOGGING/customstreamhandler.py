@@ -18,6 +18,7 @@ class CustomStreamHandler(logging.StreamHandler):
         """
         try:
             if self.email_send_trigger not in record.getMessage():
-                super().emit(record)
+                if len(record.getMessage()):
+                    super().emit(record)
         except Exception:
             self.handleError(record)

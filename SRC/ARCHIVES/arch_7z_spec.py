@@ -28,12 +28,12 @@ class Arch7zSpec:
     """
 
     def __init__(
-        self,
-        arch_path: str,
-        list_file: str,
-        seven_zip_exe_path: str,
-        password: str = "",
-        work_dir: str | None = None,
+            self,
+            arch_path: str,
+            list_file: str,
+            seven_zip_exe_path: str,
+            password: str = "",
+            work_dir: str | None = None,
     ):
         """
         Инициализирует экземпляр класса для создания SFX-архива.
@@ -190,11 +190,11 @@ class Arch7zSpec:
             process = self._run_archive_process(cmd, encoding)
             return self._handle_process_result(process)
         except Exception as e:
-            logger.critical("")
+            logger.critical({e})
             raise RuntimeError(T.error_starting_archiving.format(e=e))
 
     def _run_archive_process(
-        self, cmd: list[str], encoding: str
+            self, cmd: list[str], encoding: str
     ) -> subprocess.CompletedProcess:
         """Запускает процесс архивации."""
         return subprocess.run(

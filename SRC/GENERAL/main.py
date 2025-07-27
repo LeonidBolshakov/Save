@@ -31,15 +31,19 @@ class BackupManager:
             format=C.LOG_FORMAT,
         )  # Настройка логирования только для использования до настройки основного логирования
 
-        EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
+        try:
+            EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
 
-        for (  # Подготовка к настройке основного логирования
-            handler
-        ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
-            logging.root.removeHandler(handler)
-        # noinspection PyUnusedLocal
+            for (  # Подготовка к настройке основного логирования
+                    handler
+            ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
+                logging.root.removeHandler(handler)
+        except Exception:
+            raise
 
-    def completion(self, remote_path: str | None = None) -> None:
+    def completion(
+            self, remote_path: str | None = None, e: Exception | None = None
+    ) -> None:
         """Завершает работу программы с соответствующим статусом.
 
         Логирует результат выполнения и вызывает завершение программы
@@ -47,34 +51,36 @@ class BackupManager:
         сообщение для системы отправки email-уведомлений.
 
         Args:
-            remote_path: Путь к файлу на Яндекс-Диске (для уведомления)
+            remote_path: (str) Путь к файлу на Яндекс-Диске (для уведомления)
+            e: Exception. Прерывание программы.
         """
         handler = MaxLevelHandler()
         max_level = handler.get_highest_level()
-        name_max_level = logging.getLevelName(max_level)
 
-        self.start_completion_work(remote_path=remote_path, max_level=max_level)
-        self.completion_log(max_level, name_max_level)
+        if not self.start_completion_work(remote_path=remote_path):
+            max_level = max(max_level, logging.ERROR)
+        self.completion_log(max_level)
         sys.exit(1 if logging.ERROR <= max_level else 0)
 
     @staticmethod
-    def start_completion_work(remote_path: str | None, max_level: int) -> None:
+    def start_completion_work(remote_path: str | None) -> bool:
         # Специальное сообщение для системы уведомлений
         logger.critical(f"{C.STOP_SERVICE_MESSAGE}{remote_path}")
         message_mail = MessageMail()
-        message_mail.compose_and_send_email()
+        return message_mail.compose_and_send_email()
 
     @staticmethod
-    def completion_log(max_level: int, name_max_level: str) -> None:
+    def completion_log(max_level: int) -> None:
         """Логирует итоговый результат выполнения задания.
 
         В зависимости от максимального уровня залогированных ошибок
         формирует соответствующее сообщение в лог.
 
         Args:
-            max_level: Числовой код максимального уровня ошибки
-            name_max_level: Текстовое название уровня ошибки
+            max_level: (int) Числовой код максимального уровня ошибки
         """
+        name_max_level = logging.getLevelName(max_level)
+
         match max_level:
             case logging.NOTSET | logging.DEBUG | logging.INFO:
                 logger.info(T.task_successfully)
@@ -97,22 +103,26 @@ class BackupManager:
 
         Логирует все этапы работы и обрабатывает возможные ошибки.
         """
-        self.validate_vars_environments()  # Проверка наличия переменных окружения
-        TuneLogger().setup_logging()  # Настройка системы логирования
 
-        logger.info(T.start_main)
         start_time = time.time()
-
         remote_path = None
         try:
+            self.validate_vars_environments()  # Проверка наличия переменных окружения
+        except Exception as e:
+            logger.critical({e})
+            exit(1)
+
+        try:
+            TuneLogger().setup_logging()  # Настройка системы логирования
             remote_path = self.main_program_loop()  # Запуск основного процесса
         except KeyboardInterrupt:
             logger.error(T.canceled_by_user, exc_info=True)
             raise
         except Exception as e:
-            raise
+            self.completion(remote_path=remote_path, e=e)
+        else:
+            self.completion(remote_path=remote_path, e=None)
         finally:
-            self.completion(remote_path=remote_path)
             logger.info(T.time_run.format(time=f"{time.time() - start_time:.2f}"))
 
     @staticmethod
@@ -138,7 +148,7 @@ class BackupManager:
                 return remote_path
 
         except Exception as e:
-            raise
+            raise Exception(e)
 
 
 if __name__ == "__main__":

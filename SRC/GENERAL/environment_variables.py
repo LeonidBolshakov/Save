@@ -91,7 +91,6 @@ class EnvironmentVariables:
         """
         missing = [var for var in C.VARS_REQUIRED if not self.get_var(var)]
         if missing:
-            logger.critical("")
             raise EnvironmentError(
                 T.missing_mandatory_variables.format(
                     dot_env=C.DOTENV_PATH, missing=", ".join(missing)

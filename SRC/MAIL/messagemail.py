@@ -34,10 +34,11 @@ class MessageMail:
         recipient = _variables.get_var(C.ENV_RECIPIENT_EMAIL, "")
         return YaGmailHandler(sender, password, recipient)
 
-    def compose_and_send_email(self) -> None:
-        """Основной метод для формирования и отправки email с обработкой ошибок.
-
+    def compose_and_send_email(self) -> bool:
+        """Метод для формирования и отправки email с обработкой ошибок.
         Включает несколько попыток отправки при неудаче.
+
+        :return: True при удачной отправке письма, False - при неудачной.
         """
         try:
             max_level_handler = MaxLevelHandler()
@@ -47,16 +48,15 @@ class MessageMail:
             subject, content = self._compose_message_content(
                 last_time, max_level, remote_archive_path
             )
-            if not self._send_email_with_retry(subject, content):
-                logger.error(T.failed_send_email)
-                return
         except Exception as e:
-            logger.error(T.error_send_email.format(e=e))
+            logger.error(T.error_compose_message.format(e=e))
+            return False
         else:
             logger.info(T.start_send_email.format(subject=subject))
+            return self._send_email_with_retry(subject, content)
 
     def _compose_message_content(
-        self, last_time: float, max_level: int, remote_archive_path: str
+            self, last_time: float, max_level: int, remote_archive_path: str
     ) -> tuple[str, str]:
         """Формирует тему и содержание email в зависимости от уровня важности."""
         level_name = logging.getLevelName(max_level)
@@ -77,7 +77,7 @@ class MessageMail:
 
     @staticmethod
     def _create_info_email(
-        last_time_str: str, remote_archive_path: str
+            last_time_str: str, remote_archive_path: str
     ) -> tuple[str, str]:
         """Создает email-уведомление об успешном выполнении операции."""
         # noinspection PyUnusedLocal
@@ -89,7 +89,7 @@ class MessageMail:
 
     @staticmethod
     def _create_warning_email(
-        last_time_str: str, remote_archive_path: str, log_path: str | None
+            last_time_str: str, remote_archive_path: str, log_path: str | None
     ) -> tuple[str, str]:
         """Создает email-уведомление с предупреждением."""
         # noinspection PyUnusedLocal
@@ -103,7 +103,7 @@ class MessageMail:
 
     @staticmethod
     def _create_error_email(
-        last_time_str: str, level_name: str, log_path: str | None
+            last_time_str: str, level_name: str, log_path: str | None
     ) -> tuple[str, str]:
         """Создает email-уведомление об ошибке."""
         subject = C.EMAIL_ERROR_SUBJECT
@@ -128,10 +128,16 @@ class MessageMail:
     def _send_email_with_retry(self, subject: str, content: str) -> bool:
         """Выполняет отправку email с несколькими попытками при неудаче."""
         for attempt in range(1, self.max_retry_attempts + 1):
-            if self.email_handler.send_email(subject, content):
-                return True
+            try:
+                if self.email_handler.send_email(subject, content):
+                    return True
+            except Exception as e:
+                logger.error(T.error_send_email.format(e=e))
+
             if attempt < self.max_retry_attempts:
                 time.sleep(C.RETRY_DELAY)
+
+        logger.error(T.failed_send_email)
         return False
 
 
@@ -173,7 +179,7 @@ def get_email_credentials() -> tuple[str, str, str]:
     recipient = _variables.get_var(C.ENV_RECIPIENT_EMAIL, "")
 
     if not sender or not password:
-        logging.critical(T.missing_email_credentials)
+        logging.error(T.missing_email_credentials)
         sys.exit(1)
 
     return sender, password, recipient

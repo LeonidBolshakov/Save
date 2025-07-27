@@ -17,7 +17,7 @@ class Constants(frozenset):
     DEFAULT_LOG_FILE = "save.log"
     DEFAULT_LOG_LEVEL = "INFO"
     DEFAULT_LOG_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
-    DOTENV_PATH = "env"
+    DOTENV_PATH = r"_INTERNAL\env"
     EMAIL_ERROR_CONTENT = (
         "🚨 Сообщение:\n\n"
         "Архивация провалилась.\n"
@@ -50,9 +50,9 @@ class Constants(frozenset):
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
 
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
-        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
+            "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
-    LIST_ARCHIVE_FILE = r"C:\PycharmProjects\Save\list.txt"
+    LIST_ARCHIVE_FILE = r"_INTERNAL\list.txt"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVELS = {
         "debug": logging.DEBUG,
