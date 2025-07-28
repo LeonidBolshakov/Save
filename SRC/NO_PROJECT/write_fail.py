@@ -19,7 +19,7 @@ def write_file(self, local_path: str) -> bool:
     """
 
     # Формируем полный путь на Яндекс-Диске
-    remote_path = f"{self.remote_dir}/{self.create_remote_name()}"
+    remote_path = f"{self.remote_dir}/{self._create_remote_name()}"
     try:
         # Загрузка файла
         self._upload_file(local_path, remote_path)

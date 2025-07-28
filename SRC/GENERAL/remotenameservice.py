@@ -11,7 +11,7 @@ from SRC.GENERAL.textmessage import TextMessage as T
 
 class RemoteNameServiceProtokol(Protocol):
     accept_remote_directory_element: Callable[[str], None]
-    generate_remote_dir: Callable[[], str]
+    generate_remote_dir: Callable[[], tuple[str, str]]
     generate_remote_path: Callable[[], str]
 
 
@@ -20,16 +20,14 @@ class RemoteNamesService(RemoteNameServiceProtokol):
         self.target_date: date = date.today()  # Дата для наименования
         self.archive_prefix: str = C.REMOTE_ARCHIVE_PREFIX  # Префикс имени файла архива
         self.archive_ext: str = C.ARCHIVE_SUFFIX  # Расширение файла архива
-        self.remote_archive_dir: str = (
+        self.full_remote_archive_dir: str = (
             C.REMOTE_ARCHIVE_DIR
         )  # Каталог архивов на облачном диске
         self.file_nums: list[int] = []
-        self.archive_name_format = self.get_archive_name_format()
+        self.archive_name_format = self._get_archive_name_format()
 
-    def create_remote_name(self) -> str:
+    def _create_remote_name(self) -> str:
         """
-        CALLBACK
-
         Генерирует уникальное имя архива на основе существующих файлов
         :return: (str) - Имя архива, сгенерированное по шаблону.
         """
@@ -65,7 +63,7 @@ class RemoteNamesService(RemoteNameServiceProtokol):
         self.file_nums.append(int(file_num_str))
         return
 
-    def get_archive_name_format(self):
+    def _get_archive_name_format(self):
         return C.GENERAL_REMOTE_ARCHIVE_FORMAT.format(
             archive=self.archive_prefix,
             year=self.target_date.year,
@@ -109,17 +107,30 @@ class RemoteNamesService(RemoteNameServiceProtokol):
             re.IGNORECASE,  # Независимый от регистра поиск
         )
 
-    def generate_remote_dir(self) -> str:
-        return self.remote_archive_dir
+    def generate_remote_dir(self) -> tuple[str, str]:
+        """
+        CALLBACK
+
+        Генерирует путь на директорию удалённого диска
+        :return: tuple(str, str) - (Имя головной части удалённой директории,
+                                    Полное имя удалённой директории)
+        """
+        remote_archive_dir_root = self.full_remote_archive_dir
+        remote_archive_dir_children = (
+            f"{self.target_date.year}_{self.target_date.month:02d}"
+        )
+        self.full_remote_archive_dir = (
+            f"{remote_archive_dir_root}/{remote_archive_dir_children}"
+        )
+        return remote_archive_dir_root, self.full_remote_archive_dir
 
     def generate_remote_path(self) -> str:
         """
-        Формирование пути файла архива на Яндекс-Диске
+        Формирование пути файла архива на удалённом диске
 
         :return: str - сгенерированный путь на файл
         """
-        # Генерация имени архива и удаленного пути
-        remote_path = f"{self.remote_archive_dir}/{self.create_remote_name()}"
+        remote_path = rf"{self.full_remote_archive_dir}/{self._create_remote_name()}"
         logger.debug(T.path_to_cloud.format(remote_path=remote_path))
 
         return remote_path

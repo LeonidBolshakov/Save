@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from SRC.YADISK.writefileyandexdisk import write_file_yandex_disk
-from SRC.GENERAL.remotenamesservice import RemoteNamesService
+from SRC.GENERAL.remotenameservice import RemoteNamesService
 from SRC.GENERAL.constants import Constants as C
 
 
