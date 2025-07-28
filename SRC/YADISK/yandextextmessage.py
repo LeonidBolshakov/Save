@@ -12,6 +12,7 @@ class YandexTextMessage(frozenset):
     during = "Файл загружен за {during} сек."
     error_API_Yandex_disk = "API Яндекс.Диска не вернуло путь к файлу"
     error_check_token = "Ошибка проверки токена доступа через API: {e}"
+    error_create_directory_ya_disk = "Ошибка создания директории на Яндекс-Диск: {e}"
     error_load_file = "Ошибка при загрузке файла: {err}"
     error_load_tokens = (
         "[Token Load] Ошибка загрузки закрытой информации из keyring: {e}"
@@ -33,9 +34,9 @@ class YandexTextMessage(frozenset):
     get_token_error = "Ошибка получения токена авторизации: {e}"
     init_load_to_disk = "Инициализация загрузки файла на Яндекс.Диск"
     invalid_port = (
-        "В переменных окружения не задан, или задан как не целое число, номер порта, заданный в приложении Яндекс. "
-        + f"Имя переменной окружения - {YC.ENV_YANDEX_PORT}. "
-        + "{e}"
+            "В переменных окружения не задан, или задан как не целое число, номер порта, заданный в приложении Яндекс. "
+            + f"Имя переменной окружения - {YC.ENV_YANDEX_PORT}. "
+            + "{e}"
     )
     invalid_request = "Некорректный запрос для создания доступа к Яндекс-Диску"
     invalid_token = "Недействительный токен доступа к Яндекс.Диск!"
@@ -65,7 +66,6 @@ class YandexTextMessage(frozenset):
     no_valid_token = "Токен недействителен. Нет доступа к Яндекс-Диск."
     not_float = "[Token Load] Время истечения токена не число с плавающей запятой: {e}"
     not_valid_json = "Невалидный JSON: {e}. Ответ: {response}"
-    path_to_cloud = "Путь на архив в облаке: {remote_path}"
     start_fast_load = "Начало быстрой загрузки файла {local_path}"
     start_full_auth_flow = "Запуск полного процесса аутентификации"
     start_update_token = "Начало формирование токена доступа посредством refresh_token"
@@ -83,4 +83,4 @@ class YandexTextMessage(frozenset):
     updated_tokens_error = (
         "Не удалось получить обновлённые токены от Яндекс с помощью refresh_token. {e}"
     )
-    url_received = "Получен upload URL: {upload_url}"
+    url_received = "Получен URL загрузки: {upload_url}"

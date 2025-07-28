@@ -11,25 +11,22 @@ from SRC.GENERAL.textmessage import TextMessage as T
 
 class RemoteNameServiceProtokol(Protocol):
     accept_remote_directory_element: Callable[[str], None]
-    generate_remote_name: Callable[[], str]
+    generate_remote_dir: Callable[[], str]
+    generate_remote_path: Callable[[], str]
 
 
-class RemoteNameService(RemoteNameServiceProtokol):
-    def __init__(
-        self,
-        archive_ext: str = C.ARCHIVE_SUFFIX,
-        remote_archive_path: str = C.REMOTE_ARCHIVE_DIR,  # Каталог архивов на Яндекс-Диске
-    ):
+class RemoteNamesService(RemoteNameServiceProtokol):
+    def __init__(self):
         self.target_date: date = date.today()  # Дата для наименования
         self.archive_prefix: str = C.REMOTE_ARCHIVE_PREFIX  # Префикс имени файла архива
         self.archive_ext: str = C.ARCHIVE_SUFFIX  # Расширение файла архива
-        self.remote_archive_path: str = (
+        self.remote_archive_dir: str = (
             C.REMOTE_ARCHIVE_DIR
         )  # Каталог архивов на облачном диске
         self.file_nums: list[int] = []
         self.archive_name_format = self.get_archive_name_format()
 
-    def generate_remote_name(self) -> str:
+    def create_remote_name(self) -> str:
         """
         CALLBACK
 
@@ -64,7 +61,7 @@ class RemoteNameService(RemoteNameServiceProtokol):
         if file_num_str is None:
             return
 
-        # Преобразуем в число
+        # Преобразуем в число и сохраняем
         self.file_nums.append(int(file_num_str))
         return
 
@@ -111,3 +108,18 @@ class RemoteNameService(RemoteNameServiceProtokol):
             # (?P<file_num>\d+) - группа file_num для номера файла за дату
             re.IGNORECASE,  # Независимый от регистра поиск
         )
+
+    def generate_remote_dir(self) -> str:
+        return self.remote_archive_dir
+
+    def generate_remote_path(self) -> str:
+        """
+        Формирование пути файла архива на Яндекс-Диске
+
+        :return: str - сгенерированный путь на файл
+        """
+        # Генерация имени архива и удаленного пути
+        remote_path = f"{self.remote_archive_dir}/{self.create_remote_name()}"
+        logger.debug(T.path_to_cloud.format(remote_path=remote_path))
+
+        return remote_path

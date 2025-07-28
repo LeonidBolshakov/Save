@@ -13,13 +13,13 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
     """
 
     def __init__(
-            self,
-            filename: str,
-            mode: str = "a",
-            maxBytes: int = 0,
-            backupCount: int = 0,
-            encoding: str | None = None,
-            delay: bool = False,
+        self,
+        filename: str,
+        mode: str = "a",
+        maxBytes: int = 0,
+        backupCount: int = 0,
+        encoding: str | None = None,
+        delay: bool = False,
     ):
         """
         Инициализирует обработчик логов.

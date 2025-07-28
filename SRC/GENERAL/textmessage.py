@@ -18,8 +18,8 @@ class TextMessage(frozenset):
         "Ошибка проверки существования директории с архивами в облаке: {e}"
     )
     error_load_7z = (
-            f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
-            + "{config_file}: {e}"
+        f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
+        + "{config_file}: {e}"
     )
     error_local_archive = "Ошибка при создании локального архива {e}"
     error_run_7z = (
@@ -51,6 +51,7 @@ class TextMessage(frozenset):
         "❌ Отсутствуют обязательные переменные окружения./n"
         "Задаются в файле {dot_env} или в keyring:/n{missing}"
     )
+    path_to_cloud = "Путь на архив в облаке: {remote_path}"
     none_element = "Обнаружен None-элемент в списке файлов облачного диска"
     no_fatal_error = "Архивация завершена с НЕ фатальными ошибками"
     no_path_local = "Не задан путь на архив, в который собираются сохраняемые файлы"
@@ -58,8 +59,8 @@ class TextMessage(frozenset):
     not_enough_rights = "Недостаточно прав для записи в {remote_path}"
     not_found_7z = f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
     not_found_config_file = (
-            f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует - "
-            + "{config_file}"
+        f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует - "
+        + "{config_file}"
     )
     not_found_list_file_path = (
         "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"

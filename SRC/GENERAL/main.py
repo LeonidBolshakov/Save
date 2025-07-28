@@ -35,14 +35,14 @@ class BackupManager:
             EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
 
             for (  # Подготовка к настройке основного логирования
-                    handler
+                handler
             ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
                 logging.root.removeHandler(handler)
         except Exception:
             raise
 
     def completion(
-            self, remote_path: str | None = None, e: Exception | None = None
+        self, remote_path: str | None = None, e: Exception | None = None
     ) -> None:
         """Завершает работу программы с соответствующим статусом.
 

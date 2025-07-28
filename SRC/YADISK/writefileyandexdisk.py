@@ -4,7 +4,7 @@ logger = logging.getLogger(__name__)
 
 from SRC.YADISK.yandex_disk import YandexDisk
 from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.remotenameservice import RemoteNameServiceProtokol
+from SRC.GENERAL.remotenamesservice import RemoteNameServiceProtokol
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
 

@@ -50,7 +50,7 @@ class Constants(frozenset):
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
 
     GENERAL_REMOTE_ARCHIVE_FORMAT = (
-            "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
+        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
     )
     LIST_ARCHIVE_FILE = r"_INTERNAL\list.txt"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
