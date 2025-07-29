@@ -48,7 +48,7 @@ class TextMessage(frozenset):
     invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге:" + "{path}"
     missing_email_credentials = "отсутствуют учетные данные email"
     missing_mandatory_variables = (
-        "❌ Отсутствуют обязательные переменные окружения.\n"
+        "Отсутствуют обязательные переменные окружения.\n"
         "Задаются в файле {dot_env} или в keyring:\n{missing}"
     )
     path_to_cloud = "Путь на архив в облаке: {remote_path}"
@@ -66,8 +66,10 @@ class TextMessage(frozenset):
         "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"
     )
     not_safe_uri = "Получен небезопасный callback URI: {callback_path}"
-    not_save_env = "❌ {var_name} не сохранён в keyring! Записываемое значение не равно прочитанному."
-    not_save_env_empty = "❌ {var_name} не сохранён в keyring! Задано пустое значение."
+    not_save_env = (
+        "{var_name} не сохранён в keyring! Записываемое значение не равно прочитанному."
+    )
+    not_save_env_empty = "{var_name} не сохранён в keyring! Задано пустое значение."
     path_local_archive = "Путь к архиву на локальном диске: {local_path_str}"
     permission_error = "[Поиск программы 7z]. Нет доступа к {path}"
     prompt = "{var} = {current}, введите новое или Enter, чтобы оставить прежнее:"

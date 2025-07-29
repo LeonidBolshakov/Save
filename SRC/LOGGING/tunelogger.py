@@ -32,7 +32,7 @@ class TuneLogger:
         ).lower()
 
         self.log_format = C.LOG_FORMAT  # Формат для всех обработчиков логгеров
-        self.log_handlers = {  # Словарь обработчиков логгеров
+        self.handlers_logger = {  # Словарь обработчиков логгеров
             HandlerLogger.file: self.create_file_handler(),
             HandlerLogger.max_level: MaxLevelHandler(),
             HandlerLogger.console: CustomStreamHandler(sys.stdout),
@@ -40,6 +40,19 @@ class TuneLogger:
 
     def setup_logging(self):
         """Настройка глобального логирования"""
+
+        # logging.raiseExceptions = False заменим оператор аналогами для методов
+        # class CleanMessageFormatter(logging.Formatter):
+        #     def format(self, record):
+        #         # Удаляем exc_info и exc_text, даже если они есть
+        #         record.exc_info = None
+        #         record.exc_text = None
+        #         return super().format(record)
+        #
+        # # Использование:
+        # handler.setFormatter(CleanMessageFormatter('%(levelname)s: %(message)s'))
+        # for handler in logging:
+        #     pass
 
         # Настройка уровней логирования
         log_level_console = self.get_log_level_console()
@@ -78,16 +91,16 @@ class TuneLogger:
     ) -> None:
         """Конфигурация всех обработчиков"""
 
-        handlers = list(self.log_handlers.values())
+        handlers = list(self.handlers_logger.values())
 
         # Настройка форматирования
         for handler in handlers:
             handler.setFormatter(logging.Formatter(log_format))
 
         # Настройка уровней логирования
-        self.log_handlers[HandlerLogger.file].setLevel(log_level_file)
-        self.log_handlers[HandlerLogger.console].setLevel(log_level_console)
-        self.log_handlers[HandlerLogger.max_level].setLevel(logging.NOTSET)
+        self.handlers_logger[HandlerLogger.file].setLevel(log_level_file)
+        self.handlers_logger[HandlerLogger.console].setLevel(log_level_console)
+        self.handlers_logger[HandlerLogger.max_level].setLevel(logging.NOTSET)
 
         self.configure_root_handlers(handlers)
 

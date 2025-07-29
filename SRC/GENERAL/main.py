@@ -26,21 +26,24 @@ class BackupManager:
     """
 
     @staticmethod
-    def validate_vars_environments():
+    def config_temp_logging() -> None:
+        logging.raiseExceptions = False
         logging.basicConfig(
             level=logging.INFO,
             format=C.LOG_FORMAT,
+            handlers=[
+                logging.StreamHandler(sys.stdout),
+                logging.FileHandler(C.DEFAULT_LOG_FILE),
+            ],
         )  # Настройка логирования только для использования до настройки основного логирования
 
-        try:
-            EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
-
-            for (  # Подготовка к настройке основного логирования
-                handler
-            ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
-                logging.root.removeHandler(handler)
-        except Exception:
-            raise
+    @staticmethod
+    def remove_temp_loging() -> None:
+        logging.raiseExceptions = True
+        for (  # Подготовка к настройке основного логирования
+            handler
+        ) in logging.root.handlers:  # Отказ от предыдущей настройки на логирование
+            logging.root.removeHandler(handler)
 
     def completion(
         self, remote_path: str | None = None, e: Exception | None = None
@@ -102,7 +105,6 @@ class BackupManager:
     @staticmethod
     def log_exception(e: Exception) -> None:
         logger.info("=== Произошла ошибка ===")
-        logger.info(f"Тип ошибки: {type(e).__name__}")
         logger.info(f"Сообщение: {str(e)}")
 
         # Получаем полный traceback
@@ -111,7 +113,6 @@ class BackupManager:
                 exc_type, exc_value, exc_tb = sys.exc_info()
                 tb_list = traceback.format_exception(exc_type, exc_value, exc_tb)
 
-                logger.info("\nПолная трассировка:")
                 logger.info("\n".join(exc_value))  # Выводим как единую строку
 
     def main(self):
@@ -125,11 +126,15 @@ class BackupManager:
 
         start_time = time.time()
         remote_path = None
+        self.config_temp_logging()
+
         try:
-            self.validate_vars_environments()  # Проверка наличия переменных окружения
+            EnvironmentVariables().validate_vars()  # Проверка наличия переменных окружения
         except Exception as e:
             logger.critical({e})
             exit(1)
+
+        self.remove_temp_loging()
 
         try:
             TuneLogger().setup_logging()  # Настройка системы логирования
@@ -173,8 +178,7 @@ class BackupManager:
 if __name__ == "__main__":
     """Точка входа в приложение резервного копирования"""
     try:
-        backup_manager = BackupManager()
-        backup_manager.main()
+        BackupManager().main()
         exit(0)
     except Exception:
         sys.exit(1)
