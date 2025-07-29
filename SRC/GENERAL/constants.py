@@ -1,7 +1,12 @@
 import logging
 
+from SRC.YADISK.yandexconst import YandexConstants as YT
+
 
 class Constants(frozenset):
+    LOCAL_ARCHIVE_PREFIX = "archive"
+    REMOTE_ARCHIVE_PREFIX = "archive"
+
     APP_NAME = "bol_save"
     ARCHIVE_SUFFIX = ".exe"
     CONFIG_KEY_SEVEN_ZIP_PATH = "SEVEN_ZIP_PATH"
@@ -12,12 +17,12 @@ class Constants(frozenset):
     DEFAULT_CONFIG_FILE = "config_file.txt"
     DEFAULT_LEVEL_GENERAL = logging.INFO
     DEFAULT_LEVEL_LIB = logging.WARNING
-    DEFAULT_LOCAL_ARCHIVE_FILE = f"archive{ARCHIVE_SUFFIX}"
+    DEFAULT_LOCAL_ARCHIVE_FILE = f"{LOCAL_ARCHIVE_PREFIX}{ARCHIVE_SUFFIX}"
     DEFAULT_LOG_BACKUP_COUNT = 3
     DEFAULT_LOG_FILE = "save.log"
     DEFAULT_LOG_LEVEL = "INFO"
     DEFAULT_LOG_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
-    DOTENV_PATH = r"_INTERNAL\env"
+    DOTENV_PATH = r"_INTERNAL/env"
     EMAIL_ERROR_CONTENT = (
         "🚨 Сообщение:\n\n"
         "Архивация провалилась.\n"
@@ -49,10 +54,8 @@ class Constants(frozenset):
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
 
-    GENERAL_REMOTE_ARCHIVE_FORMAT = (
-        "{archive}" + "_{year}_{month:02d}_{day:02d}_{file_num}"
-    )
-    LIST_ARCHIVE_FILE = r"_INTERNAL\list.txt"
+    GENERAL_REMOTE_ARCHIVE_FORMAT = "{archive}_{year}_{month}_{day}_{file_num}"
+    LIST_ARCHIVE_FILE = r"_INTERNAL/list.txt"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVELS = {
         "debug": logging.DEBUG,
@@ -79,8 +82,7 @@ class Constants(frozenset):
         "декабря",
     ]
     PATTERN_7_Z = "7z.exe"
-    REMOTE_ARCHIVE_DIR = "Архивы"
-    REMOTE_ARCHIVE_PREFIX = "archive"
+    ROOT_REMOTE_ARCHIVE_DIR = "Архивы"
     REMOTE_LINK = "remote_path="
     RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)
     SECRET_KEY_START = "BOL_SAVE_"
@@ -90,6 +92,10 @@ class Constants(frozenset):
     )
 
     VARS_KEYRING = [  # секретные переменные окружения
+        f"{YT.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента
+        f"{YT.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
+        f"{YT.ENV_YANDEX_PORT}",  # Номер порта, заданный в приложении Яндекс
+        f"{YT.YANDEX_REFRESH_TOKEN}",  # refresh token к Яндекс-Диску
         f"{ENV_SENDER_PASSWORD}",  # Почтовый пароль отправителя
         f"{ENV_PASSWORD_ARCHIVE}",  # Пароль создаваемого архива
     ]
@@ -98,6 +104,9 @@ class Constants(frozenset):
         f"{ENV_SENDER_EMAIL}",  # Email для отправки уведомлений
         f"{ENV_SENDER_PASSWORD}",  # Пароль от email отправителя
         f"{ENV_RECIPIENT_EMAIL}",  # Email получателя уведомлений
+        f"{YT.ENV_YANDEX_CLIENT_ID}",  # ID OAuth-приложения Яндекс для API доступа
+        f"{YT.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
+        f"{YT.ENV_YANDEX_PORT}",  # Номер порта, заданный в приложении Яндекс
     ]
     YANDEX_SMTP_HOST = "smtp.yandex.ru"
     YANDEX_SMTP_PORT = 465

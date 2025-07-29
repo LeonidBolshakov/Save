@@ -21,6 +21,6 @@ def write_file(local_path: str) -> str:
     remote_name_service = RemoteNamesService()
     return write_file_yandex_disk(
         local_path=local_path,
-        remote_dir=C.REMOTE_ARCHIVE_DIR,
+        remote_dir=C.ROOT_REMOTE_ARCHIVE_DIR,
         call_back_obj=remote_name_service,
     )

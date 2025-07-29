@@ -48,8 +48,8 @@ class TextMessage(frozenset):
     invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге:" + "{path}"
     missing_email_credentials = "отсутствуют учетные данные email"
     missing_mandatory_variables = (
-        "❌ Отсутствуют обязательные переменные окружения./n"
-        "Задаются в файле {dot_env} или в keyring:/n{missing}"
+        "❌ Отсутствуют обязательные переменные окружения.\n"
+        "Задаются в файле {dot_env} или в keyring:\n{missing}"
     )
     path_to_cloud = "Путь на архив в облаке: {remote_path}"
     none_element = "Обнаружен None-элемент в списке файлов облачного диска"

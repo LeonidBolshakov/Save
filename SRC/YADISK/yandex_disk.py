@@ -29,7 +29,7 @@ from yadisk.exceptions import (
 )
 
 from SRC.YADISK.yandex_token import YandexOAuth  # Модуль для работы с OAuth
-from SRC.GENERAL.remotenamesservice import RemoteNameServiceProtokol
+from SRC.GENERAL.remotenameservice import RemoteNamesServiceProtokol
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
@@ -39,14 +39,14 @@ class YandexDisk:
     """Класс для работы с файлами (архивами) на Яндекс-Диске"""
 
     def __init__(
-            self, port: int, remote_dir: str, call_back_obj: RemoteNameServiceProtokol
+        self, port: int, remote_dir: str, call_back_obj: RemoteNamesServiceProtokol
     ):
         """
         :param port: (int) Номер порта из описания приложения на Яндекс
         :param remote_dir: (str) Директория на Яндекс-Диске с архивами
         :param call_back_obj: объект класса, удовлетворяющего протоколу:
 
-            class RemoteNameServiceProtokol:
+            class RemoteNamesServiceProtokol:
 
                 accept_remote_directory_element: Callable[[str], None]
                 generate_remote_name: Callable[[], str]
@@ -67,7 +67,8 @@ class YandexDisk:
             self.get_token_for_API()
         )  # токен доступа к Яндекс-Диску
 
-        self.ya_disk = self.init_ya_disk(self.yandex_token)  # Яндекс-Диск
+        self.ya_disk = self.init_ya_disk(self.yandex_token)
+        # Яндекс-Диск
         self.remote_dir = self.create_remote_dir()
 
     def create_remote_dir(self) -> str:
@@ -79,7 +80,7 @@ class YandexDisk:
                 self.ya_disk.mkdir(remote_dir)  # Создаём папку с архивами
                 logger.info(YT.folder_created.format(archive_path=remote_dir))
             except Exception as e:
-                raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e))
+                raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e)) from e
         return remote_dir
 
     def get_token_for_API(self) -> str:
@@ -97,7 +98,7 @@ class YandexDisk:
             logger.debug(YT.valid_token)
             return self.yandex_token
         except Exception as e:
-            raise PermissionError(YT.get_token_error.format(e=e))
+            raise PermissionError(YT.get_token_error.format(e=e)) from e
 
     @staticmethod
     def init_ya_disk(yandex_token: str) -> YaDisk:
@@ -107,16 +108,16 @@ class YandexDisk:
             if disk.check_token(token=yandex_token):
                 return disk
             raise PermissionError(YT.authorization_error.format(e=""))
-        except UnauthorizedError:
-            raise PermissionError(YT.authorization_error.format(e=""))
-        except BadRequestError:
-            raise PermissionError(YT.invalid_request)
+        except UnauthorizedError as e:
+            raise PermissionError(YT.authorization_error.format(e="")) from e
+        except BadRequestError as e:
+            raise PermissionError(YT.invalid_request) from e
         except YaDiskError as e:
-            raise RuntimeError(YT.error_ya_disk.format(e=e))
-        except ConnectionError:
-            raise RuntimeError(YT.no_internet)
+            raise RuntimeError(YT.error_ya_disk.format(e=e)) from e
+        except ConnectionError as e:
+            raise RuntimeError(YT.no_internet) from e
         except Exception as e:
-            raise RuntimeError(YT.unknown_error.format(e=e))
+            raise RuntimeError(YT.unknown_error.format(e=e)) from e
 
     def create_remote_path(self) -> str:
         for item in self.ya_disk.listdir(self.remote_dir):

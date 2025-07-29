@@ -1,6 +1,7 @@
 import sys
 from tempfile import TemporaryDirectory
 import time
+import traceback
 import logging
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ class BackupManager:
 
         if not self.start_completion_work(remote_path=remote_path):
             max_level = max(max_level, logging.ERROR)
-        self.completion_log(max_level)
+        self.completion_log(max_level, e)
         sys.exit(1 if logging.ERROR <= max_level else 0)
 
     @staticmethod
@@ -69,8 +70,7 @@ class BackupManager:
         message_mail = MessageMail()
         return message_mail.compose_and_send_email()
 
-    @staticmethod
-    def completion_log(max_level: int) -> None:
+    def completion_log(self, max_level: int, e: Exception | None = None) -> None:
         """Логирует итоговый результат выполнения задания.
 
         В зависимости от максимального уровня залогированных ошибок
@@ -78,6 +78,7 @@ class BackupManager:
 
         Args:
             max_level: (int) Числовой код максимального уровня ошибки
+            e: Exception. Прерывание программы.
         """
         name_max_level = logging.getLevelName(max_level)
 
@@ -94,6 +95,24 @@ class BackupManager:
                 logger.critical(
                     T.task_error.format(name_max_level=name_max_level.upper())
                 )
+
+        if e is not None:
+            self.log_exception(e)
+
+    @staticmethod
+    def log_exception(e: Exception) -> None:
+        logger.info("=== Произошла ошибка ===")
+        logger.info(f"Тип ошибки: {type(e).__name__}")
+        logger.info(f"Сообщение: {str(e)}")
+
+        # Получаем полный traceback
+        for handler in logging.root.handlers:
+            if handler.level == logging.DEBUG:
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                tb_list = traceback.format_exception(exc_type, exc_value, exc_tb)
+
+                logger.info("\nПолная трассировка:")
+                logger.info("\n".join(exc_value))  # Выводим как единую строку
 
     def main(self):
         """

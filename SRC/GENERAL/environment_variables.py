@@ -68,7 +68,7 @@ class EnvironmentVariables:
             else:
                 raise RuntimeError(T.not_save_env_empty)
         except Exception as e:
-            raise RuntimeError(T.error_saving_env.format(var_name=var_name, e=e))
+            raise RuntimeError(T.error_saving_env.format(var_name=var_name, e=e)) from e
 
     def write_keyring_vars(self):
         """

@@ -3,9 +3,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 import yadisk
-from yadisk.exceptions import (
-    PathExistsError,
-)
 
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 
