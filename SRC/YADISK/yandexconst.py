@@ -2,12 +2,12 @@ class YandexConstants(frozenset):
     YANDEX_ACCESS_TOKEN = "YANDEX_ACCESS_TOKEN"  # token доступа к Яндекс-Диску
     YANDEX_EXPIRES_AT = "YANDEX_EXPIRES_AT"  # Время истечения токена
     YANDEX_REFRESH_TOKEN = "YANDEX_REFRESH_TOKEN"  # refresh token к Яндекс-Диску
+    YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
 
     API_YANDEX_LOAD_FILE = "https://cloud-api.yandex.net/v1/disk/resources/upload"
     ENCODING = "utf-8"
     ENV_YANDEX_CLIENT_ID = "BOL_SAVE_YANDEX_CLIENT_ID"
     ENV_YANDEX_CLIENT_SECRET = "BOL_SAVE_YANDEX_CLIENT_SECRET"
-    ENV_YANDEX_PORT = "BOL_SAVE_YANDEX_PORT"
     MISSING = " ** --> Отсутствуют"
     PRESENT = "Представлены"
     URL_API_YANDEX_DISK = "https://cloud-api.yandex.net/v1/disk"
@@ -15,15 +15,15 @@ class YandexConstants(frozenset):
     YANDEX_VARS_KEYRING = [  # секретные переменные окружения
         f"{ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента
         f"{ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
-        f"{ENV_YANDEX_PORT}",  # Номер порта, заданный в приложении Яндекс
         f"{YANDEX_ACCESS_TOKEN}",  # token доступа к Яндекс-Диску
         f"{YANDEX_REFRESH_TOKEN}",  # refresh token к Яндекс-Диску
+        f"{YANDEX_REDIRECT_URI}",
         f"{YANDEX_EXPIRES_AT}",  # Время истечения токена
     ]
     YANDEX_VARS_REQUIRED = [  # Обязательные переменные окружения
         f"{ENV_YANDEX_CLIENT_ID}",  # ID OAuth-приложения Яндекс для API доступа
         f"{ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
-        f"{ENV_YANDEX_PORT}",  # Номер порта, заданный в приложении Яндекс
+        f"{YANDEX_REDIRECT_URI}",
     ]
     YANDEX_AUTH_URL = "AUTH_URL"
     YANDEX_HTML_WINDOW_SUCCESSFUL = """
@@ -43,7 +43,6 @@ class YandexConstants(frozenset):
             </body></html>
             """
     YANDEX_LIBS = ["urllib3", "yadisk"]
-    YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
-    YANDEX_SCOPE = "YANDEX_SCOPE"
+    YANDEX_SCOPE = "cloud_api:disk.app_folder cloud_api:disk.read cloud_api:disk.write"
     YANDEX_TOKEN_URL = "YANDEX_TOKEN_URL"
     YANDEX_TOKEN_URL_DEFAULT = "https://oauth.yandex.ru/token"

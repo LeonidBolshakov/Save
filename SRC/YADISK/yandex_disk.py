@@ -28,7 +28,7 @@ from yadisk.exceptions import (
     BadRequestError,
 )
 
-from SRC.YADISK.yandex_token import YandexOAuth  # Модуль для работы с OAuth
+from SRC.YADISK.OAUTH.yandexoauth import OAuthFlow  # Модуль для работы с OAuth
 from SRC.GENERAL.remotenameservice import RemoteNamesServiceProtokol
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
@@ -38,11 +38,8 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 class YandexDisk:
     """Класс для работы с файлами (архивами) на Яндекс-Диске"""
 
-    def __init__(
-        self, port: int, remote_dir: str, call_back_obj: RemoteNamesServiceProtokol
-    ):
+    def __init__(self, remote_dir: str, call_back_obj: RemoteNamesServiceProtokol):
         """
-        :param port: (int) Номер порта из описания приложения на Яндекс
         :param remote_dir: (str) Директория на Яндекс-Диске с архивами
         :param call_back_obj: объект класса, удовлетворяющего протоколу:
 
@@ -59,15 +56,14 @@ class YandexDisk:
 
         variables = EnvironmentVariables()
 
-        self.port = port  # generate_remote_name:
         self.call_back_obj = call_back_obj  # Объект с call_back функциями.
         self.remote_path: str = ""
 
-        self.yandex_token: str | None = (
+        self.access_token: str | None = (
             self.get_token_for_API()
         )  # токен доступа к Яндекс-Диску
 
-        self.ya_disk = self.init_ya_disk(self.yandex_token)
+        self.ya_disk = self.init_ya_disk(self.access_token)
         # Яндекс-Диск
         self.remote_dir = self.create_remote_dir()
 
@@ -90,22 +86,21 @@ class YandexDisk:
         """
         try:
             logger.info(YT.get_token)
-            yandex_token = YandexOAuth(port=self.port)
-            self.yandex_token = yandex_token.get_access_token()
-            if not self.yandex_token:
+            self.access_token = OAuthFlow().get_access_token()
+            if not self.access_token:
                 logger.critical("")
                 raise PermissionError(YT.no_valid_token)
             logger.debug(YT.valid_token)
-            return self.yandex_token
+            return self.access_token
         except Exception as e:
             raise PermissionError(YT.get_token_error.format(e=e)) from e
 
     @staticmethod
-    def init_ya_disk(yandex_token: str) -> YaDisk:
+    def init_ya_disk(access_token: str) -> YaDisk:
         try:
-            disk = yadisk.YaDisk(token=yandex_token)
+            disk = yadisk.YaDisk(token=access_token)
             # Проверка доступности диска
-            if disk.check_token(token=yandex_token):
+            if disk.check_token(token=access_token):
                 return disk
             raise PermissionError(YT.authorization_error.format(e=""))
         except UnauthorizedError as e:
@@ -193,7 +188,7 @@ class YandexDisk:
         """Выполняет запрос к API для получения URL загрузки."""
         response = requests.get(
             YC.API_YANDEX_LOAD_FILE,
-            headers={"Authorization": f"OAuth {self.yandex_token}"},
+            headers={"Authorization": f"OAuth {self.access_token}"},
             params={"path": remote_path, "overwrite": "false"},
         )
         if not response.ok:

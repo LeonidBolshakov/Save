@@ -1,6 +1,6 @@
 import logging
 
-from SRC.YADISK.yandexconst import YandexConstants as YT
+from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
 class Constants(frozenset):
@@ -92,10 +92,12 @@ class Constants(frozenset):
     )
 
     VARS_KEYRING = [  # секретные переменные окружения
-        f"{YT.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента
-        f"{YT.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
-        f"{YT.ENV_YANDEX_PORT}",  # Номер порта, заданный в приложении Яндекс
-        f"{YT.YANDEX_REFRESH_TOKEN}",  # refresh token к Яндекс-Диску
+        f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента
+        f"{YC.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
+        f"{YC.YANDEX_ACCESS_TOKEN}",  # Токен доступа Яндекс
+        f"{YC.YANDEX_REDIRECT_URI}",  # REDIRECT_URI из
+        f"{YC.YANDEX_REFRESH_TOKEN}",  # refresh token к Яндекс-Диску
+        f"{YC.YANDEX_REDIRECT_URI}",
         f"{ENV_SENDER_PASSWORD}",  # Почтовый пароль отправителя
         f"{ENV_PASSWORD_ARCHIVE}",  # Пароль создаваемого архива
     ]
@@ -104,9 +106,9 @@ class Constants(frozenset):
         f"{ENV_SENDER_EMAIL}",  # Email для отправки уведомлений
         f"{ENV_SENDER_PASSWORD}",  # Пароль от email отправителя
         f"{ENV_RECIPIENT_EMAIL}",  # Email получателя уведомлений
-        f"{YT.ENV_YANDEX_CLIENT_ID}",  # ID OAuth-приложения Яндекс для API доступа
-        f"{YT.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
-        f"{YT.ENV_YANDEX_PORT}",  # Номер порта, заданный в приложении Яндекс
+        f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID OAuth-приложения Яндекс для API доступа
+        f"{YC.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
+        f"{YC.YANDEX_REDIRECT_URI}",
     ]
     YANDEX_SMTP_HOST = "smtp.yandex.ru"
     YANDEX_SMTP_PORT = 465

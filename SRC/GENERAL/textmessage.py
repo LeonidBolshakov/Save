@@ -66,7 +66,6 @@ class TextMessage(frozenset):
     not_found_list_file_path = (
         "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"
     )
-    not_safe_uri = "Получен небезопасный callback URI: {callback_path}"
     not_save_env = (
         "{var_name} не сохранён в keyring! Записываемое значение не равно прочитанному."
     )

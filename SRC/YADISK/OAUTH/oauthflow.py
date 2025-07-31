@@ -12,7 +12,6 @@
 
 from __future__ import annotations
 import webbrowser
-import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import time
 import threading
@@ -26,9 +25,10 @@ logger = logging.getLogger(__name__)
 from oauthlib.oauth2 import WebApplicationClient
 
 from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.YADISK.exceptions import AuthError, AuthCancelledError, RefreshTokenError
-from SRC.YADISK.generate_pkce_pair import generate_pkce_params
-from SRC.YADISK.is_valid_redirect_uri import is_valid_redirect_uri
+from SRC.YADISK.OAUTH.exceptions import AuthError, AuthCancelledError, RefreshTokenError
+from SRC.YADISK.OAUTH.generate_pkce_pair import generate_pkce_params
+from SRC.YADISK.OAUTH.is_valid_redirect_uri import is_valid_redirect_uri
+from SRC.YADISK.OAUTH.tokenmanager import TokenManager
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
@@ -41,7 +41,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -79,131 +79,6 @@ class CallbackHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
 
-class TokenManager:
-    """Управляет жизненным циклом OAuth-токенов для Яндекс-Диска.
-
-    Отвечает за:
-    - Сохранение и загрузку токенов из secure storage (keyring)
-    - Проверку валидности и срока действия токенов
-    - Взаимодействие с API Яндекс-Диска для проверки токенов
-
-    Attributes:
-        variables (EnvironmentVariables): Обертка для работы с переменными окружения и keyring
-    """
-
-    def __init__(self, env_vars: EnvironmentVariables) -> None:
-        self.variables = env_vars
-
-    def save_tokens(
-        self, access_token: str, refresh_token: str | None, expires_at: str
-    ) -> None:
-        """Сохраняет токены и время жизни токена в secure storage.
-
-        Args:
-            access_token (str): Токен для API-запросов
-            refresh_token (str): Токен для обновления access token
-            expires_at (str): Время окончания действия токена для API-запросов
-
-        Note:
-            Автоматически вычитает 60 секунд из expires_in для раннего обновления
-        """
-        try:
-            # Сохраняем токены и время истечения в памяти (keyring)
-            self.variables.put_keyring_var(YC.YANDEX_ACCESS_TOKEN, access_token)
-            self.variables.put_keyring_var(YC.YANDEX_EXPIRES_AT, expires_at)
-            if refresh_token:
-                self.variables.put_keyring_var(YC.YANDEX_REFRESH_TOKEN, refresh_token)
-
-            logger.debug(YT.tokens_saved)
-
-        except Exception as e:
-            raise AuthError(YT.error_saving_tokens.format(e=e))
-
-    def get_vars(self) -> tuple[str, str, str] | None:
-        access_token = self.variables.get_var(YC.YANDEX_ACCESS_TOKEN)
-        refresh_token = self.variables.get_var(YC.YANDEX_REFRESH_TOKEN)
-        expires_at = self.variables.get_var(YC.YANDEX_EXPIRES_AT)
-
-        logger.debug(
-            f"[Token Load] {YC.YANDEX_ACCESS_TOKEN}: {YC.PRESENT if access_token else YC.MISSING}"
-        )
-        logger.debug(
-            f"[Token Load] {YC.YANDEX_REFRESH_TOKEN}: {YC.PRESENT if refresh_token else YC.MISSING}"
-        )
-        logger.debug(
-            f"[Token Load] {YC.YANDEX_EXPIRES_AT}: {YC.PRESENT if expires_at else YC.MISSING}"
-        )
-
-        return access_token, refresh_token, expires_at
-
-    @staticmethod
-    def _valid_expires_at(expires_at: str) -> bool:
-        try:
-            expires_at_float = float(expires_at)
-        except (TypeError, ValueError) as e:
-            logger.warning(YT.not_float.format(e=e))
-            return False
-
-        current_time = time.time()
-        if current_time >= expires_at_float:
-            seconds = f"{current_time - expires_at_float:.0f}"
-            logger.info(YT.token_expired.format(seconds=seconds))
-            return False
-
-        return True
-
-    def load_and_validate_exist_tokens(self) -> dict[str, str] | None:
-        """Загружает и проверяет токены из keyring"""
-        try:
-            _vars = self.get_vars()
-
-            if _vars is None:
-                return None
-
-            access_token, refresh_token, expires_at = _vars
-
-            if not all([access_token, expires_at]):
-                return None
-
-            if not self._valid_expires_at(expires_at):
-                return None
-
-            if not self._validate_token_api(access_token):
-                return None
-
-            logger.debug(YT.valid_token_found.format(token=YC.YANDEX_ACCESS_TOKEN))
-            return {
-                YC.YANDEX_ACCESS_TOKEN: access_token,
-                YC.YANDEX_REFRESH_TOKEN: refresh_token,
-                YC.YANDEX_EXPIRES_AT: expires_at,
-            }
-
-        except Exception as e:
-            logger.warning(YT.error_load_tokens.format(e=e))
-            return None
-
-    @staticmethod
-    def _validate_token_api(access_token: str) -> bool:
-        """Проверяет валидность токена через API Яндекс-Диска"""
-        try:
-            response = requests.get(
-                YC.URL_API_YANDEX_DISK,
-                headers={"Authorization": f"OAuth {access_token}"},
-                timeout=5,
-            )
-
-            if response.status_code == 200:
-                logger.debug(YT.token_valid)
-                return True
-
-            logger.warning(YT.token_invalid.format(status=response.status_code))
-            return False
-
-        except requests.RequestException as e:
-            logger.warning(YT.error_check_token.format(e=e))
-            return False
-
-
 class OAuthFlow:
     """Реализует полный OAuth 2.0 flow с PKCE для Яндекс.Диска.
 
@@ -215,7 +90,6 @@ class OAuthFlow:
 
     Attributes:
         token_manager (TokenManager): Менеджер для работы с токенами
-        port (int): Порт для локального callback-сервера
         callback_received (bool): Флаг получения callback
         callback_path (str): URL callback с кодом авторизации
         refresh_token (str): Текущий refresh token
@@ -225,19 +99,15 @@ class OAuthFlow:
     """
 
     def __init__(
-        self,
-        token_manager: TokenManager,
-        port: int,
-        env_vars: EnvironmentVariables,
+            self,
     ):
-        self.token_manager = token_manager
-        self.port = port
+        self.token_manager = TokenManager()
         self.callback_received: bool = False
         self.callback_path: str | None = None
         self.refresh_token: str | None = None
         self.access_token: str | None = None
         self._token_expires_at: float = 0
-        self.variables = env_vars
+        self.variables = EnvironmentVariables()
 
     def get_access_token(self) -> str | None:
         """Получает действительный access token"""
@@ -248,9 +118,8 @@ class OAuthFlow:
                 return self.access_token
             self.access_token = None
 
-            tokens = self.loaded_tokens()
-
             # 2. Попытка загрузить сохраненные токены из хранилища компьютера (keyring)
+            tokens = self.loaded_tokens()
             if tokens:
                 return self.access_token
             self.access_token = None
@@ -352,14 +221,14 @@ class OAuthFlow:
                 YC.YANDEX_AUTH_URL, YC.URL_AUTORIZATION_YANDEX_OAuth
             ),
             redirect_uri=self.variables.get_var(YC.YANDEX_REDIRECT_URI, ""),
-            scope=self.variables.get_var(YC.YANDEX_SCOPE, ""),
+            scope=YC.YANDEX_SCOPE,
             code_challenge=code_challenge,
             code_challenge_method="S256",
         )
 
     def start_auth_server(self) -> OAuthHTTPServer:
         """Запускает сервер для обработки callback"""
-        server = OAuthHTTPServer(("localhost", self.port), CallbackHandler, self)
+        server = OAuthHTTPServer(("localhost", self.get_port()), CallbackHandler, self)
         server_thread = threading.Thread(target=server.serve_forever)
         server_thread.daemon = True
         server_thread.start()
@@ -382,9 +251,6 @@ class OAuthFlow:
         """Извлекает код авторизации из callback"""
         if not self.callback_path:
             raise AuthError(YT.no_callback_path)
-
-        # if not is_valid_redirect_uri(self.callback_path):
-        #     raise AuthError(YT.not_safe_uri.format(callback_path=self.callback_path))
 
         query = urlparse(self.callback_path).query
         params = parse_qs(query)
@@ -506,35 +372,12 @@ class OAuthFlow:
 
         return str(self._token_expires_at)
 
-
-class YandexOAuth:
-    """Фасадный класс для OAuth авторизации в Яндекс.Диск.
-
-    Предоставляет упрощенный интерфейс для получения access token,
-    инкапсулируя всю логику OAuth 2.0 с PKCE.
-
-    Attributes:
-        token_manager (TokenManager): Менеджер токенов
-        flow (OAuthFlow): OAuth 2.0 flow processor
-    """
-
-    def __init__(
-        self,
-        port: int,
-    ):
-        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-        env_vars = EnvironmentVariables()
-        self.token_manager = TokenManager(env_vars)
-        self.flow = OAuthFlow(self.token_manager, port, env_vars)
-
-    def get_access_token(self) -> str | None:
-        """Получает действительный access token"""
+    @staticmethod
+    def get_port() -> int:
+        variables = EnvironmentVariables()
         try:
-            token = self.flow.get_access_token()
-            if token:
-                logger.info(YT.successful_access_token)
-                return token
-            else:
-                raise AuthError(YT.failed_access_token)
-        except Exception as e:
-            raise AuthError(YT.critical_error.format(e=e))
+            uri = variables.get_var(YC.YANDEX_REDIRECT_URI)
+            parsed = urlparse(uri)
+            return int(parsed.port)
+        except ValueError as e:
+            raise ValueError(YT.invalid_port.format(e=e)) from e
