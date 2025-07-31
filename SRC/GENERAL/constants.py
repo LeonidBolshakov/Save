@@ -19,7 +19,6 @@ class Constants(frozenset):
     DEFAULT_LEVEL_LIB = logging.WARNING
     DEFAULT_LOCAL_ARCHIVE_FILE = f"{LOCAL_ARCHIVE_PREFIX}{ARCHIVE_SUFFIX}"
     DEFAULT_LOG_BACKUP_COUNT = 3
-    DEFAULT_LOG_FILE = "save.log"
     DEFAULT_LOG_LEVEL = "INFO"
     DEFAULT_LOG_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
     DOTENV_PATH = r"_INTERNAL/env"
@@ -47,15 +46,20 @@ class Constants(frozenset):
     )
     EMAIL_WARNING_SUBJECT = "🔥 Предупреждение при архивации"
     ENCODING = "utf-8"
+    ENV_LOG_FILE_NAME = "LOG_FILE_NAME"
     ENV_LOGGING_LEVEL_CONSOLE = "LOGGING_LEVEL_CONSOLE"
     ENV_LOGGING_LEVEL_FILE = "LOGGING_LEVEL_FILE"
     ENV_PASSWORD_ARCHIVE = "BOL_SAVE_PASSWORD_ARCHIVE"
+    ENV_PROGRAMME_WRITE_FILE = "PROGRAMME_WRITE_FILE"
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
+    ENV_REMOTE_ARCHIVING_PREFIX = "REMOTE_ARCHIVE_PREFIX"
+    ENV_ROOT_REMOTE_ARCHIVE_DIR = "ROOT_REMOTE_ARCHIVE_DIR"
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
 
     GENERAL_REMOTE_ARCHIVE_FORMAT = "{archive}_{year}_{month}_{day}_{file_num}"
     LIST_ARCHIVE_FILE = r"_INTERNAL/list.txt"
+    LOG_FILE_NAME = "save.log"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVELS = {
         "debug": logging.DEBUG,
@@ -82,6 +86,7 @@ class Constants(frozenset):
         "декабря",
     ]
     PATTERN_7_Z = "7z.exe"
+    PROGRAMME_WRITE_FILE = "write_file_yandex_disk"
     ROOT_REMOTE_ARCHIVE_DIR = "Архивы"
     REMOTE_LINK = "remote_path="
     RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)

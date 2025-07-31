@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 from SRC.MAIL.messagemail import MessageMail
 from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.managerwritefile import write_file
+from SRC.GENERAL.manager_write_file import write_file
 from SRC.LOGGING.tunelogger import TuneLogger
 from SRC.ARCHIVES.file7zarchiving import File7ZArchiving
 from SRC.GENERAL.constants import Constants as C
@@ -24,6 +24,10 @@ class BackupManager:
     - Загрузку архива на Яндекс-Диск
     - Обработку ошибок и логирование процесса
     - Отправку служебного e-mail, информирующего о статусе выполнения задания.
+
+    Прерывания:
+    1. Прекращение работы программы с клавиатуры.
+    2. Обработка всех прерываний внутренних программ.
     """
 
     def main(self):
@@ -87,13 +91,16 @@ class BackupManager:
     @staticmethod
     def config_temp_logging() -> None:
         """Делает настройки временного логирования"""
+        variables = EnvironmentVariables()
+        log_file_name = variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME)
+
         logging.raiseExceptions = False  # запрет вывода трассировки
         logging.basicConfig(
             level=logging.INFO,
             format=C.LOG_FORMAT,
             handlers=[
                 logging.StreamHandler(sys.stdout),
-                logging.FileHandler(C.DEFAULT_LOG_FILE),
+                logging.FileHandler(log_file_name),
             ],
         )  # Настройка логирования только для использования до настройки основного логирования
 

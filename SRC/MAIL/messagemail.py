@@ -142,7 +142,7 @@ class MessageMail:
         return False
 
 
-def setup_logging(log_file: str = C.DEFAULT_LOG_FILE):
+def setup_logging(log_file: str = C.LOG_FILE_NAME):
     """
     Настраивает систему логирования с выводом в консоль и файл.
     Действует после завершения работы основной системы логирования

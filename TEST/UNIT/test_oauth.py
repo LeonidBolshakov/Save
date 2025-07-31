@@ -37,26 +37,26 @@ class TestYandexOAuth:
         assert auth.token_manager.tokens_file == tokens_file
         assert auth.flow.port == 12345
 
-    @patch("SRC.yandex_token.OAuthFlow.get_access_token")
+    @patch("SRC.access_token.OAuthFlow.get_access_token")
     def test_get_token_success(self, mock_get_token, tokens_file):
         mock_get_token.return_value = "test_token"
         auth = YandexOAuth(tokens_file=str(tokens_file), port=12345)
         assert auth.get_token() == "test_token"
 
-    @patch("SRC.yandex_token.OAuthFlow.get_access_token")
+    @patch("SRC.access_token.OAuthFlow.get_access_token")
     def test_get_token_failure(self, mock_get_token, tokens_file):
         mock_get_token.return_value = None
         auth = YandexOAuth(tokens_file=str(tokens_file), port=12345)
         assert auth.get_token() is None
 
-    @patch("SRC.yandex_token.OAuthFlow.refresh_access_token")
+    @patch("SRC.access_token.OAuthFlow.refresh_access_token")
     def test_refresh_token_success(self, mock_refresh, tokens_file):
         mock_refresh.return_value = "refreshed_token"
         auth = YandexOAuth(tokens_file=str(tokens_file), port=12345)
         auth.flow.refresh_token = "valid_refresh_token"
         assert auth.refresh_token() == "refreshed_token"
 
-    @patch("SRC.yandex_token.OAuthFlow.refresh_access_token")
+    @patch("SRC.access_token.OAuthFlow.refresh_access_token")
     def test_refresh_token_failure(self, mock_refresh, tokens_file):
         mock_refresh.side_effect = RefreshTokenError("Test error")
         auth = YandexOAuth(tokens_file=str(tokens_file), port=12345)
@@ -100,14 +100,14 @@ class TestTokenManager:
 class TestOAuthFlow:
     """Тесты для класса OAuthFlow"""
 
-    @patch("SRC.yandex_token.OAuthFlow.run_full_auth_flow")
+    @patch("SRC.access_token.OAuthFlow.run_full_auth_flow")
     def test_get_access_token_full_flow(self, mock_full_auth, tokens_file):
         mock_full_auth.return_value = "full_auth_token"
         tm = TokenManager(tokens_file)
         flow = OAuthFlow(tm, 12345)
         assert flow.get_access_token() == "full_auth_token"
 
-    @patch("SRC.yandex_token.OAuthFlow.refresh_access_token")
+    @patch("SRC.access_token.OAuthFlow.refresh_access_token")
     def test_get_access_token_refresh(self, mock_refresh, tokens_file):
         mock_refresh.return_value = "refreshed_token"
         tm = TokenManager(tokens_file)
@@ -163,7 +163,7 @@ from unittest.mock import patch, MagicMock
 def test_main_success(monkeypatch):
     # Подменяем parse_arguments, чтобы не использовать argparse
     monkeypatch.setattr(
-        "SRC.yandex_token.parse_arguments",
+        "SRC.access_token.parse_arguments",
         lambda: MagicMock(tokens_file="test_tokens.json", port=12345),
     )
 
@@ -173,7 +173,7 @@ def test_main_success(monkeypatch):
 
     # Подменяем конструктор YandexOAuth, чтобы возвращал наш мок
     monkeypatch.setattr(
-        "SRC.yandex_token.YandexOAuth", lambda tokens_file, port: mock_auth
+        "SRC.access_token.YandexOAuth", lambda tokens_file, port: mock_auth
     )
 
     # Подменяем sys.exit, чтобы не завершать тест

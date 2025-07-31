@@ -5,26 +5,57 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class RemoteNamesServiceProtokol(Protocol):
+class RemoteArchiveNamingProtokol(Protocol):
     accept_remote_directory_element: Callable[[str], None]
     generate_remote_dir: Callable[[], str]
     generate_remote_path: Callable[[], str]
 
 
-class RemoteNamesService(RemoteNamesServiceProtokol):
+class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
+    """
+    Сервис для генерации имён архивных файлов и путей к ним на удалённом (облачном) диске.
+
+    Класс реализует протокол `RemoteArchiveNamingProtokol` и предназначен для:
+    - приёма списка имён файлов из облачной директории;
+    - анализа существующих имён архивов с учётом текущей даты;
+    - генерации уникального имени нового архива;
+    - построения имён директории хранения и полного пути к файлу архива.
+
+    Атрибуты:
+        target_date (date): Дата, используемая при формировании имён и путей
+        remote_archive_prefix (str): Префикс имени архива
+        archive_ext (str): Расширение архивного файла
+        root_remote_archive_dir (str): Корневая директория архива на облачном диске
+        full_remote_archive_dir (str): Полный путь к директории на удалённом диске
+        file_nums (list[int]): Список извлечённых номеров файлов за выбранную дату
+        archive_name_format (str): Формат имени архива.
+
+    Методы вызываемые из классов работы с облачным диском:
+        accept_remote_directory_element(item): Обработка имени файла и извлечение номера.
+            Этот метод должен быть ОБЯЗАТЕЛЬНО вызван для каждого элемента директории архива
+        generate_remote_dir(): Генерация пути к директории архива.
+            Этот метод должен быть вызван для определения/формирования пути к директории архива
+        generate_remote_path(): Генерация полного пути к новому архиву.
+
+    Пример использования в:
+        SRC\\YADISK\\yandex_disk.py
+    """
+
     def __init__(self):
-        self.target_date: date = date.today()  # Дата для наименования
-        self.remote_archive_prefix: str = (
-            C.REMOTE_ARCHIVE_PREFIX
+        variables = EnvironmentVariables()
+        self.target_date: date = date.today()  # Дата для наименования файла архива
+        self.remote_archive_prefix: str = variables.get_var(
+            C.ENV_REMOTE_ARCHIVING_PREFIX, C.REMOTE_ARCHIVE_PREFIX
         )  # Префикс имени файла архива
         self.archive_ext: str = C.ARCHIVE_SUFFIX  # Расширение файла архива
-        self.remote_archive_dir: str = (
-            C.ROOT_REMOTE_ARCHIVE_DIR
-        )  # Каталог архивов на облачном диске
+        self.root_remote_archive_dir: str = variables.get_var(
+            C.ENV_ROOT_REMOTE_ARCHIVE_DIR, C.ROOT_REMOTE_ARCHIVE_DIR
+        )  # Головной каталог архивов на облачном диске
         self.full_remote_archive_dir = ""
         self.file_nums: list[int] = []
         self.archive_name_format = self._get_archive_name_format()
@@ -34,7 +65,6 @@ class RemoteNamesService(RemoteNamesServiceProtokol):
         Генерирует уникальное имя архива на основе существующих файлов
         :return: (str) - Имя архива, сгенерированное по шаблону.
         """
-        # Получаем список элементов в папке архивов
         logger.debug(T.file_numbers_found.format(file_nums=self.file_nums))
         logger.info(T.archive_name_generation)
         # Вычисляем следующий порядковый номер архива на заданную дату
@@ -66,7 +96,12 @@ class RemoteNamesService(RemoteNamesServiceProtokol):
         self.file_nums.append(int(file_num_str))
         return
 
-    def _get_archive_name_format(self):
+    def _get_archive_name_format(self) -> str:
+        """
+            Возвращает формат имени архива
+            созданный как конкретизация основного формата заданной датой и префиксом архива.
+        :return: (str) - Конкретизированный формат имени архива.
+        """
         return C.GENERAL_REMOTE_ARCHIVE_FORMAT.format(
             archive=self.remote_archive_prefix,
             year=str(self.target_date.year),
@@ -120,12 +155,12 @@ class RemoteNamesService(RemoteNamesServiceProtokol):
         children_remote_archive_dir = (
             f"{self.target_date.year}_{self.target_date.month:02d}"
         )
-        full_remote_archive_dir = self.create_full_remote_archive_dir(
+        full_remote_archive_dir = self._create_full_remote_archive_dir(
             C.ROOT_REMOTE_ARCHIVE_DIR, children_remote_archive_dir
         )
         return full_remote_archive_dir
 
-    def create_full_remote_archive_dir(self, root_dir: str, children_dir: str) -> str:
+    def _create_full_remote_archive_dir(self, root_dir: str, children_dir: str) -> str:
         self.full_remote_archive_dir = f"{root_dir}/{children_dir}"
         return self.full_remote_archive_dir
 

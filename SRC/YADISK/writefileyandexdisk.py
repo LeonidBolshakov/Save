@@ -3,12 +3,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 from SRC.YADISK.yandex_disk import YandexDisk
-from SRC.GENERAL.remotenameservice import RemoteNamesServiceProtokol
+from SRC.GENERAL.remote_archive_naming import RemoteArchiveNamingProtokol
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 
 
 def write_file_yandex_disk(
-    local_path: str, remote_dir: str, call_back_obj: RemoteNamesServiceProtokol
+    local_path: str, remote_dir: str, call_back_obj: RemoteArchiveNamingProtokol
 ) -> str:
     """Загружает файл на Яндекс-Диск используя API Яндекс.
 

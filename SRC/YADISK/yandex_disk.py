@@ -29,7 +29,7 @@ from yadisk.exceptions import (
 )
 
 from SRC.YADISK.OAUTH.yandexoauth import OAuthFlow  # Модуль для работы с OAuth
-from SRC.GENERAL.remotenameservice import RemoteNamesServiceProtokol
+from SRC.GENERAL.remote_archive_naming import RemoteArchiveNamingProtokol
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
@@ -38,12 +38,12 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 class YandexDisk:
     """Класс для работы с файлами (архивами) на Яндекс-Диске"""
 
-    def __init__(self, remote_dir: str, call_back_obj: RemoteNamesServiceProtokol):
+    def __init__(self, remote_dir: str, call_back_obj: RemoteArchiveNamingProtokol):
         """
         :param remote_dir: (str) Директория на Яндекс-Диске с архивами
         :param call_back_obj: объект класса, удовлетворяющего протоколу:
 
-            class RemoteNamesServiceProtokol:
+            class RemoteArchiveNamingProtokol:
 
                 accept_remote_directory_element: Callable[[str], None]
                 generate_remote_name: Callable[[], str]
