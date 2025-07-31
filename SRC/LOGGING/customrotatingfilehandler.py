@@ -10,6 +10,7 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
     Наследует стандартную функциональность RotatingFileHandler и добавляет:
     - Фильтрацию сообщений по ключевой фразе
     - Безопасную обработку ошибок записи
+    - Безопасную обработку ошибок записи
     """
 
     def __init__(

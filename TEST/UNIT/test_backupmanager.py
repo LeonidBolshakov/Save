@@ -137,14 +137,14 @@ def test_completion_failure(backup_manager, mock_message_mail):
 def test_completion_log_info(backup_manager):
     """Тест логирования успешного завершения."""
     with patch.object(logger, "info") as mock_info:
-        BackupManager.completion_log(logging.INFO, "INFO")
+        BackupManager.log_end_messages(logging.INFO, "INFO")
         mock_info.assert_called_with("Задание успешно завершено!")
 
 
 def test_completion_log_warning(backup_manager):
     """Тест логирования завершения с предупреждениями."""
     with patch.object(logger, "warning") as mock_warning:
-        BackupManager.completion_log(logging.WARNING, "WARNING")
+        BackupManager.log_end_messages(logging.WARNING, "WARNING")
         mock_warning.assert_called_with(
             "WARNING --> Задание завершено с предупреждениями"
         )
@@ -153,5 +153,5 @@ def test_completion_log_warning(backup_manager):
 def test_completion_log_error(backup_manager):
     """Тест логирования завершения с ошибками."""
     with patch.object(logger, "error") as mock_error:
-        BackupManager.completion_log(logging.ERROR, "ERROR")
+        BackupManager.log_end_messages(logging.ERROR, "ERROR")
         mock_error.assert_called_with("Задание завершено с ошибками уровня ERROR")

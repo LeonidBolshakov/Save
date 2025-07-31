@@ -41,19 +41,6 @@ class TuneLogger:
     def setup_logging(self):
         """Настройка глобального логирования"""
 
-        # logging.raiseExceptions = False заменим оператор аналогами для методов
-        # class CleanMessageFormatter(logging.Formatter):
-        #     def format(self, record):
-        #         # Удаляем exc_info и exc_text, даже если они есть
-        #         record.exc_info = None
-        #         record.exc_text = None
-        #         return super().format(record)
-        #
-        # # Использование:
-        # handler.setFormatter(CleanMessageFormatter('%(levelname)s: %(message)s'))
-        # for handler in logging:
-        #     pass
-
         # Настройка уровней логирования
         log_level_console = self.get_log_level_console()
         log_level_file = self.get_log_level_file()
@@ -96,6 +83,7 @@ class TuneLogger:
         # Настройка форматирования
         for handler in handlers:
             handler.setFormatter(logging.Formatter(log_format))
+            handler.encoding = "utf-8"
 
         # Настройка уровней логирования
         self.handlers_logger[HandlerLogger.file].setLevel(log_level_file)

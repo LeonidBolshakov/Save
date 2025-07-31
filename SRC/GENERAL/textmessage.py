@@ -48,8 +48,9 @@ class TextMessage(frozenset):
     invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге:" + "{path}"
     missing_email_credentials = "отсутствуют учетные данные email"
     missing_mandatory_variables = (
-        "Отсутствуют обязательные переменные окружения.\n"
-        "Задаются в файле {dot_env} или в keyring:\n{missing}"
+        "Отсутствуют обязательные переменные окружения:\n"
+        "{missing}.\n"
+        "Переменные Задаются в файле {dot_env} или в Windows Credential Manager (Диспетчер учётных данных)."
     )
     path_to_cloud = "Путь на архив в облаке: {remote_path}"
     none_element = "Обнаружен None-элемент в списке файлов облачного диска"
@@ -80,7 +81,11 @@ class TextMessage(frozenset):
     starting_archiving = "Запуск архивации: {cmd}"
     successful_archiving = "Архивация завершена успешно"
     successful_send_email = "Служебное сообщение отправлено по e-mail"
-    task_error = "Задание завершено с ошибками уровня {name_max_level}."
+    task_error = (
+        "{name_max_level} --> Задание завершено с ошибками уровня {name_max_level}."
+    )
     task_successfully = "Задание по формированию и сохранению архива успешно завершено!"
-    task_warnings = "{name_max_level} --> Задание завершено с предупреждениями."
+    task_warnings = (
+        "{name_max_level} --> Задание завершено с предупреждением/предупреждениями."
+    )
     time_run = "Время выполнения: {time} сек"

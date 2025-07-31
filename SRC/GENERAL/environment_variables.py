@@ -93,7 +93,7 @@ class EnvironmentVariables:
         if missing:
             raise EnvironmentError(
                 T.missing_mandatory_variables.format(
-                    dot_env=C.DOTENV_PATH, missing=", ".join(missing)
+                    dot_env=Path(C.DOTENV_PATH).absolute(), missing=", ".join(missing)
                 )
             )
 
