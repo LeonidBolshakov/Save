@@ -32,14 +32,14 @@ def test_real_workflow(tmp_path, monkeypatch):
     manager = SevenZManager(str(config_file))
 
     # Проверка работы
-    assert manager.get_7z_path() == str(test_7z)
+    assert manager.get_path() == str(test_7z)
     assert manager.config["SEVEN_ZIP_PATH"] == str(test_7z)
 
 
 def test_main_function(capsys):
-    with patch("SRC.seven_z_manager.SevenZManager") as MockManager:
+    with patch("SRC.seven_z_manager.Search7zExe") as MockManager:
         instance = MockManager.return_value
-        instance.get_7z_path.return_value = "C:/found/7z.exe"
+        instance.get_path.return_value = "C:/found/7z.exe"
 
         from SRC.seven_z_manager import main
 
@@ -143,7 +143,7 @@ def test_init_config_valid_path(temp_config_file):
     temp_config_file.write_text(json.dumps(config), encoding="utf-8")
 
     with patch("pathlib.Path.exists", return_value=True), patch.object(
-        SevenZManager, "_check_working_path", return_value=0
+            SevenZManager, "_check_working_path", return_value=0
     ):
         manager = SevenZManager(str(temp_config_file))
         assert manager.seven_zip_path == "C:/fake/path/7z.exe"
@@ -154,7 +154,7 @@ def test_init_config_key_missing(temp_config_file):
     temp_config_file.write_text(json.dumps(config), encoding="utf-8")
 
     with patch("pathlib.Path.exists", return_value=True), patch.object(
-        SevenZManager, "_check_working_path", return_value=2
+            SevenZManager, "_check_working_path", return_value=2
     ):
         manager = SevenZManager(str(temp_config_file))
         assert manager.seven_zip_path is None
@@ -165,7 +165,7 @@ def test_init_config_invalid_path_raises(temp_config_file):
     temp_config_file.write_text(json.dumps(config), encoding="utf-8")
 
     with patch("pathlib.Path.exists", return_value=True), patch.object(
-        SevenZManager, "_check_working_path", return_value=1
+            SevenZManager, "_check_working_path", return_value=1
     ):
         with pytest.raises(ValueError):
             SevenZManager(str(temp_config_file))
@@ -174,15 +174,15 @@ def test_init_config_invalid_path_raises(temp_config_file):
 def test_get_7z_path_cached():
     manager = SevenZManager()
     manager.seven_zip_path = "C:/cached/7z.exe"
-    assert manager.get_7z_path() == "C:/cached/7z.exe"
+    assert manager.get_path() == "C:/cached/7z.exe"
 
 
 def test_get_7z_path_common_found():
     manager = SevenZManager()
     with patch.object(
-        manager, "_check_common_paths", return_value="C:/common/7z.exe"
+            manager, "_check_common_paths", return_value="C:/common/7z.exe"
     ), patch.object(manager, "_save_config") as mock_save:
-        path = manager.get_7z_path()
+        path = manager.get_path()
         assert path == "C:/common/7z.exe"
         mock_save.assert_called_once()
 
@@ -190,9 +190,9 @@ def test_get_7z_path_common_found():
 def test_get_7z_path_global_found():
     manager = SevenZManager()
     with patch.object(manager, "_check_common_paths", return_value=None), patch.object(
-        manager, "_global_search", return_value="D:/found/7z.exe"
+            manager, "_global_search", return_value="D:/found/7z.exe"
     ), patch.object(manager, "_save_config") as mock_save:
-        path = manager.get_7z_path()
+        path = manager.get_path()
         assert path == "D:/found/7z.exe"
         mock_save.assert_called_once()
 

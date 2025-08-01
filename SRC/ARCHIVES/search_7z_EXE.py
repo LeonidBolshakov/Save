@@ -11,8 +11,8 @@ from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class SevenZManager:
-    """Класс для управления доступом к утилите архивации 7z.exe."""
+class Search7zExe:
+    """Класс для локального поиска утилиты архивации 7z.exe."""
 
     def __init__(self, config_file: str | None = None):
         """
@@ -31,6 +31,28 @@ class SevenZManager:
         path = self._get_7z_path()
         if path:
             self.seven_zip_path = path
+
+    def get_path(self) -> str | None:
+        """
+        Основной метод получения пути к 7z.exe.
+
+        :return: Найденный путь или None
+        """
+
+        # 1. Вывод пути памяти объекта класса. Он мог попасть туда при инициализации объекта
+        if self.seven_zip_path:
+            return self.seven_zip_path
+
+        # 2. Вывод пути из типичных директорий сохранения программы
+        if path := self._7z_from_common_paths():
+            return self._save(path)
+
+        # 3. Вывод пути в результате глобального поиска по всем дискам
+        if path := self._7z_from_global_search():
+            return self._save(path)
+
+        # Программа не найдена
+        return None
 
     def _setup_config_from_file(self) -> bool:
         """Загружает JSON-конфигурацию."""
@@ -69,7 +91,7 @@ class SevenZManager:
         """
         if not path or not Path(path).exists():
             return False
-        if not SevenZManager._test_7z_execution(path):
+        if not Search7zExe._test_7z_execution(path):
             return False
 
         return True
@@ -95,28 +117,6 @@ class SevenZManager:
             except Exception as e:
                 logger.debug(T.error_run_7z_except.format(path=path, e=e))
                 return False
-
-    def get_7z_path(self) -> str | None:
-        """
-        Основной метод получения пути к 7z.exe.
-
-        :return: Найденный путь или None
-        """
-
-        # 1. Вывод пути памяти объекта класса. Он мог попасть туда при инициализации объекта
-        if self.seven_zip_path:
-            return self.seven_zip_path
-
-        # 2. Вывод пути из типичных директорий сохранения программы
-        if path := self._7z_from_common_paths():
-            return self._save(path)
-
-        # 3. Вывод пути в результате глобального поиска по всем дискам
-        if path := self._7z_from_global_search():
-            return self._save(path)
-
-        # Программа не найдена
-        return None
 
     def _7z_from_common_paths(self) -> str | None:
         """Проверка стандартных путей установки 7-Zip."""
@@ -171,11 +171,11 @@ class SevenZManager:
 
 def main():
     try:
-        seven_z_manager = SevenZManager("../TEST/config.json")
+        seven_z_manager = Search7zExe("../TEST/config.json")
     except ValueError:
         print(f"Путь к архиватору не найден")
     else:
-        main_path = seven_z_manager.get_7z_path()
+        main_path = seven_z_manager.get_path()
         print(
             main_path
             if main_path

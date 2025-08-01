@@ -10,7 +10,7 @@ from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class Arch7zSpec:
+class CreateArch7zSpec:
     """
     Класс для работы со специфичным архивом 7z.
 
@@ -28,12 +28,12 @@ class Arch7zSpec:
     """
 
     def __init__(
-        self,
-        arch_path: str,
-        list_file: str,
-        seven_zip_exe_path: str,
-        password: str = "",
-        work_dir: str | None = None,
+            self,
+            arch_path: str,
+            list_file: str,
+            seven_zip_exe_path: str,
+            password: str = "",
+            work_dir: str | None = None,
     ):
         """
         Инициализирует экземпляр класса для создания SFX-архива.
@@ -60,107 +60,7 @@ class Arch7zSpec:
         self.seven_zip_exe_path = seven_zip_exe_path  # Сохраняем путь на программу 7z
         self.work_dir = work_dir or os.getcwd()  # Текущая директория по умолчанию
 
-        self.check_all_params()
-
-    def check_all_params(self):
-        """
-        Выполняет комплексную проверку всех параметров объекта.
-
-        Выполняет следующие проверки:
-        1. Корректность пути и имени архива
-        2. Наличие и корректность файла со списком файлов
-
-        Raises:
-            Различные исключения в зависимости от типа ошибки
-        """
-        self.check_arch()
-        self.check_list_file()
-
-    def check_arch(self):
-        """
-        Проверяет корректность параметров архива.
-
-        Выполняет:
-        1. Проверку наличия пути к архиву
-        2. Проверку отсутствия файла/директории по пути архива
-        3. Проверку расширения архива (.exe)
-
-        Raises:
-            ValueError: Если не указан путь или неверное расширение
-            FileExistsError: Если по пути архива уже существует объект
-        """
-        arch_path = self.check_arch_path()
-        self.check_arch_exists(arch_path)
-        self.check_arch_ext(arch_path)
-
-    def check_arch_path(self) -> Path:
-        """
-        Проверяет наличие пути к архиву, в который собираются сохраняемые файлы.
-
-        Returns:
-            Path: Объект Path для пути к архиву
-
-        Raises:
-            ValueError: Если путь к архиву не указан
-        """
-        if self.arch_path:
-            return Path(self.arch_path)
-        else:
-            raise ValueError(T.no_path_local)
-
-    @staticmethod
-    def check_arch_exists(arch_path: Path):
-        """
-        Проверяет отсутствие файла/директории по пути архива.
-
-        Args:
-            arch_path: Путь к архиву для проверки
-
-        Raises:
-            FileExistsError: Если по указанному пути уже существует файл или директория
-        """
-        if not arch_path.exists():
-            return
-
-        obj_type = "файл" if arch_path.is_file() else "директория"
-        raise FileExistsError(
-            T.arch_exists.format(obj_type=obj_type, arch_path=arch_path)
-        )
-
-    @staticmethod
-    def check_arch_ext(arch_path: Path):
-        """
-        Проверяет расширение файла архива.
-
-        Args:
-            arch_path: Путь к архиву для проверки
-
-        Raises:
-            ValueError: Если расширение архива не .exe
-        """
-        if arch_path.suffix != C.ARCHIVE_SUFFIX:
-            logger.critical("")
-            raise ValueError(
-                T.invalid_file_extension.format(
-                    suffix=arch_path.suffix, archive_suffix=C.ARCHIVE_SUFFIX
-                )
-            )
-
-    def check_list_file(self):
-        """
-        Проверяет существование файла со списком архивируемых файлов.
-
-        Raises:
-            FileNotFoundError: Если файл со списком не существует
-        """
-        # Проверяем существует ли список архивируемых файлов
-        list_file_path = Path(self.list_file)
-        if not list_file_path.exists():
-            logger.critical("")
-            raise FileNotFoundError(
-                T.not_found_list_file_path.format(list_file_path=list_file_path)
-            )
-        logger.debug(T.exists_list_file.format(list_file_path=list_file_path))
+        self._check_all_params()
 
     def make_archive(self) -> int:
         """
@@ -184,7 +84,7 @@ class Arch7zSpec:
         encoding = "cp866" if sys.platform == "win32" else "utf-8"
 
         # Запускаем программу 7z
-        cmd = self.get_cmd_archiver()
+        cmd = self._get_cmd_archiver()
         logger.debug(T.starting_archiving.format(cmd=self._mask_password_in_cmd(cmd)))
         try:
             process = self._run_archive_process(cmd, encoding)
@@ -193,8 +93,108 @@ class Arch7zSpec:
             logger.critical({e})
             raise RuntimeError(T.error_starting_archiving.format(e=e))
 
+    def _check_all_params(self):
+        """
+        Выполняет комплексную проверку всех переданных параметров.
+
+        Выполняет следующие проверки:
+        1. Корректность пути и имени архива
+        2. Наличие и корректность файла со списком файлов
+
+        Raises:
+            Различные исключения в зависимости от типа ошибки
+        """
+        self._check_arch()
+        self._check_list_file()
+
+    def _check_arch(self):
+        """
+        Проверяет корректность параметров архива.
+
+        Выполняет:
+        1. Проверку наличия пути к архиву
+        2. Проверку отсутствия файла/директории по пути архива
+        3. Проверку расширения архива (.exe)
+
+        Raises:
+            ValueError: Если не указан путь или неверное расширение
+            FileExistsError: Если по пути архива уже существует объект
+        """
+        arch_path = self._check_arch_path()
+        self._check_arch_exists(arch_path)
+        self._check_arch_ext(arch_path)
+
+    def _check_arch_path(self) -> Path:
+        """
+        Проверяет наличие пути к архиву, в который собираются сохраняемые файлы.
+
+        Returns:
+            Path: Объект Path для пути к архиву
+
+        Raises:
+            ValueError: Если путь к архиву не указан
+        """
+        if self.arch_path:
+            return Path(self.arch_path)
+        else:
+            raise ValueError(T.no_path_local)
+
+    @staticmethod
+    def _check_arch_exists(arch_path: Path):
+        """
+        Проверяет отсутствие файла/директории с заданным именем.
+
+        Args:
+            arch_path: Путь к архиву для проверки
+
+        Raises:
+            FileExistsError: Если по указанному пути уже существует файл или директория
+        """
+        if not arch_path.exists():
+            return
+
+        obj_type = "файл" if arch_path.is_file() else "директория"
+        raise FileExistsError(
+            T.arch_exists.format(obj_type=obj_type, arch_path=arch_path)
+        )
+
+    @staticmethod
+    def _check_arch_ext(arch_path: Path):
+        """
+        Проверяет расширение файла архива.
+
+        Args:
+            arch_path: Путь к архиву для проверки
+
+        Raises:
+            ValueError: Если расширение архива не .exe
+        """
+        if arch_path.suffix != C.ARCHIVE_SUFFIX:
+            logger.critical("")
+            raise ValueError(
+                T.invalid_file_extension.format(
+                    suffix=arch_path.suffix, archive_suffix=C.ARCHIVE_SUFFIX
+                )
+            )
+
+    def _check_list_file(self):
+        """
+        Проверяет существование файла со списком архивируемых файлов.
+
+        Raises:
+            FileNotFoundError: Если файл со списком не существует
+        """
+        # Проверяем существует ли список архивируемых файлов
+        list_file_path = Path(self.list_file)
+        if not list_file_path.exists():
+            logger.critical("")
+            raise FileNotFoundError(
+                T.not_found_list_file_path.format(list_file_path=list_file_path)
+            )
+        logger.debug(T.exists_list_file.format(list_file_path=list_file_path))
+
     def _run_archive_process(
-        self, cmd: list[str], encoding: str
+            self, cmd: list[str], encoding: str
     ) -> subprocess.CompletedProcess:
         """Запускает процесс архивации."""
         return subprocess.run(
@@ -221,7 +221,7 @@ class Arch7zSpec:
                 logger.critical(f"{process.stderr}")
                 raise RuntimeError(T.fatal_error)
 
-    def get_cmd_archiver(self) -> list[str]:
+    def _get_cmd_archiver(self) -> list[str]:
         """
         Формирует команду для выполнения архивации с помощью 7z.
 

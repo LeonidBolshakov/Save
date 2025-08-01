@@ -7,7 +7,7 @@ from SRC.GENERAL.remote_archive_naming import RemoteArchiveNamingProtokol
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 
 
-def write_file_yandex_disk(
+def write_file_to_yandex_disk(
     local_path: str, remote_dir: str, call_back_obj: RemoteArchiveNamingProtokol
 ) -> str:
     """Загружает файл на Яндекс-Диск используя API Яндекс.

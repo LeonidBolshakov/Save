@@ -12,7 +12,7 @@ from SRC.seven_z_manager import SevenZManager
 def sevenzip_path():
     # Путь по умолчанию
     seven_z_manager = SevenZManager()
-    return seven_z_manager.get_7z_path(auto_install=True)
+    return seven_z_manager.get_path(auto_install=True)
 
 
 # Фикстура тестовых данных
@@ -49,7 +49,7 @@ def local_archive_path(tmp_path):
 
 # Основной тест
 def test_integration_archive(
-    sevenzip_path, local_archive_path, list_file, test_data, tmp_path
+        sevenzip_path, local_archive_path, list_file, test_data, tmp_path
 ):
     # 1. Создаем объект архивации
     arch = Arch7zSpec(
@@ -84,7 +84,7 @@ def test_integration_archive(
         # Ищем файл по имени в распакованной директории
         found_files = list(extract_dir.rglob(file.name))
         assert (
-            len(found_files) == 1
+                len(found_files) == 1
         ), f"Файл {file.name} не найден или найден несколько раз"
 
         extracted_file = found_files[0]

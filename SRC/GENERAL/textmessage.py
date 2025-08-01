@@ -18,8 +18,8 @@ class TextMessage(frozenset):
         "Ошибка проверки существования директории с архивами в облаке: {e}"
     )
     error_load_7z = (
-        f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
-        + "{config_file}: {e}"
+            f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
+            + "{config_file}: {e}"
     )
     error_local_archive = "Ошибка при создании локального архива {e}"
     error_run_7z = (
@@ -37,7 +37,7 @@ class TextMessage(frozenset):
     file_numbers_found = "Найдены номера файлов: {file_nums}"
     format_log = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     getting_file_numbers = "Получение номеров файлов из {archive}"
-    init_arch = "Инициализация Arch7zSpec"
+    init_arch = "Инициализация CreateArch7zSpec"
     init_FileArchiving = "Инициализация FileArchiving"
     init_main = "Начало процесса архивации и сохранения файлов в облако"
     init_yadisk = "Инициализация YandexDisk"
@@ -60,8 +60,8 @@ class TextMessage(frozenset):
     not_enough_rights = "Недостаточно прав для записи в {remote_path}"
     not_found_7z = f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
     not_found_config_file = (
-        f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует - "
-        + "{config_file}"
+            f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует - "
+            + "{config_file}"
     )
     not_found_list_file_path = (
         "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"

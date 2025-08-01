@@ -42,29 +42,29 @@ class BackupManager:
         start_time = time.time()
         remote_path = None
 
-        self.config_temp_logging()
+        self._create_temp_logging()
         try:
             EnvironmentVariables().validate_vars()  # Проверка наличия необходимых переменных окружения
         except Exception as e:
             logger.critical(str(e))
             exit(1)
-        self.remove_temp_loging()
+        self._remove_temp_loging()
 
         try:
             TuneLogger().setup_logging()  # Настройка системы логирования
-            remote_path = self.main_program_loop()  # Запуск основного процесса
+            remote_path = self._main_program_loop()  # Запуск основного процесса
         except KeyboardInterrupt:
             logger.error(T.canceled_by_user, exc_info=True)
             raise
         except Exception as e:
-            self.completion(remote_path=remote_path, e=e)
+            self._completion(remote_path=remote_path, e=e)
         else:
-            self.completion(remote_path=remote_path, e=None)
+            self._completion(remote_path=remote_path, e=None)
         finally:
             logger.info(T.time_run.format(time=f"{time.time() - start_time:.2f}"))
 
     @staticmethod
-    def main_program_loop() -> str:
+    def _main_program_loop() -> str:
         """Основной метод выполнения полного цикла резервного копирования.
 
         Процесс включает:
@@ -89,7 +89,7 @@ class BackupManager:
             raise Exception(e)
 
     @staticmethod
-    def config_temp_logging() -> None:
+    def _create_temp_logging() -> None:
         """Делает настройки временного логирования"""
         variables = EnvironmentVariables()
         log_file_name = variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME)
@@ -105,7 +105,7 @@ class BackupManager:
         )  # Настройка логирования только для использования до настройки основного логирования
 
     @staticmethod
-    def remove_temp_loging() -> None:
+    def _remove_temp_loging() -> None:
         """Удаление настроек временного логирования"""
         logging.raiseExceptions = True
         logger_root = logging.getLogger()
@@ -114,7 +114,7 @@ class BackupManager:
                 handler
             )  # Отказ от предыдущей настройки логирования
 
-    def completion(
+    def _completion(
         self, remote_path: str | None = None, e: Exception | None = None
     ) -> None:
         """Завершает работу программы исходя их максимального уровня лога сообщений.
@@ -129,17 +129,17 @@ class BackupManager:
         """
         max_level = MaxLevelHandler().get_highest_level()
 
-        if not self.start_finishing_work(
+        if not self._start_finishing_work(
             remote_path=remote_path
         ):  # Если письмо не отправлено
             max_level = max(max_level, logging.ERROR)  # уровень сообщений не ниже ERROR
 
-        self.log_end_messages(max_level, e)
+        self._log_end_messages(max_level, e)
 
         sys.exit(1 if logging.ERROR <= max_level else 0)
 
     @staticmethod
-    def start_finishing_work(remote_path: str | None) -> bool:
+    def _start_finishing_work(remote_path: str | None) -> bool:
         """
         Инициация завершающего действия после завершения копирования -
         формирование и отправка служебного e-mail.
@@ -154,7 +154,7 @@ class BackupManager:
 
         return MessageMail().compose_and_send_email()  # Формирование и отправка e-mail
 
-    def log_end_messages(self, max_level: int, e: Exception | None = None) -> None:
+    def _log_end_messages(self, max_level: int, e: Exception | None = None) -> None:
         """Логирует результат выполнения задания.
 
         В зависимости от максимального уровня залогированных ошибок
@@ -181,10 +181,10 @@ class BackupManager:
                 )
 
         if e is not None:
-            self.log_exception(e)
+            self._log_exception(e)
 
     @staticmethod
-    def log_exception(e: Exception) -> None:
+    def _log_exception(e: Exception) -> None:
         """
         Логирование того факта, что сохранение данных завершилась исключением.
         :param e: (Exception) исключение, вызвавшее прекращение сохранения данных.

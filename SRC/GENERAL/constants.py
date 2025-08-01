@@ -86,7 +86,7 @@ class Constants(frozenset):
         "декабря",
     ]
     PATTERN_7_Z = "7z.exe"
-    PROGRAMME_WRITE_FILE = "write_file_yandex_disk"
+    PROGRAMME_WRITE_FILE = "write_file_to_yandex_disk"
     ROOT_REMOTE_ARCHIVE_DIR = "Архивы"
     REMOTE_LINK = "remote_path="
     RETRY_DELAY = 5  # Задержка между попытками отправки email (в секундах)

@@ -107,7 +107,7 @@ def test_completion_success(backup_manager, mock_message_mail):
         mock_instance.get_highest_level.return_value = logging.INFO
 
         with patch.object(sys, "exit") as mock_exit:
-            backup_manager.completion(failure=False, remote_path="/remote/test.exe")
+            backup_manager._completion(failure=False, remote_path="/remote/test.exe")
 
             # Проверяем вызовы
             mock_message_mail.return_value.compose_and_send_email.assert_called_once()
@@ -128,7 +128,7 @@ def test_completion_failure(backup_manager, mock_message_mail):
         mock_instance.get_highest_level.return_value = logging.ERROR
 
         with patch.object(sys, "exit") as mock_exit:
-            backup_manager.completion(failure=True)
+            backup_manager._completion(failure=True)
 
             mock_message_mail.return_value.compose_and_send_email.assert_called_once()
             mock_exit.assert_called_once_with(1)
@@ -137,14 +137,14 @@ def test_completion_failure(backup_manager, mock_message_mail):
 def test_completion_log_info(backup_manager):
     """Тест логирования успешного завершения."""
     with patch.object(logger, "info") as mock_info:
-        BackupManager.log_end_messages(logging.INFO, "INFO")
+        BackupManager._log_end_messages(logging.INFO, "INFO")
         mock_info.assert_called_with("Задание успешно завершено!")
 
 
 def test_completion_log_warning(backup_manager):
     """Тест логирования завершения с предупреждениями."""
     with patch.object(logger, "warning") as mock_warning:
-        BackupManager.log_end_messages(logging.WARNING, "WARNING")
+        BackupManager._log_end_messages(logging.WARNING, "WARNING")
         mock_warning.assert_called_with(
             "WARNING --> Задание завершено с предупреждениями"
         )
@@ -153,5 +153,5 @@ def test_completion_log_warning(backup_manager):
 def test_completion_log_error(backup_manager):
     """Тест логирования завершения с ошибками."""
     with patch.object(logger, "error") as mock_error:
-        BackupManager.log_end_messages(logging.ERROR, "ERROR")
+        BackupManager._log_end_messages(logging.ERROR, "ERROR")
         mock_error.assert_called_with("Задание завершено с ошибками уровня ERROR")

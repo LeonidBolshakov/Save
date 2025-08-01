@@ -5,8 +5,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Импорт зависимостей
-from SRC.ARCHIVES.seven_z_manager import SevenZManager
-from SRC.ARCHIVES.arch_7z_spec import Arch7zSpec
+from SRC.ARCHIVES.search_7z_EXE import Search7zExe
+from SRC.ARCHIVES.create_arch_7z_spec import CreateArch7zSpec
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
@@ -22,10 +22,10 @@ class File7ZArchiving:
     """
 
     def __init__(
-        self,
-        list_archive_file: str = C.LIST_ARCHIVE_FILE,
-        config_file: str = C.DEFAULT_CONFIG_FILE,
-        archive_name: str = C.DEFAULT_LOCAL_ARCHIVE_FILE,
+            self,
+            list_archive_file: str = C.LIST_ARCHIVE_FILE,
+            config_file: str = C.DEFAULT_CONFIG_FILE,
+            archive_name: str = C.DEFAULT_LOCAL_ARCHIVE_FILE,
     ):
         """Инициализация архиватора.
 
@@ -48,8 +48,8 @@ class File7ZArchiving:
         logger.debug(T.init_FileArchiving)
 
         # Получение пути к 7z.exe из конфигурации
-        seven_z_manager = SevenZManager(config_file)
-        self.seven_z_exe_path = seven_z_manager.get_7z_path()
+        seven_z_exe = Search7zExe(config_file)
+        self.seven_z_exe_path = seven_z_exe.get_path()
 
         # Проверка наличия 7z.exe
         if not self.seven_z_exe_path:
@@ -78,7 +78,7 @@ class File7ZArchiving:
             logger.debug(T.path_local_archive.format(local_path_str=local_path_str))
 
             # Создание спецификации архива
-            arch_7z_spec = Arch7zSpec(
+            arch_7z_spec = CreateArch7zSpec(
                 arch_path=local_path_str,
                 list_file=self.list_archive_file,
                 seven_zip_exe_path=self.seven_z_exe_path,
