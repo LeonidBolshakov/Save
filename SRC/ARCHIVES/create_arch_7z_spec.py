@@ -20,21 +20,31 @@ class CreateArch7zSpec:
     3. Поддерживает шифрование паролем и защиту имен файлов.
 
     Attributes:
-        password (str): Пароль для архива (необязательный)
         arch_path (str): Путь к создаваемому архиву
         list_file (str): Путь к файлу со списком файлов для архивации
         seven_zip_exe_path (str): Путь к исполняемому файлу 7z.exe
+        password (str): Пароль для архива (необязательный)
+        compression_level: (int) - уровень компрессии
         work_dir (str): Рабочая директория для выполнения команд
     """
 
     def __init__(
-            self,
-            arch_path: str,
-            list_file: str,
-            seven_zip_exe_path: str,
-            password: str = "",
-            work_dir: str | None = None,
+        self,
+        arch_path: str,
+        list_file: str,
+        seven_zip_exe_path: str,
+        password: str = "",
+        compression_level: int = 5,
+        work_dir: str | None = None,
     ):
+        print(
+            arch_path,
+            list_file,
+            seven_zip_exe_path,
+            password,
+            compression_level,
+            work_dir,
+        )
         """
         Инициализирует экземпляр класса для создания SFX-архива.
 
@@ -43,6 +53,7 @@ class CreateArch7zSpec:
             list_file: Путь к файлу, содержащему список файлов для архивации
             seven_zip_exe_path: Абсолютный путь к исполняемому файлу 7z.exe
             password: Пароль для шифрования архива (по умолчанию пустая строка)
+            compression_level: уровень компрессии. 0 нет компрессии, 9- ultra компрессия
             work_dir: Рабочая директория для выполнения команд архивации
                      (по умолчанию текущая директория)
 
@@ -58,6 +69,7 @@ class CreateArch7zSpec:
         self.arch_path = arch_path
         self.list_file = list_file
         self.seven_zip_exe_path = seven_zip_exe_path  # Сохраняем путь на программу 7z
+        self.compression_level = compression_level
         self.work_dir = work_dir or os.getcwd()  # Текущая директория по умолчанию
 
         self._check_all_params()
@@ -84,7 +96,11 @@ class CreateArch7zSpec:
         encoding = "cp866" if sys.platform == "win32" else "utf-8"
 
         # Запускаем программу 7z
-        cmd = self._get_cmd_archiver()
+        cmd = self._get_cmd_archiver(
+            password=self.password,
+            compression_level=self.compression_level,
+            list_file=self.list_file,
+        )
         logger.debug(T.starting_archiving.format(cmd=self._mask_password_in_cmd(cmd)))
         try:
             process = self._run_archive_process(cmd, encoding)
@@ -113,16 +129,20 @@ class CreateArch7zSpec:
 
         Выполняет:
         1. Проверку наличия пути к архиву
-        2. Проверку отсутствия файла/директории по пути архива
+        2. Проверку отсутствия файла/директории архива.
+            Архив не должен изменять существующие данные
         3. Проверку расширения архива (.exe)
+        4. Проверку уровня сжатия - целое число в диапазоне [0-9]
 
         Raises:
-            ValueError: Если не указан путь или неверное расширение
+            ValueError: Если не указан путь или неверное расширение,
+            или невалидный уровень сжатия
             FileExistsError: Если по пути архива уже существует объект
         """
         arch_path = self._check_arch_path()
         self._check_arch_exists(arch_path)
         self._check_arch_ext(arch_path)
+        self._check_validate_of_compression(self.compression_level)
 
     def _check_arch_path(self) -> Path:
         """
@@ -193,8 +213,25 @@ class CreateArch7zSpec:
             )
         logger.debug(T.exists_list_file.format(list_file_path=list_file_path))
 
+    @staticmethod
+    def _check_validate_of_compression(compression_level: int) -> None:
+        """
+        Проверка параметра "Уровень компрессии". Параметр должен быть целым число в сегменте [0,9]
+        :param compression_level: (int) - Уровень компрессии
+        :return: None
+        """
+        if not isinstance(compression_level, int):
+            raise ValueError(
+                T.error_in_compression_level.format(level=compression_level)
+            )
+
+        if 0 <= compression_level <= 9:
+            return
+
+        raise ValueError(T.error_in_compression_level)
+
     def _run_archive_process(
-            self, cmd: list[str], encoding: str
+        self, cmd: list[str], encoding: str
     ) -> subprocess.CompletedProcess:
         """Запускает процесс архивации."""
         return subprocess.run(
@@ -221,7 +258,9 @@ class CreateArch7zSpec:
                 logger.critical(f"{process.stderr}")
                 raise RuntimeError(T.fatal_error)
 
-    def _get_cmd_archiver(self) -> list[str]:
+    def _get_cmd_archiver(
+        self, password: str, compression_level: int, list_file: list[str]
+    ) -> list[str]:
         """
         Формирует команду для выполнения архивации с помощью 7z.
 
@@ -235,12 +274,13 @@ class CreateArch7zSpec:
             self.seven_zip_exe_path,
             "a",  # Добавляем файлы в архив
             *(
-                [f"-p{self.password}"] if self.password else []
+                [f"-p{password}"] if password else []
             ),  # Если пароль не задан параметр не формируется
             "-mhe=on",  # Если задан пароль шифровать имена файлов
             "-sfx",  # Создавать самораспаковывающийся файл
+            f"-mx={compression_level}",  # Уровень компрессии
             self.arch_path,
-            f"@{self.list_file}",
+            f"@{list_file}",
             # Добавляем параметры для подавления вывода
             "-bso0",  # отключить вывод в stdout
             "-bsp0",  # отключить индикатор прогресса

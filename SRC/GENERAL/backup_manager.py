@@ -30,6 +30,9 @@ class BackupManager:
     2. Обработка всех прерываний внутренних программ.
     """
 
+    def __init__(self):
+        self.variables = EnvironmentVariables()
+
     def main(self):
         """
         Выполняет:
@@ -44,7 +47,7 @@ class BackupManager:
 
         self._create_temp_logging()
         try:
-            EnvironmentVariables().validate_vars()  # Проверка наличия необходимых переменных окружения
+            self.variables.validate_vars()  # Проверка наличия необходимых переменных окружения
         except Exception as e:
             logger.critical(str(e))
             exit(1)
@@ -63,8 +66,7 @@ class BackupManager:
         finally:
             logger.info(T.time_run.format(time=f"{time.time() - start_time:.2f}"))
 
-    @staticmethod
-    def _main_program_loop() -> str:
+    def _main_program_loop(self) -> str:
         """Основной метод выполнения полного цикла резервного копирования.
 
         Процесс включает:
@@ -77,22 +79,58 @@ class BackupManager:
         """
         logger.info(T.init_main)
         remote_path = None
+        (
+            list_archive_file_path,
+            config_file_path,
+            local_archive_name,
+            password,
+            compress_level,
+        ) = self.get_variables()
+
         try:
             # Используем TemporaryDirectory для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
-                local_archive = File7ZArchiving()
-                local_path = local_archive.make_local_archive(temp_dir)
+                local_archive = File7ZArchiving(
+                    list_archive_file_path=list_archive_file_path,
+                    config_file_path=config_file_path,
+                    local_archive_name=local_archive_name,
+                )
+                local_path = local_archive.make_local_archive(
+                    temp_dir,
+                    password,
+                    compress_level,
+                )
                 remote_path = write_file(local_path)
                 return remote_path
 
         except Exception as e:
             raise Exception(e)
 
-    @staticmethod
-    def _create_temp_logging() -> None:
+    def get_variables(self) -> tuple:
+        list_archive_file_path = self.variables.get_var(
+            C.ENV_LIST_ARCHIVE_FILE_PATH, C.LIST_ARCHIVE_FILE_PATCH
+        )
+        config_file_path = self.variables.get_var(
+            C.ENV_CONFIG_FILE_PATH, C.CONFIG_FILE_PATH
+        )
+        local_archive_name = self.variables.get_var(
+            C.ENV_LOCAL_ARCHIVE_FILE_NAME, C.LOCAL_ARCHIVE_FILE_NAME
+        )
+        password = self.variables.get_var(C.ENV_PASSWORD_ARCHIVE)
+        compress_level = self.variables.get_var(
+            C.ENV_COMPRESSION_LEVEL, C.COMPRESSION_LEVEL
+        )
+        return (
+            list_archive_file_path,
+            config_file_path,
+            local_archive_name,
+            password,
+            compress_level,
+        )
+
+    def _create_temp_logging(self) -> None:
         """Делает настройки временного логирования"""
-        variables = EnvironmentVariables()
-        log_file_name = variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME)
+        log_file_name = self.variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME)
 
         logging.raiseExceptions = False  # запрет вывода трассировки
         logging.basicConfig(

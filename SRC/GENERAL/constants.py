@@ -9,15 +9,15 @@ class Constants(frozenset):
 
     APP_NAME = "bol_save"
     ARCHIVE_SUFFIX = ".exe"
+    COMPRESSION_LEVEL = 5
+    CONFIG_FILE_PATH = "config_file_path.txt"
     CONFIG_KEY_SEVEN_ZIP_PATH = "SEVEN_ZIP_PATH"
     DEFAULT_7Z_PATHS = [
         "C:\\Program Files\\7-Zip\\7z.exe",
         "C:\\Program Files (x86)\\7-Zip\\7z.exe",
     ]
-    DEFAULT_CONFIG_FILE = "config_file.txt"
     DEFAULT_LEVEL_GENERAL = logging.INFO
     DEFAULT_LEVEL_LIB = logging.WARNING
-    DEFAULT_LOCAL_ARCHIVE_FILE = f"{LOCAL_ARCHIVE_PREFIX}{ARCHIVE_SUFFIX}"
     DEFAULT_LOG_BACKUP_COUNT = 3
     DEFAULT_LOG_LEVEL = "INFO"
     DEFAULT_LOG_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
@@ -46,6 +46,10 @@ class Constants(frozenset):
     )
     EMAIL_WARNING_SUBJECT = "🔥 Предупреждение при архивации"
     ENCODING = "utf-8"
+    ENV_COMPRESSION_LEVEL = "COMPRESSION_LEVEL"
+    ENV_CONFIG_FILE_PATH = "CONFIG_FILE"
+    ENV_LIST_ARCHIVE_FILE_PATH = "LIST_ARCHIVE_FILE_PATH"
+    ENV_LOCAL_ARCHIVE_FILE_NAME = "LOCAL_ARCHIVE_FILE_NAME"
     ENV_LOG_FILE_NAME = "LOG_FILE_NAME"
     ENV_LOGGING_LEVEL_CONSOLE = "LOGGING_LEVEL_CONSOLE"
     ENV_LOGGING_LEVEL_FILE = "LOGGING_LEVEL_FILE"
@@ -56,9 +60,9 @@ class Constants(frozenset):
     ENV_ROOT_REMOTE_ARCHIVE_DIR = "ROOT_REMOTE_ARCHIVE_DIR"
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
-
     GENERAL_REMOTE_ARCHIVE_FORMAT = "{archive}_{year}_{month}_{day}_{file_num}"
-    LIST_ARCHIVE_FILE = r"_INTERNAL/list.txt"
+    LIST_ARCHIVE_FILE_PATCH = "_INTERNAL/list.txt"
+    LOCAL_ARCHIVE_FILE_NAME = f"{LOCAL_ARCHIVE_PREFIX}{ARCHIVE_SUFFIX}"
     LOG_FILE_NAME = "save.log"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVELS = {
