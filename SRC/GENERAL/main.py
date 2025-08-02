@@ -3,7 +3,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from backup_manager import BackupManager
+from SRC.GENERAL.backup_manager import BackupManager
 
 if __name__ == "__main__":
     """Точка входа в приложение резервного копирования"""

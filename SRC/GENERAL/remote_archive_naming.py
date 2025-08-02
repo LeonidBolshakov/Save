@@ -1,3 +1,4 @@
+from __future__ import annotations
 import re
 from typing import Protocol, Callable
 from datetime import date
@@ -46,7 +47,7 @@ class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
         SRC\\YADISK\\yandex_disk.py
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         variables = EnvironmentVariables()
         self.target_date: date = date.today()  # Дата для наименования файла архива
         self.remote_archive_prefix: str = variables.get_var(

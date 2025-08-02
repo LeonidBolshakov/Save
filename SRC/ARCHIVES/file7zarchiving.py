@@ -88,7 +88,12 @@ class File7ZArchiving:
             arch_7z_spec = self.get_arch_7z_spec(
                 password, compression_level, local_path_str
             )
-            arch_7z_spec.make_archive()
+            arch_7z_spec.create_archive(
+                archive_path=local_path_str,
+                list_file=self.list_archive_file,
+                password=password,
+                compression_level=compression_level,
+            )
             return local_path_str
 
         except Exception as e:
@@ -105,9 +110,5 @@ class File7ZArchiving:
         :return:
         """
         return CreateArch7zSpec(
-            arch_path=local_path_str,
-            list_file=self.list_archive_file,
-            seven_zip_exe_path=self.seven_z_exe_path,
-            password=password,
-            compression_level=compression_level,
+            exe_path=self.seven_z_exe_path,
         )

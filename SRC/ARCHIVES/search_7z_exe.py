@@ -154,11 +154,10 @@ class Search7zExe:
 
         return None
 
-    def _save_config(self, path: str) -> None:
+    def _save_config(self, path: str) -> str:
         """Сохраняет путь к 7z в конфигурацию."""
-        str_path = str(path)
-        self.seven_zip_path = str_path
-        self.config[C.CONFIG_KEY_SEVEN_ZIP_PATH] = str_path
+        self.seven_zip_path = path
+        self.config[C.CONFIG_KEY_SEVEN_ZIP_PATH] = path
 
         if self.config_file_path:
             try:

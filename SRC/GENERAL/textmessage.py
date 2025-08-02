@@ -3,7 +3,7 @@ from SRC.GENERAL.constants import Constants as C
 
 class TextMessage(frozenset):
     arch_exists = (
-        "Существует {obj_type} {arch_path}, имя которого, совпадает с именем архива. "
+        "Существует {obj_type} {archive_path}, имя которого, совпадает с именем архива. "
         "Архивация невозможна."
     )
     archive_name_generation = "Генерация имени архива"
@@ -14,12 +14,15 @@ class TextMessage(frozenset):
     env_not_found = "Файл {env} не найден. Текущая директория {dir}"
     error_address_email = "Ошибка в email адресе: {e}"
     error_compose_message = "Ошибка при составлении e-mail сообщения {e}"
+    error_in_compression_level = (
+        "Уровень компрессии ({level}) должен быть целым число от 0 до 9 включительно"
+    )
     error_list_files = (
         "Ошибка проверки существования директории с архивами в облаке: {e}"
     )
     error_load_7z = (
-            f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
-            + "{config_file}: {e}"
+        f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
+        + "{config_file_path}: {e}"
     )
     error_local_archive = "Ошибка при создании локального архива {e}"
     error_run_7z = (
@@ -45,7 +48,7 @@ class TextMessage(frozenset):
         "Недопустимое расширение файла архива: {suffix} - "
         "должно быть {archive_suffix}"
     )
-    invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге:" + "{path}"
+    invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге: " + "{path}"
     missing_email_credentials = "отсутствуют учетные данные email"
     missing_mandatory_variables = (
         "Отсутствуют обязательные переменные окружения:\n"
@@ -60,11 +63,11 @@ class TextMessage(frozenset):
     not_enough_rights = "Недостаточно прав для записи в {remote_path}"
     not_found_7z = f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
     not_found_config_file = (
-            f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует - "
-            + "{config_file}"
+        f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует - "
+        + "{config_file_path}"
     )
     not_found_list_file_path = (
-        "Не найден файл, состоящий из списка архивируемых файлов - " "{list_file_path}"
+        "Не найден файл, состоящий из списка архивируемых файлов - {list_file_path}"
     )
     not_save_env = (
         "{var_name} не сохранён в keyring! Записываемое значение не равно прочитанному."
@@ -72,7 +75,11 @@ class TextMessage(frozenset):
     not_save_env_empty = "{var_name} не сохранён в keyring! Задано пустое значение."
     path_local_archive = "Путь к архиву на локальном диске: {local_path_str}"
     permission_error = "[Поиск программы 7z]. Нет доступа к {path}"
+    program_is_localed = "Программа 7z находится по пути {path}"
     prompt = "{var} = {current}, введите новое или Enter, чтобы оставить прежнее:"
+    search_all_disks = "Поиск {pattern_7_z} по всем дискам..."
+    search_in_standard_paths = "Поиск {pattern_7_z} в стандартных путях"
+    search_in_standard_paths_failed = "Поиск в стандартных путях неудачен"
     start_create_archive = "Начало создания архива"
     start_load_file = "Начало загрузки файла {local_path}"
     start_main = "Запуск процесса резервного копирования"

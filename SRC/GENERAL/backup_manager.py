@@ -228,7 +228,7 @@ class BackupManager:
         :param e: (Exception) исключение, вызвавшее прекращение сохранения данных.
         :return: None
         """
-        logger.info("=== Произошла ошибка ===")
+        logger.info(r"\n=== Произошла ошибка ===")
         logger.info(f"Сообщение: {str(e)}")
 
         # Для логирования уровня DEBUG выводим полный traceback

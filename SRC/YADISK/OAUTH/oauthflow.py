@@ -41,7 +41,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -98,9 +98,7 @@ class OAuthFlow:
         variables (EnvironmentVariables): Обертка для переменных окружения
     """
 
-    def __init__(
-            self,
-    ):
+    def __init__(self) -> None:
         self.token_manager = TokenManager()
         self.callback_received: bool = False
         self.callback_path: str | None = None
@@ -378,6 +376,8 @@ class OAuthFlow:
         try:
             uri = variables.get_var(YC.YANDEX_REDIRECT_URI)
             parsed = urlparse(uri)
-            return int(parsed.port)
+            if parsed.port is None or parsed.port == "":
+                raise ValueError(YT.invalid_port.format(e=""))
+            return parsed.port
         except ValueError as e:
             raise ValueError(YT.invalid_port.format(e=e)) from e
