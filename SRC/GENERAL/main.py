@@ -3,12 +3,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from SRC.GENERAL.backup_manager import BackupManager
+from SRC.GENERAL.backup_manager_7z import BackupManager7z
 
 if __name__ == "__main__":
     """Точка входа в приложение резервного копирования"""
     try:
-        BackupManager().main()
+        BackupManager7z().main()
         exit(0)
     except KeyboardInterrupt:
         sys.exit(130)

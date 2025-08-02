@@ -1,6 +1,7 @@
 import sys
 import time
 import traceback
+from abc import ABC, abstractmethod
 from tempfile import TemporaryDirectory
 import logging
 
@@ -11,12 +12,12 @@ from SRC.MAIL.messagemail import MessageMail
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.manager_write_file import write_file
 from SRC.LOGGING.tunelogger import TuneLogger
-from SRC.ARCHIVES.file7zarchiving import File7ZArchiving
+from SRC.ARCHIVES.files_archiving import FilesArchiving
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class BackupManager:
+class BackupManager(ABC):
     """Класс для управления процессом резервного копирования данных.
 
     Обеспечивает:
@@ -79,19 +80,22 @@ class BackupManager:
         """
         logger.info(T.init_main)
         remote_path = None
+
         (
             list_archive_file_path,
+            archiver_name_template,
             config_file_path,
             local_archive_name,
             password,
             compress_level,
-        ) = self.get_variables()
+        ) = self.get_variables_()
 
         try:
             # Используем TemporaryDirectory для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
-                local_archive = File7ZArchiving(
-                    list_archive_file_path=list_archive_file_path,
+                local_archive = FilesArchiving(
+                    list_archive_file_paths=list_archive_file_path,
+                    archiver_name_template=archiver_name_template,
                     config_file_path=config_file_path,
                     local_archive_name=local_archive_name,
                 )
@@ -106,27 +110,9 @@ class BackupManager:
         except Exception as e:
             raise Exception(e)
 
-    def get_variables(self) -> tuple:
-        list_archive_file_path = self.variables.get_var(
-            C.ENV_LIST_ARCHIVE_FILE_PATH, C.LIST_ARCHIVE_FILE_PATCH
-        )
-        config_file_path = self.variables.get_var(
-            C.ENV_CONFIG_FILE_PATH, C.CONFIG_FILE_PATH
-        )
-        local_archive_name = self.variables.get_var(
-            C.ENV_LOCAL_ARCHIVE_FILE_NAME, C.LOCAL_ARCHIVE_FILE_NAME
-        )
-        password = self.variables.get_var(C.ENV_PASSWORD_ARCHIVE)
-        compress_level = self.variables.get_var(
-            C.ENV_COMPRESSION_LEVEL, C.COMPRESSION_LEVEL
-        )
-        return (
-            list_archive_file_path,
-            config_file_path,
-            local_archive_name,
-            password,
-            compress_level,
-        )
+    @abstractmethod
+    def get_variables_(self) -> tuple:
+        pass
 
     def _create_temp_logging(self) -> None:
         """Делает настройки временного логирования"""

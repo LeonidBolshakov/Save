@@ -4,6 +4,8 @@ import sys
 import os
 import logging
 
+from mypy.checkpattern import self_match_type_names
+
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
 from SRC.ARCHIVES.archiver import Archiver
@@ -59,12 +61,19 @@ class CreateArch7zSpec(Archiver):
         compression_level: int = 5,
     ) -> int:
         """
-        Выполняет создание самораспаковывающегося архива.
+        Выполняет создание архива.
 
         Process:
         1. Формирует команду архивации
         2. Выполняет команду через subprocess
         3. Обрабатывает результаты выполнения
+
+        Parameters:
+            archive_path: str - Полный путь создаваемого архива
+            list_file: str - Полный путь на файл, содержащий имена архивируемых файлов
+            password: str | None = None - Пароль. Если пароль на задан файл не архивируется
+            compression_level: int = 5. Уровень компрессии в диапазоне [0,9]
+            0 - нет компрессии, 9 - ультра компрессия
 
         Returns:
             int: 0 если архивация успешна, 1 не фатальные ошибки, 2 - фатальные ошибки
@@ -74,6 +83,18 @@ class CreateArch7zSpec(Archiver):
 
         Note:
             Для Windows используется кодировка cp866 для корректного отображения вывода
+
+        List_file
+        текстовый файл содержащий список архивируемых файлов. Допускаются символы подстановки.
+        Кодировка файла - utf-8.
+        Имена файлов в таком файле списка должны быть разделены символами новой строки.
+
+        Например, если файл "listfile.txt" содержит следующее:
+
+            'My programs/*.cpp'
+            'Src/*.cpp'
+
+        То в архив будут добавлены все файлы "*.cpp" из каталогов "My programs" и "Src".
         """
         # Контроль параметров
         self._check_all_params(
@@ -99,7 +120,7 @@ class CreateArch7zSpec(Archiver):
         )
         try:
             process = self._run_archive_process(cmd=cmd, encoding=encoding)
-            return self._handle_process_result(process=process)
+            return process.returncode
         except Exception as e:
             logger.critical({e})
             raise RuntimeError(T.error_starting_archiving.format(e=e))
@@ -116,6 +137,7 @@ class CreateArch7zSpec(Archiver):
 
         :Parameters: archive_path - Путь на архив.
         :Parameters: list_file - Путь на файл, содержащий список архивируемых файлов.
+            Структура файла списка архивируемых файлов описана.
         :Parameters: compression_level - Уровень компрессии (сжатия) от 0 до 9 включительно
 
         Raises:
@@ -128,7 +150,7 @@ class CreateArch7zSpec(Archiver):
         self, archive_path: Path | str | None, compression_level: int
     ) -> None:
         """
-        Проверяет корректность параметров архива.
+        Проверяет корректность параметров архивации.
 
         Выполняет:
         1. Проверку наличия пути к архиву
@@ -242,21 +264,6 @@ class CreateArch7zSpec(Archiver):
             cwd=self.work_dir,
         )
 
-    @staticmethod
-    def _handle_process_result(process: subprocess.CompletedProcess) -> int:
-        # noinspection PyUnreachableCode
-        match process.returncode:
-            case 0:
-                logger.info(T.successful_archiving)
-                return 0
-            case 1:
-                logger.warning(f"{process.stderr}")
-                logger.warning(T.no_fatal_error)
-                return 1
-            case _:
-                logger.critical(f"{process.stderr}")
-                raise RuntimeError(T.fatal_error)
-
     def _get_cmd_archiver(
         self,
         archive_path: str,
@@ -274,7 +281,7 @@ class CreateArch7zSpec(Archiver):
             Пароль в логах маскируется звездочками для безопасности
         """
         cmd = [
-            self.seven_zip_exe_path,
+            self.seven_zip_exe_path,  # Путь к программе архиватору
             "a",  # Добавляем файлы в архив
             *(
                 [f"-p{password}"] if password else []
@@ -282,7 +289,7 @@ class CreateArch7zSpec(Archiver):
             "-mhe=on",  # Если задан пароль шифровать имена файлов
             "-sfx",  # Создавать самораспаковывающийся файл
             f"-mx={compression_level}",  # Уровень компрессии
-            archive_path,
+            archive_path,  # Полный путь на формируемый архив
             f"@{list_file}",
             # Добавляем параметры для подавления вывода
             "-bso0",  # отключить вывод в stdout

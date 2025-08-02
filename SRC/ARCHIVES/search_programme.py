@@ -11,37 +11,44 @@ from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class Search7zExe:
-    """Класс для локального поиска утилиты архивации 7z.exe."""
+class SearchProgramme:
+    """Класс для локального поиска пути программы"""
 
-    def __init__(self, config_file_path: str | None = None):
+    def __init__(self, config_file_path: str | None = None) -> None:
         """
-        Инициализация менеджера 7z.
+        Инициализация объекта класса поиска архиватора.
 
         :param config_file_path: Путь к JSON-файлу конфигурации (опционально)
         """
         self.config_file_path: str | None = config_file_path
-        self.default_7z_paths: list[str] = C.DEFAULT_7Z_PATHS
-        self.pattern_7_z = C.PATTERN_7_Z
         self.config: dict = {}
 
-    def get_path(self) -> str | None:
+    def get_path(
+        self, default_programme_paths: list[str] | str, program_template: str
+    ) -> str | None:
         """
-        Основной метод получения пути к 7z.exe.
+        Основной метод получения пути к архиватору.
 
         :return: Найденный путь или None
         """
+        if isinstance(default_programme_paths, str):
+            default_programme_paths = [default_programme_paths]
 
         # 1. Вывод пути из файла конфигуратора
-        if path := self._7z_from_config_file():
+        if path := self._programme_from_config_file():
             return self._save_config(path)
 
         # 2. Вывод пути из типичных директорий сохранения программы
-        if path := self._7z_from_common_paths():
+        if path := self._programme_from_common_paths(
+            program_template=program_template,
+            default_programme_paths=default_programme_paths,
+        ):
             return self._save_config(path)
 
         # 3. Вывод пути в результате глобального поиска по всем дискам
-        if path := self._7z_from_global_search():
+        if path := self._programme_from_global_search(
+            program_template=program_template
+        ):
             return self._save_config(path)
 
         # Программа не найдена
@@ -60,11 +67,11 @@ class Search7zExe:
                 return True
         except Exception as e:
             logger.warning(
-                T.error_load_7z.format(file_config=self.config_file_path, e=e)
+                T.error_load_programme.format(file_config=self.config_file_path, e=e)
             )
             return False
 
-    def _7z_from_config_file(self) -> str | None:
+    def _programme_from_config_file(self) -> str | None:
         """Возвращает путь на архиватор из конфига"""
         if not self._setup_config_from_file():
             return None
@@ -73,7 +80,7 @@ class Search7zExe:
             path = self.config[C.CONFIG_KEY_SEVEN_ZIP_PATH]
             if not self._check_working_path(path):
                 logger.warning(
-                    T.invalid_path_7z.format(path=f"{self.config_file_path}")
+                    T.invalid_path_programme.format(path=f"{self.config_file_path}")
                 )
 
                 return None
@@ -85,7 +92,7 @@ class Search7zExe:
     @staticmethod
     def _check_working_path(path: str) -> bool:
         """
-        Проверяет работоспособность 7z.exe по указанному пути.
+        Проверяет работоспособность программы по указанному пути.
 
         :return:
             True - программа работоспособна,
@@ -93,13 +100,13 @@ class Search7zExe:
         """
         if not path or not Path(path).exists():
             return False
-        if not Search7zExe._test_7z_execution(path):
+        if not SearchProgramme._test_programme_execution(path):
             return False
         return True
 
     @staticmethod
-    def _test_7z_execution(path: str) -> bool:
-        """Тестирует выполнение 7z.exe."""
+    def _test_programme_execution(path: str) -> bool:
+        """Тестирует выполнение программы."""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_archive = Path(tmpdir) / "test.exe"
             test_file = Path(tmpdir) / "test.txt"
@@ -113,26 +120,32 @@ class Search7zExe:
                     timeout=2,
                 )
                 if result.returncode != 0:
-                    logger.debug(T.error_run_7z.format(path=path, e=result.stderr))
+                    logger.debug(
+                        T.error_run_programme.format(path=path, e=result.stderr)
+                    )
                 return result.returncode == 0
             except Exception as e:
-                logger.debug(T.error_run_7z_except.format(path=path, e=e))
+                logger.debug(T.error_run_programme_except.format(path=path, e=e))
                 return False
 
-    def _7z_from_common_paths(self) -> str | None:
+    def _programme_from_common_paths(
+        self, program_template: str, default_programme_paths: list[str]
+    ) -> str | None:
         """Проверка стандартных путей установки 7-Zip."""
-        logger.info(T.search_in_standard_paths.format(pattern_7_z=self.pattern_7_z))
-        for path in self.default_7z_paths:
+        logger.info(T.search_in_standard_paths.format(pattern_7_z=program_template))
+        for path in default_programme_paths:
             if self._check_working_path(path):
                 return path
         logger.warning(T.search_in_standard_paths_failed)
         return None
 
-    def _7z_from_global_search(self) -> str | None:
-        """Поиск 7z.exe по всем доступным дискам."""
-        logger.info(T.search_all_disks.format(pattern_7_z=self.pattern_7_z))
+    def _programme_from_global_search(self, program_template: str) -> str | None:
+        """Поиск программы по всем доступным дискам."""
+        logger.info(T.search_all_disks.format(pattern_7_z=program_template))
         for drive in self._get_available_drives():
-            if path := self._global_search_in_disk(str(drive)):
+            if path := self._global_search_in_disk(
+                path=str(drive), program_template=program_template
+            ):
                 return path
         return None
 
@@ -143,10 +156,10 @@ class Search7zExe:
             Path(f"{d}:\\") for d in string.ascii_uppercase if Path(f"{d}:\\").exists()
         ]
 
-    def _global_search_in_disk(self, path: str) -> str | None:
-        """Рекурсивный поиск 7z.exe в указанном диске."""
+    def _global_search_in_disk(self, path: str, program_template) -> str | None:
+        """Рекурсивный поиск программы в указанном диске."""
         try:
-            for item in Path(path).rglob(self.pattern_7_z):
+            for item in Path(path).rglob(program_template):
                 if self._check_working_path(str(item)):
                     return str(item)
         except PermissionError:
@@ -155,7 +168,7 @@ class Search7zExe:
         return None
 
     def _save_config(self, path: str) -> str:
-        """Сохраняет путь к 7z в конфигурацию."""
+        """Сохраняет путь к программе в конфигурационном файле и self.seven_zip_path."""
         self.seven_zip_path = path
         self.config[C.CONFIG_KEY_SEVEN_ZIP_PATH] = path
 
@@ -172,15 +185,17 @@ class Search7zExe:
 
 def main():
     try:
-        seven_z_manager = Search7zExe("../TEST/config.json")
+        seven_z_manager = SearchProgramme("../TEST/config.json")
     except ValueError:
         print(f"Путь к архиватору не найден")
     else:
-        main_path = seven_z_manager.get_path()
+        main_path = seven_z_manager.get_path(
+            default_programme_paths=C.DEFAULT_7Z_PATHS, program_template=C.PATTERN_7_Z
+        )
         print(
             main_path
             if main_path
-            else f"Программа {seven_z_manager.pattern_7_z} не найдена. Установите программу"
+            else f"Программа {C.PATTERN_7_Z} не найдена. Установите программу"
         )
 
 

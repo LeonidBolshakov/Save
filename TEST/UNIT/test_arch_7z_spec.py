@@ -49,7 +49,7 @@ def local_archive_path(tmp_path):
 
 # Основной тест
 def test_integration_archive(
-        sevenzip_path, local_archive_path, list_file, test_data, tmp_path
+    sevenzip_path, local_archive_path, list_file, test_data, tmp_path
 ):
     # 1. Создаем объект архивации
     arch = Arch7zSpec(
@@ -61,7 +61,7 @@ def test_integration_archive(
     )
 
     # 2. Выполняем архивацию
-    assert arch.make_archive() is True
+    assert arch.create_archive() is True
 
     # 3. Проверяем архив
     archive_file = Path(local_archive_path)
@@ -84,7 +84,7 @@ def test_integration_archive(
         # Ищем файл по имени в распакованной директории
         found_files = list(extract_dir.rglob(file.name))
         assert (
-                len(found_files) == 1
+            len(found_files) == 1
         ), f"Файл {file.name} не найден или найден несколько раз"
 
         extracted_file = found_files[0]
@@ -100,7 +100,7 @@ def test_wrong_password(sevenzip_path, local_archive_path, list_file, tmp_path):
         password="correct_password",
         sevenzip_path=sevenzip_path,
     )
-    assert arch.make_archive() is True
+    assert arch.create_archive() is True
 
     # Пробуем распаковать с неправильным паролем
     extract_dir = tmp_path / "extracted"
@@ -133,7 +133,7 @@ def test_no_password(sevenzip_path, local_archive_path, list_file, test_data, tm
         list_file=list_file,
         sevenzip_path=sevenzip_path,
     )
-    assert arch.make_archive() is True
+    assert arch.create_archive() is True
 
     # Распаковываем
     extract_dir = tmp_path / "extracted"

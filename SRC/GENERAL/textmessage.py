@@ -7,11 +7,13 @@ class TextMessage(frozenset):
         "Архивация невозможна."
     )
     archive_name_generation = "Генерация имени архива"
+    archiver_not_found = (
+        f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
+    )
     canceled_by_user = "Процесс прерван пользователем"
-
     critical_error_type = "Ошибка типа {type}: {e}"
     empty = "Пусто"
-    env_not_found = "Файл {env} не найден. Текущая директория {dir}"
+    env_not_found = "Файл {env} не найден. Текущая директория {dir_archive}"
     error_address_email = "Ошибка в email адресе: {e}"
     error_compose_message = "Ошибка при составлении e-mail сообщения {e}"
     error_in_compression_level = (
@@ -20,15 +22,16 @@ class TextMessage(frozenset):
     error_list_files = (
         "Ошибка проверки существования директории с архивами в облаке: {e}"
     )
-    error_load_7z = (
-        f"Ошибка загрузки конфигурационного файла с путём на {C.PATTERN_7_Z}"
-        + "{config_file_path}: {e}"
+    error_load_programme = (
+        "Ошибка загрузки конфигурационного файла {config_file_path}: {e}"
     )
     error_local_archive = "Ошибка при создании локального архива {e}"
-    error_run_7z = (
-        "[Поиск программы 7z]. Вариант программы по адресу {path} вернул ошибку {e}"
+    error_run_programme = (
+        "[Поиск программы]. Вариант программы по адресу {path} вернул ошибку {e}"
     )
-    error_run_7z_except = "[Поиск программы 7z]. Вариант программы по адресу {path} выдал грубую ошибку {e}"
+    error_run_programme_except = (
+        "[Поиск программы]. Вариант программы по адресу {path} выдал грубую ошибку {e}"
+    )
     error_saving_config = "Ошибка сохранения в конфиг файл: {e}"
     error_saving_env = "Ошибка сохранения {var_name}: {e}"
     error_send_email = "Ошибка отправки email: {e}"
@@ -48,7 +51,7 @@ class TextMessage(frozenset):
         "Недопустимое расширение файла архива: {suffix} - "
         "должно быть {archive_suffix}"
     )
-    invalid_path_7z = f"Некорректный путь к {C.PATTERN_7_Z} в конфиге: " + "{path}"
+    invalid_path_programme = f"Некорректный путь к архиватору в конфиге: " + "{path}"
     missing_email_credentials = "отсутствуют учетные данные email"
     missing_mandatory_variables = (
         "Отсутствуют обязательные переменные окружения:\n"
@@ -61,11 +64,7 @@ class TextMessage(frozenset):
     no_path_local = "Не задан путь на архив, в который собираются сохраняемые файлы"
     not_key_in_config = f"В конфиге нет ключа {C.CONFIG_KEY_SEVEN_ZIP_PATH}"
     not_enough_rights = "Недостаточно прав для записи в {remote_path}"
-    not_found_7z = f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
-    not_found_config_file = (
-        f"Конфигурационный файл с путём на программу {C.PATTERN_7_Z} не задан или не существует - "
-        + "{config_file_path}"
-    )
+    not_found_config_file = "Конфигурационный файл ({config_file_path}) с путём на программу не задан или не существует - "
     not_found_list_file_path = (
         "Не найден файл, состоящий из списка архивируемых файлов - {list_file_path}"
     )

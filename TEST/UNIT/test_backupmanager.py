@@ -18,8 +18,8 @@ def backup_manager():
 
 @pytest.fixture
 def mock_file7zarchiving():
-    """Фикстура для мокирования File7ZArchiving."""
-    with patch("backupmanager.File7ZArchiving") as mock:
+    """Фикстура для мокирования FilesArchiving."""
+    with patch("backupmanager.FilesArchiving") as mock:
         instance = mock.return_value
         instance.make_local_archive.return_value = "/tmp/test_archive.exe"
         yield mock

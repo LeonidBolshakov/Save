@@ -5,67 +5,72 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Импорт зависимостей
-from SRC.ARCHIVES.search_7z_exe import Search7zExe
+from SRC.ARCHIVES.search_programme import SearchProgramme
 from SRC.ARCHIVES.create_arch_7z_spec import CreateArch7zSpec
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class File7ZArchiving:
-    """Класс для создания 7z-архивов с использованием 7z.exe.
+class FilesArchiving:
+    """Класс для создания архивов.
 
     Обеспечивает:
-    - Проверку наличия 7z.exe на системе
+    - Проверку наличия архиватора в системе
     - Создание архивов по заданным параметрам
     - Обработку ошибок архивации
     """
 
     def __init__(
         self,
-        list_archive_file_path: str,
+        list_archive_file_paths: str,
+        archiver_name_template: str,
         config_file_path: str,
         local_archive_name: str,
     ):
-        """Инициализация архиватора.
+        """Инициализация архивации.
 
         Args:
-            list_archive_file_path: Путь к файлу со списком файлов для архивации
-            config_file_path: Путь к файлу конфигурации
+            list_archive_file_paths: Путь к файлу со списком файлов для архивации
+            config_file_path: Путь к файлу конфигурации, возможно содержащий, полный путь к архиватору
             local_archive_name: Имя создаваемого архива
         """
-        self.list_archive_file = list_archive_file_path
+        self.list_archive_file_paths = list_archive_file_paths
+        self.archiver_name_template = archiver_name_template
         self.config_file_path = config_file_path
         self.local_archive_name = local_archive_name
-        self._init_7z(config_file_path=config_file_path)  # Инициализация пути к 7z.exe
+        self._init_search(config_file_path=config_file_path)
 
-    def _init_7z(self, config_file_path):
-        """Инициализирует путь к 7z.exe через менеджер конфигурации.
+    def _init_search(self, config_file_path):
+        """Инициализирует поиск пути к архиватору.
 
         Raises:
-            OSError: Если 7z.exe не найден на системе
+            OSError: Если программа не найдена в системе
         """
         logger.debug(T.init_FileArchiving)
 
-        # Получение пути к 7z.exe из конфигурации
-        self.seven_z_exe_path = Search7zExe(
+        # Получение пути к программе
+        self.programme_path = SearchProgramme(
             config_file_path=config_file_path
-        ).get_path()
+        ).get_path(
+            default_programme_paths=self.list_archive_file_paths,
+            program_template=self.archiver_name_template,
+        )
 
-        # Проверка наличия 7z.exe
-        if not self.seven_z_exe_path:
+        # Проверка наличия архиватора
+        if not self.programme_path:
             logger.critical("")
-            raise OSError(T.not_found_7z)
+            raise OSError(T.archiver_not_found)
 
     def make_local_archive(
         self,
-        temp_dir: str,
+        dir_archive: str,
         password: str,
         compression_level: int,
     ) -> str:
         """Создает 7z-архив в указанной временной директории.
 
         Args:
-            temp_dir: Путь к временной директории для архива
+            dir_archive: Путь к директории для архива
             password: (str) Пароль
             compression_level: (int) Уровень сжатия
 
@@ -80,7 +85,7 @@ class File7ZArchiving:
             # Доступ к переменным окружения
             variables = EnvironmentVariables()
             # Формирование пути к архиву
-            local_path = Path(temp_dir, self.local_archive_name)
+            local_path = Path(dir_archive, self.local_archive_name)
             local_path_str = str(local_path)
             logger.debug(T.path_local_archive.format(local_path_str=local_path_str))
 
@@ -88,16 +93,30 @@ class File7ZArchiving:
             arch_7z_spec = self.get_arch_7z_spec(
                 password, compression_level, local_path_str
             )
-            arch_7z_spec.create_archive(
+            return_code = arch_7z_spec.create_archive(
                 archive_path=local_path_str,
-                list_file=self.list_archive_file,
+                list_file=self.list_archive_file_paths,
                 password=password,
                 compression_level=compression_level,
             )
+
+            self._handle_process_result(return_code)
             return local_path_str
 
         except Exception as e:
             raise Exception(e)
+
+    @staticmethod
+    def _handle_process_result(return_code: int) -> None:
+        # noinspection PyUnreachableCode
+        match return_code:
+            case 0:  # Нормальное завершение архивирования
+                logger.info(T.successful_archiving)
+            case 1:  # Завершение архивирования с не фатальными ошибками
+                logger.warning(T.no_fatal_error)
+            case _:  # Завершение архивации с фатальными ошибками
+                logger.critical("")
+                raise RuntimeError(T.fatal_error)
 
     def get_arch_7z_spec(
         self, password: str, compression_level: int, local_path_str: str
@@ -110,5 +129,5 @@ class File7ZArchiving:
         :return:
         """
         return CreateArch7zSpec(
-            exe_path=self.seven_z_exe_path,
+            exe_path=self.programme_path,
         )

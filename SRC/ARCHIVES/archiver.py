@@ -8,7 +8,7 @@ class Archiver(ABC):
         self,
         exe_path: str,
         work_dir: str | None = None,
-    ):
+    ) -> None:
         """
         Инициализирует экземпляр класса.
 
@@ -31,14 +31,29 @@ class Archiver(ABC):
         password: str | None = None,
         compression_level: int = 5,
     ) -> int:
-        """
-        Создаёт архив
+        # noinspection PyUnresolvedReferences
+        """Создаёт архив
 
-        :param archive_path: Путь к создаваемому архиву.
-        :param list_file: Путь на файл со списком файлов для архивации.
-        :param password: Пароль (опционально).
-        :param compression_level: Уровень сжатия (0-9)
+        Args:
+            archive_path: Путь к создаваемому архиву. Должен иметь правильное расширение
+            list_file: Путь к файлу со списком файлов для архивации. Каждый файл должен быть на новой строке
+            password: Пароль для архива. Если None, архив создается без шифрования
+            compression_level: Уровень сжатия от 0 (без сжатия) до 9 (максимальное сжатие)
 
-        :return: int: 0 если архивация успешна, 1 не фатальные ошибки, 2 - фатальные ошибки
+        Returns:
+            int: Код возврата:
+                - 0: успешное завершение
+                - 1: нефатальные ошибки (например, некоторые файлы не были добавлены)
+                - 2: фатальные ошибки (архив не создан)
+
+        Raises:
+            ValueError: При неверных параметрах
+            FileNotFoundError: Если list_file не существует
+            RuntimeError: При ошибках в процессе архивации
+
+        Example:
+            >>> archiver = ConcreteArchiver("c/program files/7-zip/7z.exe")
+            >>> archiver.create_archive("out.exe", "files.txt", "password", 7)
+            0
         """
         pass
