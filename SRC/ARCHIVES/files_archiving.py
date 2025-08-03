@@ -26,18 +26,22 @@ class FilesArchiving:
         archiver_name_template: str,
         config_file_path: str,
         local_archive_name: str,
-    ):
+        standard_program_paths: list[str] | str,
+    ) -> None:
         """Инициализация архивации.
 
         Args:
-            list_archive_file_paths: Путь к файлу со списком файлов для архивации
-            config_file_path: Путь к файлу конфигурации, возможно содержащий, полный путь к архиватору
-            local_archive_name: Имя создаваемого архива
+            list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
+            archiver_name_template: str - Шаблон имени программы
+            config_file_path: str - Путь на файл конфигурации с путями программ
+            local_archive_name: str - Имя локального архива
+            standard_program_paths: list[str] - Стандартные пути программы
         """
         self.list_archive_file_paths = list_archive_file_paths
         self.archiver_name_template = archiver_name_template
         self.config_file_path = config_file_path
         self.local_archive_name = local_archive_name
+        self.standard_program_paths = standard_program_paths
         self._init_search(config_file_path=config_file_path)
 
     def _init_search(self, config_file_path):
@@ -52,8 +56,8 @@ class FilesArchiving:
         self.programme_path = SearchProgramme(
             config_file_path=config_file_path
         ).get_path(
-            default_programme_paths=self.list_archive_file_paths,
-            program_template=self.archiver_name_template,
+            standard_program_paths=self.standard_program_paths,
+            programme_template=self.archiver_name_template,
         )
 
         # Проверка наличия архиватора

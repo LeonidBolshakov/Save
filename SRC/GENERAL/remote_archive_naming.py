@@ -53,7 +53,9 @@ class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
         self.remote_archive_prefix: str = variables.get_var(
             C.ENV_REMOTE_ARCHIVING_PREFIX, C.REMOTE_ARCHIVE_PREFIX
         )  # Префикс имени файла архива
-        self.archive_ext: str = C.ARCHIVE_SUFFIX  # Расширение файла архива
+        self.archive_ext: str = variables.get_var(
+            C.ENV_ARCHIVE_SUFFIX, C.ARCHIVE_SUFFIX
+        )  # Расширение файла архива
         self.root_remote_archive_dir: str = variables.get_var(
             C.ENV_ROOT_REMOTE_ARCHIVE_DIR, C.ROOT_REMOTE_ARCHIVE_DIR
         )  # Головной каталог архивов на облачном диске

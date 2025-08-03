@@ -8,7 +8,7 @@ class TextMessage(frozenset):
     )
     archive_name_generation = "Генерация имени архива"
     archiver_not_found = (
-        f"На компьютере не найден архиватор {C.PATTERN_7_Z}. Надо установить"
+        f"На компьютере не найдена программа {C.PATTERN_PROGRAMME}. Надо установить"
     )
     canceled_by_user = "Процесс прерван пользователем"
     critical_error_type = "Ошибка типа {type}: {e}"
@@ -22,7 +22,7 @@ class TextMessage(frozenset):
     error_list_files = (
         "Ошибка проверки существования директории с архивами в облаке: {e}"
     )
-    error_load_programme = (
+    error_load_config = (
         "Ошибка загрузки конфигурационного файла {config_file_path}: {e}"
     )
     error_local_archive = "Ошибка при создании локального архива {e}"
@@ -30,7 +30,10 @@ class TextMessage(frozenset):
         "[Поиск программы]. Вариант программы по адресу {path} вернул ошибку {e}"
     )
     error_run_programme_except = (
-        "[Поиск программы]. Вариант программы по адресу {path} выдал грубую ошибку {e}"
+        "[Поиск программы]. Вариант программы по адресу {path} выдал ошибку {e}"
+    )
+    error_run_system_path = (
+        "[Поиск программы]. Выполнение программы по системным path закончилось неудачей"
     )
     error_saving_config = "Ошибка сохранения в конфиг файл: {e}"
     error_saving_env = "Ошибка сохранения {var_name}: {e}"
@@ -73,11 +76,16 @@ class TextMessage(frozenset):
     )
     not_save_env_empty = "{var_name} не сохранён в keyring! Задано пустое значение."
     path_local_archive = "Путь к архиву на локальном диске: {local_path_str}"
-    permission_error = "[Поиск программы 7z]. Нет доступа к {path}"
-    program_is_localed = "Программа 7z находится по пути {path}"
+    permission_error = "[Поиск программы]. Нет доступа к {path}"
+    program_is_localed = "Программа находится по пути {path}"
     prompt = "{var} = {current}, введите новое или Enter, чтобы оставить прежнее:"
-    search_all_disks = "Поиск {pattern_7_z} по всем дискам..."
-    search_in_standard_paths = "Поиск {pattern_7_z} в стандартных путях"
+    search_all_disks = "Поиск программы по всем дискам..."
+    search_in_config = (
+        "[Поиск программы]. Поиск программы по пути, указанном в файле конфигураторе"
+    )
+    search_in_standard_paths = (
+        "[Поиск программы]. Поиск {programme_template} в стандартных путях"
+    )
     search_in_standard_paths_failed = "Поиск в стандартных путях неудачен"
     start_create_archive = "Начало создания архива"
     start_load_file = "Начало загрузки файла {local_path}"

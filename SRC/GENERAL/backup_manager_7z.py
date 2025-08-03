@@ -1,5 +1,5 @@
-from backup_manager import BackupManager
-from constants import Constants as C
+from SRC.GENERAL.backup_manager import BackupManager
+from SRC.GENERAL.constants import Constants as C
 
 
 class BackupManager7z(BackupManager):
@@ -8,7 +8,7 @@ class BackupManager7z(BackupManager):
             C.ENV_LIST_ARCHIVE_FILE_PATH, C.LIST_ARCHIVE_FILE_PATCH
         )
         archiver_programme_template = self.variables.get_var(
-            C.ENV_PATTERN_7Z, C.PATTERN_7_Z
+            C.ENV_PATTERN_7Z, C.PATTERN_PROGRAMME
         )
         config_file_path = self.variables.get_var(
             C.ENV_CONFIG_FILE_PATH, C.CONFIG_FILE_PATH
@@ -20,6 +20,9 @@ class BackupManager7z(BackupManager):
         compress_level = self.variables.get_var(
             C.ENV_COMPRESSION_LEVEL, C.COMPRESSION_LEVEL
         )
+        standard_programme_paths = self.variables.get_var(
+            C.ENV_STANDARD_PROGRAM_PATHS, C.STANDARD_7Z_PATHS
+        )
         return (
             list_archive_file_path,
             archiver_programme_template,
@@ -27,4 +30,5 @@ class BackupManager7z(BackupManager):
             local_archive_name,
             password,
             compress_level,
+            standard_programme_paths,
         )

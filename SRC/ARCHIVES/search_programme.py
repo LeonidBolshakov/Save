@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
@@ -20,36 +21,39 @@ class SearchProgramme:
 
         :param config_file_path: Путь к JSON-файлу конфигурации (опционально)
         """
+        self.variables = EnvironmentVariables()
         self.config_file_path: str | None = config_file_path
         self.config: dict = {}
 
     def get_path(
-        self, default_programme_paths: list[str] | str, program_template: str
+            self, standard_program_paths: list[str] | str, programme_template: str
     ) -> str | None:
         """
         Основной метод получения пути к архиватору.
 
         :return: Найденный путь или None
         """
-        if isinstance(default_programme_paths, str):
-            default_programme_paths = [default_programme_paths]
 
         # 1. Вывод пути из файла конфигуратора
-        if path := self._programme_from_config_file():
-            return self._save_config(path)
+        if path := self._programme_from_config_file(programme_template):
+            return self._save_config(path, programme_template)
 
-        # 2. Вывод пути из типичных директорий сохранения программы
+        # 2. Вывод пути из стандартных директорий сохранения программы
         if path := self._programme_from_common_paths(
-            program_template=program_template,
-            default_programme_paths=default_programme_paths,
+                programme_template=programme_template,
+                standard_program_paths=standard_program_paths,
         ):
-            return self._save_config(path)
+            return self._save_config(path, programme_template)
 
-        # 3. Вывод пути в результате глобального поиска по всем дискам
+        # 3. Проверка наличия программы в PATH
+        if path := self._programme_in_system_path():
+            return self._save_config(path, programme_template)
+
+        # 4. Вывод пути в результате глобального поиска по всем дискам
         if path := self._programme_from_global_search(
-            program_template=program_template
+                program_template=programme_template
         ):
-            return self._save_config(path)
+            return self._save_config(path, programme_template)
 
         # Программа не найдена
         return None
@@ -67,18 +71,30 @@ class SearchProgramme:
                 return True
         except Exception as e:
             logger.warning(
-                T.error_load_programme.format(file_config=self.config_file_path, e=e)
+                T.error_load_config.format(file_config=self.config_file_path, e=e)
             )
             return False
 
-    def _programme_from_config_file(self) -> str | None:
-        """Возвращает путь на архиватор из конфига"""
+    def _programme_in_system_path(self) -> str | None:
+        path = self.variables.get_var(C.ENV_PATTERN_PROGRAMME, C.PATTERN_PROGRAMME)
+        if not self._test_programme_execution(path):
+            logger.warning(T.error_run_system_path)
+            return None
+        return path
+
+    def _programme_from_config_file(self, programme_template: str) -> str | None:
+        """
+        Возвращает путь на архиватор из конфига
+        :param programme_template: - имя программы
+        :return: Путь на программу или bkb None
+        """
+        logger.debug(T.search_in_config)
         if not self._setup_config_from_file():
             return None
 
         try:
-            path = self.config[C.CONFIG_KEY_SEVEN_ZIP_PATH]
-            if not self._check_working_path(path):
+            path = self.config[programme_template]
+            if not self._test_programme_execution(path):
                 logger.warning(
                     T.invalid_path_programme.format(path=f"{self.config_file_path}")
                 )
@@ -89,8 +105,7 @@ class SearchProgramme:
             logger.warning(T.not_key_in_config)
             return None
 
-    @staticmethod
-    def _check_working_path(path: str) -> bool:
+    def _check_working_path(self, path: str | None) -> bool:
         """
         Проверяет работоспособность программы по указанному пути.
 
@@ -100,7 +115,7 @@ class SearchProgramme:
         """
         if not path or not Path(path).exists():
             return False
-        if not SearchProgramme._test_programme_execution(path):
+        if not self._test_programme_execution(path):
             return False
         return True
 
@@ -108,11 +123,11 @@ class SearchProgramme:
     def _test_programme_execution(path: str) -> bool:
         """Тестирует выполнение программы."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            test_archive = Path(tmpdir) / "test.exe"
-            test_file = Path(tmpdir) / "test.txt"
-            test_file.write_text("Test", encoding="utf-8")
-
             try:
+                test_archive = Path(tmpdir) / "test.exe"
+                test_file = Path(tmpdir) / "test.txt"
+                test_file.write_text("Test", encoding="utf-8")
+
                 result = subprocess.run(
                     [path, "a", "-sfx", str(test_archive), str(test_file)],
                     stdout=subprocess.DEVNULL,
@@ -124,16 +139,24 @@ class SearchProgramme:
                         T.error_run_programme.format(path=path, e=result.stderr)
                     )
                 return result.returncode == 0
+            except FileNotFoundError:
+                pass
             except Exception as e:
                 logger.debug(T.error_run_programme_except.format(path=path, e=e))
                 return False
 
     def _programme_from_common_paths(
-        self, program_template: str, default_programme_paths: list[str]
+            self, programme_template: str, standard_program_paths: list[str] | str
     ) -> str | None:
-        """Проверка стандартных путей установки 7-Zip."""
-        logger.info(T.search_in_standard_paths.format(pattern_7_z=program_template))
-        for path in default_programme_paths:
+
+        if isinstance(standard_program_paths, str):
+            standard_program_paths = [standard_program_paths]
+
+        """Проверка стандартных путей установки программы"""
+        logger.info(
+            T.search_in_standard_paths.format(programme_template=programme_template)
+        )
+        for path in standard_program_paths:
             if self._check_working_path(path):
                 return path
         logger.warning(T.search_in_standard_paths_failed)
@@ -141,10 +164,10 @@ class SearchProgramme:
 
     def _programme_from_global_search(self, program_template: str) -> str | None:
         """Поиск программы по всем доступным дискам."""
-        logger.info(T.search_all_disks.format(pattern_7_z=program_template))
+        logger.info(T.search_all_disks)
         for drive in self._get_available_drives():
             if path := self._global_search_in_disk(
-                path=str(drive), program_template=program_template
+                    path=str(drive), program_template=program_template
             ):
                 return path
         return None
@@ -167,10 +190,15 @@ class SearchProgramme:
 
         return None
 
-    def _save_config(self, path: str) -> str:
-        """Сохраняет путь к программе в конфигурационном файле и self.seven_zip_path."""
+    def _save_config(self, path: str, programme_template: str) -> str:
+        """
+        Сохраняет путь к программе в конфигурационном файле и self.seven_zip_path."
+        :param path: Полный путь к программе.
+        :param programme_template: шаблон программы. Например - 7z.exe
+        :return: Полный путь к программе
+        """ ""
         self.seven_zip_path = path
-        self.config[C.CONFIG_KEY_SEVEN_ZIP_PATH] = path
+        self.config[programme_template] = path
 
         if self.config_file_path:
             try:
@@ -190,12 +218,13 @@ def main():
         print(f"Путь к архиватору не найден")
     else:
         main_path = seven_z_manager.get_path(
-            default_programme_paths=C.DEFAULT_7Z_PATHS, program_template=C.PATTERN_7_Z
+            standard_program_paths=C.STANDARD_7Z_PATHS,
+            programme_template=C.PATTERN_PROGRAMME,
         )
         print(
             main_path
             if main_path
-            else f"Программа {C.PATTERN_7_Z} не найдена. Установите программу"
+            else f"Программа {C.PATTERN_PROGRAMME} не найдена. Установите программу"
         )
 
 

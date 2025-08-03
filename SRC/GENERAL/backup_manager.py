@@ -88,8 +88,8 @@ class BackupManager(ABC):
             local_archive_name,
             password,
             compress_level,
+            standard_program_paths,
         ) = self.get_variables_()
-
         try:
             # Используем TemporaryDirectory для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
@@ -98,6 +98,7 @@ class BackupManager(ABC):
                     archiver_name_template=archiver_name_template,
                     config_file_path=config_file_path,
                     local_archive_name=local_archive_name,
+                    standard_program_paths=standard_program_paths,
                 )
                 local_path = local_archive.make_local_archive(
                     temp_dir,
@@ -108,7 +109,7 @@ class BackupManager(ABC):
                 return remote_path
 
         except Exception as e:
-            raise Exception(e)
+            raise RuntimeError(e)
 
     @abstractmethod
     def get_variables_(self) -> tuple:

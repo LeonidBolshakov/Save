@@ -4,11 +4,10 @@ import sys
 import os
 import logging
 
-from mypy.checkpattern import self_match_type_names
-
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
 from SRC.ARCHIVES.archiver import Archiver
+from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
@@ -48,8 +47,7 @@ class CreateArch7zSpec(Archiver):
         """
         super().__init__(exe_path, work_dir)
 
-        logger.debug(T.init_arch)
-
+        self.variables = EnvironmentVariables()
         self.seven_zip_exe_path = exe_path  # Сохраняем путь на программу 7z
         self.work_dir = work_dir or os.getcwd()  # Текущая директория по умолчанию
 
@@ -97,6 +95,8 @@ class CreateArch7zSpec(Archiver):
         То в архив будут добавлены все файлы "*.cpp" из каталогов "My programs" и "Src".
         """
         # Контроль параметров
+        logger.debug(T.init_arch)
+
         self._check_all_params(
             archive_path=archive_path,
             list_file=list_file,
@@ -120,9 +120,13 @@ class CreateArch7zSpec(Archiver):
         )
         try:
             process = self._run_archive_process(cmd=cmd, encoding=encoding)
+            if process.returncode == 1:
+                logger.warning(process.stderr)
+            if process.returncode > 1:
+                logger.error(process.stderr)
             return process.returncode
         except Exception as e:
-            logger.critical({e})
+            logger.critical("")
             raise RuntimeError(T.error_starting_archiving.format(e=e))
 
     def _check_all_params(
@@ -173,7 +177,6 @@ class CreateArch7zSpec(Archiver):
         archive = Path(archive_path)
 
         self._check_arch_exists(archive_path=archive)
-        self._check_arch_ext(archive_path=archive)
         self._check_validate_of_compression(compression_level=compression_level)
 
     @staticmethod
@@ -194,25 +197,6 @@ class CreateArch7zSpec(Archiver):
         raise FileExistsError(
             T.arch_exists.format(obj_type=obj_type, arch_path=str(archive_path))
         )
-
-    @staticmethod
-    def _check_arch_ext(archive_path: Path):
-        """
-        Проверяет расширение файла архива.
-
-        Args:
-            archive_path: Путь к архиву для проверки
-
-        Raises:
-            ValueError: Если расширение архива не .exe
-        """
-        if archive_path.suffix != C.ARCHIVE_SUFFIX:
-            logger.critical("")
-            raise ValueError(
-                T.invalid_file_extension.format(
-                    suffix=archive_path.suffix, archive_suffix=C.ARCHIVE_SUFFIX
-                )
-            )
 
     @staticmethod
     def _check_list_file(list_file: str) -> None:
@@ -280,6 +264,9 @@ class CreateArch7zSpec(Archiver):
         Note:
             Пароль в логах маскируется звездочками для безопасности
         """
+        archive_extension = self.variables.get_var(
+            C.ENV_ARCHIVE_SUFFIX, C.ARCHIVE_SUFFIX
+        )
         cmd = [
             self.seven_zip_exe_path,  # Путь к программе архиватору
             "a",  # Добавляем файлы в архив
@@ -287,7 +274,9 @@ class CreateArch7zSpec(Archiver):
                 [f"-p{password}"] if password else []
             ),  # Если пароль не задан параметр не формируется
             "-mhe=on",  # Если задан пароль шифровать имена файлов
-            "-sfx",  # Создавать самораспаковывающийся файл
+            *(
+                ["-sfx"] if archive_extension == ".exe" else []
+            ),  # Если расширение не exe параметр не формируется
             f"-mx={compression_level}",  # Уровень компрессии
             archive_path,  # Полный путь на формируемый архив
             f"@{list_file}",

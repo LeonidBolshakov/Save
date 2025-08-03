@@ -72,11 +72,12 @@ class YandexDisk:
         remote_dir = self.call_back_obj.generate_remote_dir()
         if not self.ya_disk.exists(remote_dir):
             logger.info(YT.folder_not_found.format(archive_path=remote_dir))
+            print(f"{remote_dir=}")
             try:
-                self.ya_disk.mkdir(remote_dir)  # Создаём папку с архивами
-                logger.info(YT.folder_created.format(archive_path=remote_dir))
+                current_path = self.mkdir_custom(remote_dir)  # Создаём папку с архивами
+                logger.info(YT.folder_created.format(archive_path=current_path))
             except Exception as e:
-                raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e)) from e
+                raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e))
         return remote_dir
 
     def get_token_for_API(self) -> str:
@@ -194,3 +195,23 @@ class YandexDisk:
         if not response.ok:
             raise RuntimeError(YT.error_upload_URL)
         return response.json()["href"]
+
+    def mkdir_custom(self, path: str) -> str:
+        """
+        Рекурсивно создаёт директорию на Яндекс-Диске.
+
+        :param path: Путь, например: "Архивы/2025/08"
+        :return: Абсолютный путь, который был создан
+        """
+        try:
+            parts = path.strip("/").split("/")
+            current_path = ""
+            for part in parts:
+                current_path += f"/{part}"
+                if not self.ya_disk.exists(current_path):
+                    self.ya_disk.mkdir(current_path)
+
+            return current_path
+
+        except Exception as e:
+            raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e)) from e
