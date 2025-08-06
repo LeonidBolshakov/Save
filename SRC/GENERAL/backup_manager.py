@@ -3,6 +3,7 @@ import time
 import traceback
 from abc import ABC, abstractmethod
 from tempfile import TemporaryDirectory
+from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
@@ -81,30 +82,20 @@ class BackupManager(ABC):
         logger.info(T.init_main)
         remote_path = None
 
-        (
-            list_archive_file_path,
-            archiver_name_template,
-            config_file_path,
-            local_archive_name,
-            password,
-            compress_level,
-            standard_program_paths,
-        ) = self.get_variables_()
+        parameters_dict = self.get_parameters_dict()
         try:
             # Используем TemporaryDirectory для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
-                local_archive = FilesArchiving(
-                    list_archive_file_paths=list_archive_file_path,
-                    archiver_name_template=archiver_name_template,
-                    config_file_path=config_file_path,
-                    local_archive_name=local_archive_name,
-                    standard_program_paths=standard_program_paths,
+                parameters_dict["archive_catalog"] = temp_dir
+                archive_path: str = str(
+                    Path(
+                        parameters_dict["archive_catalog"],
+                        parameters_dict["local_archive_name"],
+                    )
                 )
-                local_path = local_archive.make_local_archive(
-                    temp_dir,
-                    password,
-                    compress_level,
-                )
+                parameters_dict["archive_path"] = archive_path
+                local_archive = FilesArchiving(parameter_dict=parameters_dict)
+                local_path = local_archive.make_local_archive()
                 remote_path = write_file(local_path)
                 return remote_path
 
@@ -112,7 +103,7 @@ class BackupManager(ABC):
             raise RuntimeError(e)
 
     @abstractmethod
-    def get_variables_(self) -> tuple:
+    def get_parameters_dict(self) -> dict:
         pass
 
     def _create_temp_logging(self) -> None:
@@ -152,6 +143,8 @@ class BackupManager(ABC):
             remote_path: (str). Путь к файлу на Яндекс-Диске (для уведомления)
             e: Exception. Прерывание программы.
         """
+        if e is not None:
+            logger.error("")
         max_level = MaxLevelHandler().get_highest_level()
 
         if not self._start_finishing_work(

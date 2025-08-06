@@ -1,18 +1,14 @@
 import subprocess
 from pathlib import Path
 import sys
-import os
 import logging
 
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
-from SRC.ARCHIVES.archiver import Archiver
-from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class CreateArch7zSpec(Archiver):
+class CreateArch7zSpec:
     """
     Класс для работы со специфичным архивом 7z.
 
@@ -20,24 +16,18 @@ class CreateArch7zSpec(Archiver):
     1. Формируется самораспаковывающийся архив (SFX).
     2. Архивируемые файлы передаются через список в файле.
     3. Поддерживает шифрование паролем и защиту имен файлов.
-
-    Attributes:
-        seven_zip_exe_path (str): Путь к исполняемому файлу 7z.exe
-        work_dir (str): Рабочая директория для выполнения команд
     """
 
     def __init__(
         self,
-        exe_path: str,
-        work_dir: str | None = None,
-    ):
+        archiver_path: str,
+        parameters_dict: dict,
+    ) -> None:
         """
         Инициализирует экземпляр класса.
 
         Args:
-            exe_path: Абсолютный путь к исполняемому файлу 7z.exe
-            work_dir: Рабочая директория для выполнения команд архивации
-                     (по умолчанию текущая директория)
+            parameters_dict: dict. Словарь параметров
 
         Raises:
             ValueError: Если не указан путь к архиву
@@ -45,19 +35,11 @@ class CreateArch7zSpec(Archiver):
             ValueError: Если архив имеет неверное расширение (не .exe)
             FileNotFoundError: Если файл со списком архивируемых файлов не существует
         """
-        super().__init__(exe_path, work_dir)
 
-        self.variables = EnvironmentVariables()
-        self.seven_zip_exe_path = exe_path  # Сохраняем путь на программу 7z
-        self.work_dir = work_dir or os.getcwd()  # Текущая директория по умолчанию
+        self.archiver_path = archiver_path
+        self.parameters_dict = parameters_dict
 
-    def create_archive(
-        self,
-        archive_path: str,
-        list_file: str,
-        password: str | None = None,
-        compression_level: int = 5,
-    ) -> int:
+    def create_archive(self) -> int:
         """
         Выполняет создание архива.
 
@@ -67,6 +49,9 @@ class CreateArch7zSpec(Archiver):
         3. Обрабатывает результаты выполнения
 
         Parameters:
+            self
+
+        Used parameters_dict keys:
             archive_path: str - Полный путь создаваемого архива
             list_file: str - Полный путь на файл, содержащий имена архивируемых файлов
             password: str | None = None - Пароль. Если пароль на задан файл не архивируется
@@ -97,22 +82,27 @@ class CreateArch7zSpec(Archiver):
         # Контроль параметров
         logger.debug(T.init_arch)
 
-        self._check_all_params(
-            archive_path=archive_path,
-            list_file=list_file,
-            compression_level=compression_level,
+        # Выгрузка параметров
+        archive_path: str = str(
+            Path(
+                self.parameters_dict["archive_catalog"],
+                self.parameters_dict["local_archive_name"],
+            )
         )
+        self.parameters_dict["archive_path"] = archive_path
+        list_archive_file_paths: str = self.parameters_dict["list_archive_file_paths"]
+        password: str = self.parameters_dict["password"]
+        compression_level: int = self.parameters_dict.get("compression_level", 5)
+        self.parameters_dict["compression_level"] = compression_level
+
+        # Контроль параметров
+        self._check_all_params(self.parameters_dict)
 
         # Определяем кодировку для вывода
         encoding = "cp866" if sys.platform == "win32" else "utf-8"
 
         # Запускаем программу 7z
-        cmd = self._get_cmd_archiver(
-            archive_path,
-            password=password,
-            compression_level=compression_level,
-            list_file=list_file,
-        )
+        cmd = self._get_cmd_archiver()
         logger.debug(
             T.starting_archiving.format(
                 cmd=self._mask_password_in_cmd(cmd=cmd, password=password)
@@ -129,9 +119,7 @@ class CreateArch7zSpec(Archiver):
             logger.critical("")
             raise RuntimeError(T.error_starting_archiving.format(e=e))
 
-    def _check_all_params(
-        self, archive_path: Path | str | None, list_file: str, compression_level: int
-    ) -> None:
+    def _check_all_params(self, parameters_dict: dict) -> None:
         """
         Выполняет комплексную проверку всех переданных параметров.
 
@@ -147,12 +135,10 @@ class CreateArch7zSpec(Archiver):
         Raises:
             Различные исключения в зависимости от типа ошибки
         """
-        self._check_arch(archive_path=archive_path, compression_level=compression_level)
-        self._check_list_file(list_file=list_file)
+        self._check_arch(parameters_dict)
+        self._check_list_file(parameters_dict)
 
-    def _check_arch(
-        self, archive_path: Path | str | None, compression_level: int
-    ) -> None:
+    def _check_arch(self, parameters_dict: dict) -> None:
         """
         Проверяет корректность параметров архивации.
 
@@ -171,16 +157,19 @@ class CreateArch7zSpec(Archiver):
             или невалидный уровень сжатия
             FileExistsError: Если по пути архива уже существует объект
         """
+        # Извлекаем параметры
+        archive_path: str = parameters_dict["archive_path"]
+        compression_level: int = parameters_dict["compression_level"]
 
+        # Контроль параметров
         if archive_path is None:
             raise ValueError(T.no_path_local)
-        archive = Path(archive_path)
 
-        self._check_arch_exists(archive_path=archive)
+        self._check_arch_exists(archive_path=archive_path)
         self._check_validate_of_compression(compression_level=compression_level)
 
     @staticmethod
-    def _check_arch_exists(archive_path: Path):
+    def _check_arch_exists(archive_path: str):
         """
         Проверяет отсутствие файла/директории с заданным именем.
 
@@ -190,16 +179,16 @@ class CreateArch7zSpec(Archiver):
         Raises:
             FileExistsError: Если по указанному пути уже существует файл или директория
         """
-        if not archive_path.exists():
+        if not Path(archive_path).exists():
             return
 
-        obj_type = "файл" if archive_path.is_file() else "директория"
+        obj_type = "файл" if Path(archive_path).is_file() else "директория"
         raise FileExistsError(
-            T.arch_exists.format(obj_type=obj_type, arch_path=str(archive_path))
+            T.arch_exists.format(obj_type=obj_type, arch_path=archive_path)
         )
 
     @staticmethod
-    def _check_list_file(list_file: str) -> None:
+    def _check_list_file(parameters_list: dict) -> None:
         """
         Проверяет существование файла со списком архивируемых файлов
 
@@ -210,7 +199,8 @@ class CreateArch7zSpec(Archiver):
             FileNotFoundError: Если файл со списком не существует
         """
         # Проверяем существует ли список архивируемых файлов
-        list_file_path = Path(list_file)
+        list_archive_file_paths = parameters_list["list_archive_file_paths"]
+        list_file_path = Path(list_archive_file_paths)
         if not list_file_path.exists():
             logger.critical("")
             raise FileNotFoundError(
@@ -235,8 +225,9 @@ class CreateArch7zSpec(Archiver):
 
         raise ValueError(T.error_in_compression_level)
 
+    @staticmethod
     def _run_archive_process(
-        self, cmd: list[str], encoding: str
+        cmd: list[str], encoding: str
     ) -> subprocess.CompletedProcess:
         """Запускает процесс архивации."""
         return subprocess.run(
@@ -245,18 +236,22 @@ class CreateArch7zSpec(Archiver):
             stderr=subprocess.PIPE,
             encoding=encoding,
             errors="replace",
-            cwd=self.work_dir,
         )
 
-    def _get_cmd_archiver(
-        self,
-        archive_path: str,
-        password: str | None,
-        compression_level: int,
-        list_file: str,
-    ) -> list[str]:
+    def _get_cmd_archiver(self) -> list[str]:
         """
         Формирует команду для выполнения архивации с помощью 7z.
+
+        Parameters:
+            self
+
+        Used parameters_dict keys:
+            archive_path: str - Полный путь создаваемого архива
+            list_archive_file_paths: str - Полный путь на файл, содержащий имена архивируемых файлов
+            password: str | None = None - Пароль. Если пароль на задан файл не архивируется
+            compression_level: int = 5. Уровень компрессии в диапазоне [0,9]
+            0 - нет компрессии, 9 - ультра компрессия
+            archive_extension: str - Расширение архива
 
         Returns:
             list[str]: Список аргументов команды для subprocess.run
@@ -264,11 +259,13 @@ class CreateArch7zSpec(Archiver):
         Note:
             Пароль в логах маскируется звездочками для безопасности
         """
-        archive_extension = self.variables.get_var(
-            C.ENV_ARCHIVE_SUFFIX, C.ARCHIVE_SUFFIX
-        )
+        archive_path: str = self.parameters_dict["archive_path"]
+        password: str = self.parameters_dict["password"]
+        compression_level: int = self.parameters_dict["compression_level"]
+        list_archive_file_paths: str = self.parameters_dict["list_archive_file_paths"]
+        archive_extension: str = self.parameters_dict["archive_extension"]
         cmd = [
-            self.seven_zip_exe_path,  # Путь к программе архиватору
+            self.archiver_path,  # Путь к программе архиватору
             "a",  # Добавляем файлы в архив
             *(
                 [f"-p{password}"] if password else []
@@ -276,11 +273,11 @@ class CreateArch7zSpec(Archiver):
             "-mhe=on",  # Если задан пароль шифровать имена файлов
             *(
                 ["-sfx"] if archive_extension == ".exe" else []
-            ),  # Если расширение не exe параметр не формируется
+            ),  # Если расширение не exe - параметр не формируется
             f"-mx={compression_level}",  # Уровень компрессии
             archive_path,  # Полный путь на формируемый архив
-            f"@{list_file}",
-            # Добавляем параметры для подавления вывода
+            f"@{list_archive_file_paths}",
+            # Добавляем параметры для подавления лишнего вывода
             "-bso0",  # отключить вывод в stdout
             "-bsp0",  # отключить индикатор прогресса
         ]

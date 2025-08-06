@@ -3,13 +3,11 @@ from SRC.GENERAL.constants import Constants as C
 
 
 class BackupManager7z(BackupManager):
-    def get_variables_(self) -> tuple:
-        list_archive_file_path = self.variables.get_var(
+    def get_parameters_dict(self) -> dict:
+        list_archive_file_paths = self.variables.get_var(
             C.ENV_LIST_ARCHIVE_FILE_PATH, C.LIST_ARCHIVE_FILE_PATCH
         )
-        archiver_programme_template = self.variables.get_var(
-            C.ENV_PATTERN_7Z, C.PATTERN_PROGRAMME
-        )
+        archiver_name = self.variables.get_var(C.ENV_PATTERN_7Z, C.PATTERN_PROGRAMME)
         config_file_path = self.variables.get_var(
             C.ENV_CONFIG_FILE_PATH, C.CONFIG_FILE_PATH
         )
@@ -20,15 +18,19 @@ class BackupManager7z(BackupManager):
         compress_level = self.variables.get_var(
             C.ENV_COMPRESSION_LEVEL, C.COMPRESSION_LEVEL
         )
-        standard_programme_paths = self.variables.get_var(
+        archiver_standard_program_paths = self.variables.get_var(
             C.ENV_STANDARD_PROGRAM_PATHS, C.STANDARD_7Z_PATHS
         )
-        return (
-            list_archive_file_path,
-            archiver_programme_template,
-            config_file_path,
-            local_archive_name,
-            password,
-            compress_level,
-            standard_programme_paths,
+        archive_extension = self.variables.get_var(
+            C.ENV_ARCHIVE_SUFFIX, C.ARCHIVE_SUFFIX
         )
+        return {
+            "list_archive_file_paths": list_archive_file_paths,
+            "archiver_name": archiver_name,
+            "config_file_path": config_file_path,
+            "local_archive_name": local_archive_name,
+            "password": password,
+            "compress_level": compress_level,
+            "archiver_standard_program_paths": archiver_standard_program_paths,
+            "archive_extension": archive_extension,
+        }

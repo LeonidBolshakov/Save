@@ -1,17 +1,40 @@
-from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.constant import Constant as C
-from pprint import pprint
+from abc import ABC
 
-variables = EnvironmentVariables()
 
-ACCESS_TOKEN_IN_TOKEN = "access_token"
-REFRESH_TOKEN_IN_TOKEN = "refresh_token"
-EXPIRES_IN_IN_TOKEN = "expires_in"
+class BaseArchiving(ABC):
+    @staticmethod
+    def start() -> int:
+        print("Приступили к архивированию")
 
-token_data = {
-    "grant_type": "refresh_token",
-    "refresh_token": variables.get_var(C.REFRESH_TOKEN),
-    "client_id": variables.get_var(C.ENV_YANDEX_CLIENT_ID),
-    "client_secret": variables.get_var(C.ENV_CLIENT_SECRET),
-}
-pprint(token_data)
+
+class BaseBackupManager(ABC):
+    def __init__(self, _archiver: BaseArchiving):
+        self.archiver = _archiver
+
+    def start(self) -> None:
+        print(f"Приступили к управлению сохранения данных. Архиватор {archiver}")
+        self.archiver.start()
+
+
+class BackupManager7z(BaseBackupManager):
+    def __init__(self, _archiver: BaseArchiving):
+        super().__init__(_archiver)
+
+    def backup(self) -> None:  # Реализуем абстрактный метод
+        pass
+
+
+class CreateArch7zSpec(BaseArchiving):
+    def create_archive(self) -> int:
+        pass
+
+
+# Создаём экземпляр архиватора
+archiver = CreateArch7zSpec()
+print(f"{archiver=}")
+
+# Создаём менеджер для 7z
+manager_7z = BackupManager7z(archiver)
+
+# Вызываем backup
+manager_7z.start()  # Выведет: "Creating 7z archive"

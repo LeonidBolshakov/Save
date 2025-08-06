@@ -6,8 +6,7 @@ logger = logging.getLogger(__name__)
 
 # Импорт зависимостей
 from SRC.ARCHIVES.search_programme import SearchProgramme
-from SRC.ARCHIVES.create_arch_7z_spec import CreateArch7zSpec
-from SRC.GENERAL.environment_variables import EnvironmentVariables
+from SRC.ARCHIVES.archiver_base import CreateArch7zSpec
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
@@ -20,31 +19,23 @@ class FilesArchiving:
     - Обработку ошибок архивации
     """
 
-    def __init__(
-        self,
-        list_archive_file_paths: str,
-        archiver_name_template: str,
-        config_file_path: str,
-        local_archive_name: str,
-        standard_program_paths: list[str] | str,
-    ) -> None:
+    def __init__(self, parameter_dict: dict) -> None:
         """Инициализация архивации.
 
         Args:
+            parameter_dict (dict): словарь параметров
+
+        Used parameters_dict keys:
             list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
-            archiver_name_template: str - Шаблон имени программы
+            archiver_name: str - Шаблон имени программы
             config_file_path: str - Путь на файл конфигурации с путями программ
             local_archive_name: str - Имя локального архива
-            standard_program_paths: list[str] - Стандартные пути программы
+            archiver_standard_program_paths: list[str] - Стандартные пути программы
         """
-        self.list_archive_file_paths = list_archive_file_paths
-        self.archiver_name_template = archiver_name_template
-        self.config_file_path = config_file_path
-        self.local_archive_name = local_archive_name
-        self.standard_program_paths = standard_program_paths
-        self._init_search(config_file_path=config_file_path)
+        self.parameter_dict = parameter_dict
+        self._init_search()
 
-    def _init_search(self, config_file_path):
+    def _init_search(self) -> None:
         """Инициализирует поиск пути к архиватору.
 
         Raises:
@@ -54,10 +45,12 @@ class FilesArchiving:
 
         # Получение пути к программе
         self.programme_path = SearchProgramme(
-            config_file_path=config_file_path
+            config_file_path=self.parameter_dict.get("config_file_path")
         ).get_path(
-            standard_program_paths=self.standard_program_paths,
-            programme_template=self.archiver_name_template,
+            standard_program_paths=self.parameter_dict[
+                "archiver_standard_program_paths"
+            ],
+            programme_template=self.parameter_dict["archiver_name"],
         )
 
         # Проверка наличия архиватора
@@ -65,16 +58,14 @@ class FilesArchiving:
             logger.critical("")
             raise OSError(T.archiver_not_found)
 
-    def make_local_archive(
-        self,
-        dir_archive: str,
-        password: str,
-        compression_level: int,
-    ) -> str:
-        """Создает 7z-архив в указанной временной директории.
+    def make_local_archive(self) -> str:
+        """Создает 7z-архив в указанной директории.
 
         Args:
-            dir_archive: Путь к директории для архива
+            self
+
+        Used parameters_dict keys
+            archive_catalog: Путь к директории для архива
             password: (str) Пароль
             compression_level: (int) Уровень сжатия
 
@@ -85,11 +76,17 @@ class FilesArchiving:
             RuntimeError: Если произошла ошибка при создании архива
         """
         logger.debug(T.start_create_archive)
+
         try:
-            # Доступ к переменным окружения
-            variables = EnvironmentVariables()
+            # Извлечение параметров
+            archive_catalog = self.parameter_dict["archive_catalog"]
+            password = self.parameter_dict["password"]
+            compression_level = self.parameter_dict.get("compression_level", 5)
+
             # Формирование пути к архиву
-            local_path = Path(dir_archive, self.local_archive_name)
+            local_path = Path(
+                archive_catalog, self.parameter_dict["local_archive_name"]
+            )
             local_path_str = str(local_path)
             logger.debug(T.path_local_archive.format(local_path_str=local_path_str))
 
@@ -97,12 +94,7 @@ class FilesArchiving:
             arch_7z_spec = self.get_arch_7z_spec(
                 password, compression_level, local_path_str
             )
-            return_code = arch_7z_spec.create_archive(
-                archive_path=local_path_str,
-                list_file=self.list_archive_file_paths,
-                password=password,
-                compression_level=compression_level,
-            )
+            return_code = arch_7z_spec.create_archive()
 
             self._handle_process_result(return_code)
             return local_path_str
@@ -133,5 +125,5 @@ class FilesArchiving:
         :return:
         """
         return CreateArch7zSpec(
-            exe_path=self.programme_path,
+            archiver_path=self.programme_path, parameters_dict=self.parameter_dict
         )

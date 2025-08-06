@@ -7,8 +7,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from SRC.GENERAL.environment_variables import EnvironmentVariables
-from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
@@ -21,12 +19,12 @@ class SearchProgramme:
 
         :param config_file_path: Путь к JSON-файлу конфигурации (опционально)
         """
-        self.variables = EnvironmentVariables()
+        # self.variables = EnvironmentVariables()
         self.config_file_path: str | None = config_file_path
         self.config: dict = {}
 
     def get_path(
-            self, standard_program_paths: list[str] | str, programme_template: str
+        self, standard_program_paths: list[str] | str, programme_template: str
     ) -> str | None:
         """
         Основной метод получения пути к архиватору.
@@ -40,18 +38,18 @@ class SearchProgramme:
 
         # 2. Вывод пути из стандартных директорий сохранения программы
         if path := self._programme_from_common_paths(
-                programme_template=programme_template,
-                standard_program_paths=standard_program_paths,
+            programme_template=programme_template,
+            standard_program_paths=standard_program_paths,
         ):
             return self._save_config(path, programme_template)
 
         # 3. Проверка наличия программы в PATH
-        if path := self._programme_in_system_path():
+        if path := self._programme_in_system_path(programme_template):
             return self._save_config(path, programme_template)
 
         # 4. Вывод пути в результате глобального поиска по всем дискам
         if path := self._programme_from_global_search(
-                program_template=programme_template
+            program_template=programme_template
         ):
             return self._save_config(path, programme_template)
 
@@ -75,12 +73,11 @@ class SearchProgramme:
             )
             return False
 
-    def _programme_in_system_path(self) -> str | None:
-        path = self.variables.get_var(C.ENV_PATTERN_PROGRAMME, C.PATTERN_PROGRAMME)
-        if not self._test_programme_execution(path):
+    def _programme_in_system_path(self, programme_template: str) -> str | None:
+        if not self._test_programme_execution(programme_template):
             logger.warning(T.error_run_system_path)
             return None
-        return path
+        return programme_template
 
     def _programme_from_config_file(self, programme_template: str) -> str | None:
         """
@@ -146,7 +143,7 @@ class SearchProgramme:
                 return False
 
     def _programme_from_common_paths(
-            self, programme_template: str, standard_program_paths: list[str] | str
+        self, programme_template: str, standard_program_paths: list[str] | str
     ) -> str | None:
 
         if isinstance(standard_program_paths, str):
@@ -167,7 +164,7 @@ class SearchProgramme:
         logger.info(T.search_all_disks)
         for drive in self._get_available_drives():
             if path := self._global_search_in_disk(
-                    path=str(drive), program_template=program_template
+                path=str(drive), program_template=program_template
             ):
                 return path
         return None
@@ -209,24 +206,3 @@ class SearchProgramme:
 
         logger.debug(T.program_is_localed.format(path=path))
         return path
-
-
-def main():
-    try:
-        seven_z_manager = SearchProgramme("../TEST/config.json")
-    except ValueError:
-        print(f"Путь к архиватору не найден")
-    else:
-        main_path = seven_z_manager.get_path(
-            standard_program_paths=C.STANDARD_7Z_PATHS,
-            programme_template=C.PATTERN_PROGRAMME,
-        )
-        print(
-            main_path
-            if main_path
-            else f"Программа {C.PATTERN_PROGRAMME} не найдена. Установите программу"
-        )
-
-
-if __name__ == "__main__":
-    main()
