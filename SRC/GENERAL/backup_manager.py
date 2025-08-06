@@ -13,7 +13,7 @@ from SRC.MAIL.messagemail import MessageMail
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.manager_write_file import write_file
 from SRC.LOGGING.tunelogger import TuneLogger
-from SRC.ARCHIVES.files_archiving import FilesArchiving
+from SRC.ARCHIVES.archiver7z import Archiver7z
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
@@ -89,14 +89,14 @@ class BackupManager(ABC):
                 parameters_dict["archive_catalog"] = temp_dir
                 archive_path: str = str(
                     Path(
-                        parameters_dict["archive_catalog"],
+                        temp_dir,
                         parameters_dict["local_archive_name"],
                     )
                 )
                 parameters_dict["archive_path"] = archive_path
-                local_archive = FilesArchiving(parameter_dict=parameters_dict)
-                local_path = local_archive.make_local_archive()
-                remote_path = write_file(local_path)
+                archiver = Archiver7z(parameter_dict=parameters_dict)
+                archiver.create_archive()
+                remote_path = write_file(archive_path)
                 return remote_path
 
         except Exception as e:

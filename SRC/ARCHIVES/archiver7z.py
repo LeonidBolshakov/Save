@@ -1,0 +1,97 @@
+import logging
+
+# Инициализация логгера для текущего модуля
+logger = logging.getLogger(__name__)
+
+# Импорт зависимостей
+from SRC.ARCHIVES.archiver_base import Archiver
+from SRC.GENERAL.textmessage import TextMessage as T
+
+
+class Archiver7z(Archiver):
+    """Класс для создания архивов 7z.
+
+    Обеспечивает:
+    - Создание архива 7z по заданным параметрам
+    """
+
+    def __init__(self, parameter_dict: dict) -> None:
+        """Инициализация архивации.
+
+        Args:
+            parameter_dict (dict): словарь параметров
+
+        Used parameters_dict keys:
+            list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
+            archiver_name: str - Шаблон имени программы
+            config_file_path: str - Путь на файл конфигурации с путями программ
+            local_archive_name: str - Имя локального архива
+            archiver_standard_program_paths: list[str] - Стандартные пути программы
+        """
+        super().__init__(parameter_dict)
+        self.parameter_dict = parameter_dict
+
+    def _get_cmd_archiver(self) -> list[str]:
+        """
+        Формирует команду для выполнения архивации с помощью 7z.
+
+        Parameters:
+            self
+
+        Used parameters_dict keys:
+            archive_path: str - Полный путь создаваемого архива
+            list_archive_file_paths: str - Полный путь на файл, содержащий имена архивируемых файлов
+            password: str | None = None - Пароль. Если пароль на задан файл не архивируется
+            compression_level: int = 5. Уровень компрессии в диапазоне [0,9]
+            0 - нет компрессии, 9 - ультра компрессия
+            archive_extension: str - Расширение архива
+
+        Returns:
+            list[str]: Список аргументов команды для subprocess.run
+
+        Note:
+            Пароль в логах маскируется звездочками для безопасности
+        """
+        compression_level: int = self.parameters_dict["compression_level"]
+        self._check_validate_of_compression(compression_level=compression_level)
+        archiver_program = self.get_archiver_program()
+        archive_path: str = self.parameters_dict["archive_path"]
+        password: str = self.parameters_dict["password"]
+        list_archive_file_paths: str = self.parameters_dict["list_archive_file_paths"]
+        archive_extension: str = self.parameters_dict["archive_extension"]
+        cmd = [
+            archiver_program,  # Путь к программе архиватору
+            "a",  # Добавляем файлы в архив
+            *(
+                [f"-p{password}"] if password else []
+            ),  # Если пароль не задан параметр не формируется
+            "-mhe=on",  # Если задан пароль шифровать имена файлов
+            *(
+                ["-sfx"] if archive_extension == ".exe" else []
+            ),  # Если расширение не exe - параметр не формируется
+            f"-mx={compression_level}",  # Уровень компрессии
+            archive_path,  # Полный путь на формируемый архив
+            f"@{list_archive_file_paths}",
+            # Добавляем параметры для подавления лишнего вывода
+            "-bso0",  # отключить вывод в stdout
+            "-bsp0",  # отключить индикатор прогресса
+        ]
+
+        return cmd
+
+    @staticmethod
+    def _check_validate_of_compression(compression_level: int) -> None:
+        """
+        Проверка параметра "Уровень компрессии". Параметр должен быть целым число в сегменте [0,9]
+        :param compression_level: (int) - Уровень компрессии
+        :return: None
+        """
+        if not isinstance(compression_level, int):
+            raise ValueError(
+                T.error_in_compression_level.format(level=compression_level)
+            )
+
+        if 0 <= compression_level <= 9:
+            return
+
+        raise ValueError(T.error_in_compression_level)

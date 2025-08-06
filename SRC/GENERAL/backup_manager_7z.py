@@ -15,7 +15,7 @@ class BackupManager7z(BackupManager):
             C.ENV_LOCAL_ARCHIVE_FILE_NAME, C.LOCAL_ARCHIVE_FILE_NAME
         )
         password = self.variables.get_var(C.ENV_PASSWORD_ARCHIVE)
-        compress_level = self.variables.get_var(
+        compression_level = self.variables.get_var(
             C.ENV_COMPRESSION_LEVEL, C.COMPRESSION_LEVEL
         )
         archiver_standard_program_paths = self.variables.get_var(
@@ -30,7 +30,7 @@ class BackupManager7z(BackupManager):
             "config_file_path": config_file_path,
             "local_archive_name": local_archive_name,
             "password": password,
-            "compress_level": compress_level,
+            "compression_level": compression_level,
             "archiver_standard_program_paths": archiver_standard_program_paths,
             "archive_extension": archive_extension,
         }
