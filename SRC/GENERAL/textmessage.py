@@ -97,7 +97,7 @@ class TextMessage(frozenset):
     task_error = (
         "{name_max_level} --> Задание завершено с ошибками уровня {name_max_level}."
     )
-    task_successfully = "Задание по формированию и сохранению архива успешно завершено!"
+    task_successfully = "{name_max_level} --> Задание по формированию и сохранению архива успешно завершено!"
     task_warnings = (
         "{name_max_level} --> Задание завершено с предупреждением/предупреждениями."
     )

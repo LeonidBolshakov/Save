@@ -1,9 +1,9 @@
 import sys
 import time
 import traceback
+from typing import Any
 from abc import ABC, abstractmethod
 from tempfile import TemporaryDirectory
-from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,9 +23,12 @@ class BackupManager(ABC):
 
     Обеспечивает:
     - Создание локального архива с данными
-    - Загрузку архива на Яндекс-Диск
+    - Загрузку локального архива на Яндекс-Диск
     - Обработку ошибок и логирование процесса
     - Отправку служебного e-mail, информирующего о статусе выполнения задания.
+
+    В дочернем классе требуется переопределить метод:
+    get_parameters_dict
 
     Прерывания:
     1. Прекращение работы программы с клавиатуры.
@@ -33,10 +36,13 @@ class BackupManager(ABC):
     """
 
     def __init__(self):
+        # Доступ к переменным окружения
         self.variables = EnvironmentVariables()
 
     def main(self):
         """
+        Основная точка входа в класс.
+
         Выполняет:
         1. Настройку системы логирования
         2. Запуск основного процесса создания и загрузки резервных копий
@@ -66,9 +72,10 @@ class BackupManager(ABC):
         else:
             self._completion(remote_path=remote_path, e=None)
         finally:
-            logger.info(T.time_run.format(time=f"{time.time() - start_time:.2f}"))
+            executed_time = time.time() - start_time
+            logger.info(T.time_run.format(time=f"{executed_time:.2f}"))
 
-    def _main_program_loop(self) -> str:
+    def _main_program_loop(self) -> str | None:
         """Основной метод выполнения полного цикла резервного копирования.
 
         Процесс включает:
@@ -84,31 +91,47 @@ class BackupManager(ABC):
 
         parameters_dict = self.get_parameters_dict()
         try:
-            # Используем TemporaryDirectory для автоматической очистки временных файлов
+            # Используем with для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
-                archiver = self.get_archiver(parameters_dict, temp_dir=temp_dir)
-                archive_path = archiver.create_archive()
-                remote_path = write_file(archive_path)
-                return remote_path
+                parameters_dict["archive_dir"] = temp_dir
 
+                archiver = self.get_archiver(
+                    parameters_dict
+                )  # Получаем объект класса архиватора
+                if archive_path := archiver.create_archive():  # Создаём локальный архив
+                    remote_path = write_file(
+                        archive_path
+                    )  # Записываем локальный архив облако
+                    return remote_path
+                return None
         except Exception as e:
             raise RuntimeError(e)
 
     @staticmethod
-    def get_archiver(parameters_dict: dict, temp_dir: str) -> Archiver:
-        parameters_dict["archive_catalog"] = temp_dir
-        archive_name = parameters_dict["local_archive_name"]
-        archive_path = str(Path(temp_dir, archive_name))
-        parameters_dict["archive_path"] = archive_path
+    def get_archiver(parameters_dict: dict[str, Any]) -> Archiver:
+        """
+        Получаем объект класса дочернего архиватора.
+        Ссылку на дочерний класс архиватора записывает в словарь параметров
+        дочерний класс менеджера при выполнении метода get_parameters_dict
+
+        :param parameters_dict: Словарь параметров
+        :type parameters_dict: dict[str, Any]
+
+        :return: объект класса дочернего архиватора
+        """
         _Archiver = parameters_dict["Archiver"]
         return _Archiver(parameters_dict)
 
     @abstractmethod
-    def get_parameters_dict(self) -> dict:
+    def get_parameters_dict(self) -> dict[str, Any]:
+        """
+        Функция формирует и возвращает словарь параметров
+        :return: Словарь параметров
+        """
         pass
 
     def _create_temp_logging(self) -> None:
-        """Делает настройки временного логирования"""
+        """Делает настройки временного логирования, применимого при выполнении одного метода"""
         log_file_name = self.variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME)
 
         logging.raiseExceptions = False  # запрет вывода трассировки
@@ -119,12 +142,12 @@ class BackupManager(ABC):
                 logging.StreamHandler(sys.stdout),
                 logging.FileHandler(log_file_name),
             ],
-        )  # Настройка логирования только для использования до настройки основного логирования
+        )  # Настройка действует только до настройки основного логирования
 
     @staticmethod
     def _remove_temp_loging() -> None:
         """Удаление настроек временного логирования"""
-        logging.raiseExceptions = True
+        logging.raiseExceptions = True  # Отмена запрета вывода трассировки
         logger_root = logging.getLogger()
         for handler in logger_root.handlers[:]:
             logger_root.removeHandler(
@@ -148,10 +171,10 @@ class BackupManager(ABC):
             logger.error("")
         max_level = MaxLevelHandler().get_highest_level()
 
-        if not self._start_finishing_work(
-                remote_path=remote_path
-        ):  # Если письмо не отправлено
-            max_level = max(max_level, logging.ERROR)  # уровень сообщений не ниже ERROR
+        if not self._start_finishing_work(remote_path=remote_path):
+            max_level = max(
+                max_level, logging.ERROR
+            )  # Если письмо не отправлено - уровень сообщений не ниже ERROR
 
         self._log_end_messages(max_level, e)
 
@@ -162,14 +185,16 @@ class BackupManager(ABC):
         """
         Инициация завершающего действия после завершения копирования -
         формирование и отправка служебного e-mail.
+
         :param remote_path: (str). Путь на архив, с сохранёнными в облаке файлами
+
         :return: True если служебное сообщение удалось отправить, False в противном случае.
         """
         logger.critical(
             f"{C.STOP_SERVICE_MESSAGE}{remote_path}"
         )  # Отправка в систему логирования информации о завершении работы и пути на архив,
-        # с сохранёнными в облаке файлами. Эта информация будет использованы при формировании текста e-mail.
-        # Эта информация не будет выведена в логи.
+        # с сохранёнными в облаке файлами.
+        # Эта информация будет использованы при формировании текста e-mail, она не будет выведена в логи
 
         return MessageMail().compose_and_send_email()  # Формирование и отправка e-mail
 
@@ -187,7 +212,9 @@ class BackupManager(ABC):
 
         match max_level:
             case logging.NOTSET | logging.DEBUG | logging.INFO:
-                logger.info(T.task_successfully)
+                logger.info(
+                    T.task_successfully.format(name_max_level=max_level_name.upper())
+                )
             case logging.WARNING:
                 logger.warning(
                     T.task_warnings.format(name_max_level=max_level_name.upper())
@@ -206,6 +233,7 @@ class BackupManager(ABC):
     def _log_exception(e: Exception) -> None:
         """
         Логирование того факта, что сохранение данных завершилась исключением.
+        Выполняется только для логирования с уровнем DEBUG
         :param e: (Exception) исключение, вызвавшее прекращение сохранения данных.
         :return: None
         """

@@ -1,31 +1,53 @@
+from typing import Any
+
 from SRC.ARCHIVES.archiver7z import Archiver7z
 from SRC.GENERAL.backup_manager_abc import BackupManager
 from SRC.GENERAL.constants import Constants as C
 
 
 class BackupManager7z(BackupManager):
-    def get_parameters_dict(self) -> dict:
+    """Настройка базового класса - BackupManager"""
+
+    def get_parameters_dict(self) -> dict[str, Any]:
+        """
+        Замена метода get_parameters_dict в базовом классе.
+        Функция формирует и возвращает словарь параметров
+        Значения для словаря берутся из переменных окружения, а если их там нет, то берутся значения по умолчанию
+
+        :parameter: ---
+
+        :returns: словарь параметров
+        :rtype: dict[str, Any]
+        """
+
         list_archive_file_paths = self.variables.get_var(
             C.ENV_LIST_ARCHIVE_FILE_PATH, C.LIST_ARCHIVE_FILE_PATCH
         )
+
         archiver_name = self.variables.get_var(C.ENV_PATTERN_7Z, C.PATTERN_PROGRAMME)
         config_file_path = self.variables.get_var(
             C.ENV_CONFIG_FILE_PATH, C.CONFIG_FILE_PATH
         )
+
         local_archive_name = self.variables.get_var(
             C.ENV_LOCAL_ARCHIVE_FILE_NAME, C.LOCAL_ARCHIVE_FILE_NAME
         )
+
         password = self.variables.get_var(C.ENV_PASSWORD_ARCHIVE)
         compression_level = self.variables.get_var(
             C.ENV_COMPRESSION_LEVEL, C.COMPRESSION_LEVEL
         )
+
         archiver_standard_program_paths = self.variables.get_var(
             C.ENV_STANDARD_PROGRAM_PATHS, C.STANDARD_7Z_PATHS
         )
+
         archive_extension = self.variables.get_var(
             C.ENV_ARCHIVE_SUFFIX, C.ARCHIVE_SUFFIX
         )
-        Archiver = Archiver7z
+
+        Archiver = Archiver7z  # Ссылка на дочерний класс архиватора
+
         return {
             "list_archive_file_paths": list_archive_file_paths,
             "archiver_name": archiver_name,

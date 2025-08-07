@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import subprocess
 from pathlib import Path
+from typing import Protocol, Callable
 import sys
 import logging
 
@@ -10,7 +11,11 @@ from SRC.ARCHIVES.search_programme import SearchProgramme
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class Archiver(ABC):
+class BacupManagerArchiver(Protocol):
+    create_archive: Callable[[], str | None]
+
+
+class Archiver(ABC, BacupManagerArchiver):
     """
     Класс для работы со специфичным архивом 7z.
 
@@ -42,6 +47,7 @@ class Archiver(ABC):
     def create_archive(self) -> str | None:
         """
         Выполняет создание архива.
+        Этот метод использует BackupManager(ABC)
 
         Process:
         1. Формирует команду архивации
@@ -81,29 +87,29 @@ class Archiver(ABC):
         # Контроль параметров
         logger.debug(T.init_arch)
 
-        # Выгрузка параметров
-        archive_catalog = self.parameters_dict["archive_catalog"]
-        archive_name = self.parameters_dict["local_archive_name"]
-        archive_path: str = str(Path(archive_catalog, archive_name))
+        # Загрузка параметров
+        archive_path = self.get_archive_path()
         self.parameters_dict["archive_path"] = archive_path
-        list_archive_file_paths: str = self.parameters_dict["list_archive_file_paths"]
-        password: str = self.parameters_dict.get("password")
+        list_archive_file_paths = self.parameters_dict["list_archive_file_paths"]
+        password = self.parameters_dict.get("password")
 
         # Контроль параметров
         self._check_all_params()
 
-        # Определяем кодировку для вывода
-        encoding = "cp866" if sys.platform == "win32" else "utf-8"
-
-        # Запускаем программу архиватор
+        # готовим командную строку для запуска архиватора
         cmd = self._get_cmd_archiver()
         logger.debug(
             T.starting_archiving.format(
                 cmd=self._mask_password_in_cmd(cmd=cmd, password=password)
             )
         )
+
+        # Запускаем программу архиватор
+        return self.run_archiver(cmd=cmd, archive_path=archive_path)
+
+    def run_archiver(self, cmd: list[str], archive_path: str) -> str | None:
         try:
-            process = self._run_archive_process(cmd=cmd, encoding=encoding)
+            process = self._run_archive_process(cmd=cmd)
             if process.returncode == 1:
                 logger.warning(process.stderr)
             if process.returncode > 1:
@@ -113,6 +119,17 @@ class Archiver(ABC):
         except Exception as e:
             logger.critical("")
             raise RuntimeError(T.error_starting_archiving.format(e=e))
+
+    def get_archive_path(self) -> str:
+        """
+        Формирует и возвращает полный путь на архив
+
+        :return: (str) полный путь на архив
+        """
+
+        archive_dir = self.parameters_dict["archive_dir"]
+        archive_name = self.parameters_dict["local_archive_name"]
+        return str(Path(archive_dir, archive_name))
 
     @abstractmethod
     def _get_cmd_archiver(self) -> list[str]:
@@ -176,10 +193,12 @@ class Archiver(ABC):
         logger.debug(T.exists_list_file.format(list_file_path=list_file_path))
 
     @staticmethod
-    def _run_archive_process(
-            cmd: list[str], encoding: str
-    ) -> subprocess.CompletedProcess:
+    def _run_archive_process(cmd: list[str]) -> subprocess.CompletedProcess:
         """Запускает процесс архивации."""
+
+        # Определяем кодировку для вывода
+        encoding = "cp866" if sys.platform == "win32" else "utf-8"
+
         return subprocess.run(
             cmd,
             stdout=subprocess.DEVNULL,

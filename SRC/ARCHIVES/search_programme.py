@@ -24,7 +24,7 @@ class SearchProgramme:
         self.config: dict = {}
 
     def get_path(
-        self, standard_program_paths: list[str] | str | None, programme_template: str
+            self, standard_program_paths: list[str] | str | None, programme_template: str
     ) -> str | None:
         """
         Основной метод получения пути к архиватору.
@@ -38,8 +38,8 @@ class SearchProgramme:
 
         # 2. Вывод пути из стандартных директорий сохранения программы
         if path := self._programme_from_common_paths(
-            programme_template=programme_template,
-            standard_program_paths=standard_program_paths,
+                programme_template=programme_template,
+                standard_program_paths=standard_program_paths,
         ):
             return self._save_config(path, programme_template)
 
@@ -49,7 +49,7 @@ class SearchProgramme:
 
         # 4. Вывод пути в результате глобального поиска по всем дискам
         if path := self._programme_from_global_search(
-            program_template=programme_template
+                program_template=programme_template
         ):
             return self._save_config(path, programme_template)
 
@@ -136,14 +136,12 @@ class SearchProgramme:
                         T.error_run_programme.format(path=path, e=result.stderr)
                     )
                 return result.returncode == 0
-            except FileNotFoundError:
-                pass
             except Exception as e:
                 logger.debug(T.error_run_programme_except.format(path=path, e=e))
                 return False
 
     def _programme_from_common_paths(
-        self, programme_template: str, standard_program_paths: list[str] | str | None
+            self, programme_template: str, standard_program_paths: list[str] | str | None
     ) -> str | None:
 
         if not standard_program_paths:
@@ -167,7 +165,7 @@ class SearchProgramme:
         logger.info(T.search_all_disks)
         for drive in self._get_available_drives():
             if path := self._global_search_in_disk(
-                path=str(drive), program_template=program_template
+                    path=str(drive), program_template=program_template
             ):
                 return path
         return None
