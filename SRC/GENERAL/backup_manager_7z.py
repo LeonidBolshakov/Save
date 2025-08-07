@@ -1,4 +1,5 @@
-from SRC.GENERAL.backup_manager import BackupManager
+from SRC.ARCHIVES.archiver7z import Archiver7z
+from SRC.GENERAL.backup_manager_abc import BackupManager
 from SRC.GENERAL.constants import Constants as C
 
 
@@ -24,6 +25,7 @@ class BackupManager7z(BackupManager):
         archive_extension = self.variables.get_var(
             C.ENV_ARCHIVE_SUFFIX, C.ARCHIVE_SUFFIX
         )
+        Archiver = Archiver7z
         return {
             "list_archive_file_paths": list_archive_file_paths,
             "archiver_name": archiver_name,
@@ -33,4 +35,5 @@ class BackupManager7z(BackupManager):
             "compression_level": compression_level,
             "archiver_standard_program_paths": archiver_standard_program_paths,
             "archive_extension": archive_extension,
+            "Archiver": Archiver,
         }

@@ -13,7 +13,7 @@ from SRC.MAIL.messagemail import MessageMail
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.manager_write_file import write_file
 from SRC.LOGGING.tunelogger import TuneLogger
-from SRC.ARCHIVES.archiver7z import Archiver7z
+from SRC.ARCHIVES.archiver_abc import Archiver
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
@@ -86,21 +86,22 @@ class BackupManager(ABC):
         try:
             # Используем TemporaryDirectory для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
-                parameters_dict["archive_catalog"] = temp_dir
-                archive_path: str = str(
-                    Path(
-                        temp_dir,
-                        parameters_dict["local_archive_name"],
-                    )
-                )
-                parameters_dict["archive_path"] = archive_path
-                archiver = Archiver7z(parameter_dict=parameters_dict)
-                archiver.create_archive()
+                archiver = self.get_archiver(parameters_dict, temp_dir=temp_dir)
+                archive_path = archiver.create_archive()
                 remote_path = write_file(archive_path)
                 return remote_path
 
         except Exception as e:
             raise RuntimeError(e)
+
+    @staticmethod
+    def get_archiver(parameters_dict: dict, temp_dir: str) -> Archiver:
+        parameters_dict["archive_catalog"] = temp_dir
+        archive_name = parameters_dict["local_archive_name"]
+        archive_path = str(Path(temp_dir, archive_name))
+        parameters_dict["archive_path"] = archive_path
+        _Archiver = parameters_dict["Archiver"]
+        return _Archiver(parameters_dict)
 
     @abstractmethod
     def get_parameters_dict(self) -> dict:
@@ -131,7 +132,7 @@ class BackupManager(ABC):
             )  # Отказ от предыдущей настройки логирования
 
     def _completion(
-        self, remote_path: str | None = None, e: Exception | None = None
+            self, remote_path: str | None = None, e: Exception | None = None
     ) -> None:
         """Завершает работу программы исходя их максимального уровня лога сообщений.
 
@@ -148,7 +149,7 @@ class BackupManager(ABC):
         max_level = MaxLevelHandler().get_highest_level()
 
         if not self._start_finishing_work(
-            remote_path=remote_path
+                remote_path=remote_path
         ):  # Если письмо не отправлено
             max_level = max(max_level, logging.ERROR)  # уровень сообщений не ниже ERROR
 

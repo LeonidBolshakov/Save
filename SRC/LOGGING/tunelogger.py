@@ -53,14 +53,12 @@ class TuneLogger:
     def get_log_level_console(self) -> int:
         """Определение уровня логирования на консоль"""
 
-        return C.LOG_LEVELS.get(
-            self.log_level_name_for_console, C.DEFAULT_LEVEL_GENERAL
-        )
+        return C.LOG_LEVELS.get(self.log_level_name_for_console, C.DEFAULT_LOG_LEVEL)
 
     def get_log_level_file(self) -> int:
         """Определение уровня логирования в файл"""
 
-        return C.LOG_LEVELS.get(self.log_level_name_for_file, C.DEFAULT_LEVEL_GENERAL)
+        return C.LOG_LEVELS.get(self.log_level_name_for_file, C.DEFAULT_LOG_LEVEL)
 
     @staticmethod
     def create_file_handler() -> CustomRotatingFileHandler:
@@ -77,7 +75,7 @@ class TuneLogger:
         )
 
     def configure_handlers(
-        self, log_format: str, log_level_console: int, log_level_file: int
+            self, log_format: str, log_level_console: int, log_level_file: int
     ) -> None:
         """Конфигурация всех обработчиков"""
 

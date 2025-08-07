@@ -21,8 +21,8 @@ class Archiver(ABC):
     """
 
     def __init__(
-        self,
-        parameters_dict: dict,
+            self,
+            parameters_dict: dict,
     ) -> None:
         """
         Инициализирует экземпляр класса.
@@ -39,7 +39,7 @@ class Archiver(ABC):
 
         self.parameters_dict = parameters_dict
 
-    def create_archive(self) -> int:
+    def create_archive(self) -> str | None:
         """
         Выполняет создание архива.
 
@@ -55,11 +55,10 @@ class Archiver(ABC):
             archive_path: str - Полный путь создаваемого архива
             list_file: str - Полный путь на файл, содержащий имена архивируемых файлов
             password: str | None = None - Пароль. Если пароль на задан файл не архивируется
-            compression_level: int = 5. Уровень компрессии в диапазоне [0,9]
             0 - нет компрессии, 9 - ультра компрессия
 
         Returns:
-            int: 0 если архивация успешна, 1 не фатальные ошибки, 2 - фатальные ошибки
+            str | None:Путь на архив или None
 
         Raises:
             RunTimeError: При провале архивации или завершении архивации с фатальными ошибками
@@ -88,7 +87,7 @@ class Archiver(ABC):
         archive_path: str = str(Path(archive_catalog, archive_name))
         self.parameters_dict["archive_path"] = archive_path
         list_archive_file_paths: str = self.parameters_dict["list_archive_file_paths"]
-        password: str = self.parameters_dict["password"]
+        password: str = self.parameters_dict.get("password")
 
         # Контроль параметров
         self._check_all_params()
@@ -109,7 +108,8 @@ class Archiver(ABC):
                 logger.warning(process.stderr)
             if process.returncode > 1:
                 logger.error(process.stderr)
-            return process.returncode
+                return None
+            return archive_path
         except Exception as e:
             logger.critical("")
             raise RuntimeError(T.error_starting_archiving.format(e=e))
@@ -129,7 +129,6 @@ class Archiver(ABC):
         :Parameters: archive_path - Путь на архив.
         :Parameters: list_file - Путь на файл, содержащий список архивируемых файлов.
             Структура файла списка архивируемых файлов описана.
-        :Parameters: compression_level - Уровень компрессии (сжатия) от 0 до 9 включительно
 
         Raises:
             Различные исключения в зависимости от типа ошибки
@@ -178,7 +177,7 @@ class Archiver(ABC):
 
     @staticmethod
     def _run_archive_process(
-        cmd: list[str], encoding: str
+            cmd: list[str], encoding: str
     ) -> subprocess.CompletedProcess:
         """Запускает процесс архивации."""
         return subprocess.run(
@@ -212,13 +211,14 @@ class Archiver(ABC):
         logger.debug(T.init_FileArchiving)
 
         # Получение пути к программе
-        programme_path = SearchProgramme(
-            config_file_path=self.parameters_dict.get("config_file_path")
-        ).get_path(
-            standard_program_paths=self.parameters_dict[
-                "archiver_standard_program_paths"
-            ],
-            programme_template=self.parameters_dict["archiver_name"],
+        config_file_path = self.parameters_dict["config_file_path"]
+        standard_program_paths = self.parameters_dict.get(
+            "archive_standard_program_paths"
+        )
+        programme_template = self.parameters_dict["archiver_name"]
+        programme_path = SearchProgramme(config_file_path=config_file_path).get_path(
+            standard_program_paths=standard_program_paths,
+            programme_template=programme_template,
         )
 
         # Проверка наличия архиватора

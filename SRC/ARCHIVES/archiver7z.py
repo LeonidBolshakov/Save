@@ -1,10 +1,11 @@
 import logging
+from typing import Any
 
 # Инициализация логгера для текущего модуля
 logger = logging.getLogger(__name__)
 
 # Импорт зависимостей
-from SRC.ARCHIVES.archiver_base import Archiver
+from SRC.ARCHIVES.archiver_abc import Archiver
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
@@ -12,21 +13,24 @@ class Archiver7z(Archiver):
     """Класс для создания архивов 7z.
 
     Обеспечивает:
-    - Создание архива 7z по заданным параметрам
+    - Подготовку командной строки для создания архива 7z
     """
 
-    def __init__(self, parameter_dict: dict) -> None:
+    def __init__(self, parameter_dict: dict[str, Any]) -> None:
         """Инициализация архивации.
 
         Args:
             parameter_dict (dict): словарь параметров
 
-        Used parameters_dict keys:
+        Использует parameters_dict ключи (включая базовый класс) :
             list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
             archiver_name: str - Шаблон имени программы
             config_file_path: str - Путь на файл конфигурации с путями программ
             local_archive_name: str - Имя локального архива
-            archiver_standard_program_paths: list[str] - Стандартные пути программы
+            password: str - Пароль (опционально)
+            compression_level: int Уровень сжатия  (опционально) [0, 9] 0- без сжатия, 9 - ультра сжатие
+            archiver_standard_program_paths: list[str] - Стандартные пути программы (Опционально)
+            archive_extension: str - Расширение архива. Например, '.exe'
         """
         super().__init__(parameter_dict)
         self.parameter_dict = parameter_dict
@@ -37,14 +41,6 @@ class Archiver7z(Archiver):
 
         Parameters:
             self
-
-        Used parameters_dict keys:
-            archive_path: str - Полный путь создаваемого архива
-            list_archive_file_paths: str - Полный путь на файл, содержащий имена архивируемых файлов
-            password: str | None = None - Пароль. Если пароль на задан файл не архивируется
-            compression_level: int = 5. Уровень компрессии в диапазоне [0,9]
-            0 - нет компрессии, 9 - ультра компрессия
-            archive_extension: str - Расширение архива
 
         Returns:
             list[str]: Список аргументов команды для subprocess.run

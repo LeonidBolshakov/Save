@@ -16,7 +16,6 @@ class Constants(frozenset):
         "C:\\Program Files\\7-Zip\\7z.exe",
         "C:\\Program Files (x86)\\7-Zip\\7z.exe",
     ]
-    DEFAULT_LEVEL_GENERAL = logging.INFO
     DEFAULT_LEVEL_LIB = logging.WARNING
     DEFAULT_LOG_BACKUP_COUNT = 3
     DEFAULT_LOG_LEVEL = "INFO"

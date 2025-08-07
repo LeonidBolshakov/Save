@@ -13,7 +13,7 @@ from SRC.GENERAL.textmessage import TextMessage as T
 class SearchProgramme:
     """Класс для локального поиска пути программы"""
 
-    def __init__(self, config_file_path: str | None = None) -> None:
+    def __init__(self, config_file_path: str) -> None:
         """
         Инициализация объекта класса поиска архиватора.
 
@@ -24,7 +24,7 @@ class SearchProgramme:
         self.config: dict = {}
 
     def get_path(
-        self, standard_program_paths: list[str] | str, programme_template: str
+        self, standard_program_paths: list[str] | str | None, programme_template: str
     ) -> str | None:
         """
         Основной метод получения пути к архиватору.
@@ -143,8 +143,11 @@ class SearchProgramme:
                 return False
 
     def _programme_from_common_paths(
-        self, programme_template: str, standard_program_paths: list[str] | str
+        self, programme_template: str, standard_program_paths: list[str] | str | None
     ) -> str | None:
+
+        if not standard_program_paths:
+            return None
 
         if isinstance(standard_program_paths, str):
             standard_program_paths = [standard_program_paths]
