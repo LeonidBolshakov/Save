@@ -5,11 +5,12 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # Импорт зависимостей
-from SRC.ARCHIVES.archiver_abc import Archiver
+from SRC.ARCHIVES.archiver_abc import Archiver, BacupManagerArchiver
+from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class Archiver7z(Archiver):
+class Archiver7z(Archiver, BacupManagerArchiver):
     """Класс для создания архивов 7z.
 
     Обеспечивает:
@@ -35,12 +36,12 @@ class Archiver7z(Archiver):
         super().__init__(parameter_dict)
         self.parameter_dict = parameter_dict
 
-    def _get_cmd_archiver(self) -> list[str]:
+    def _get_cmd_archiver(self, archiver_program: str) -> list[str]:
         """
         Формирует команду для выполнения архивации с помощью 7z.
 
         Parameters:
-            self
+            archiver_program: str Путь на программу архивации
 
         Returns:
             list[str]: Список аргументов команды для subprocess.run
@@ -49,8 +50,9 @@ class Archiver7z(Archiver):
             Пароль в логах маскируется звездочками для безопасности
         """
         compression_level: int = self.parameters_dict["compression_level"]
-        self._check_validate_of_compression(compression_level=compression_level)
-        archiver_program = self.get_archiver_program()
+        compression_level = self._check_validate_of_compression(
+            compression_level=compression_level
+        )
         archive_path: str = self.parameters_dict["archive_path"]
         password: str = self.parameters_dict["password"]
         list_archive_file_paths: str = self.parameters_dict["list_archive_file_paths"]
@@ -76,18 +78,18 @@ class Archiver7z(Archiver):
         return cmd
 
     @staticmethod
-    def _check_validate_of_compression(compression_level: int) -> None:
+    def _check_validate_of_compression(compression_level: int) -> int:
         """
         Проверка параметра "Уровень компрессии". Параметр должен быть целым число в сегменте [0,9]
         :param compression_level: (int) - Уровень компрессии
         :return: None
         """
         if not isinstance(compression_level, int):
-            raise ValueError(
-                T.error_in_compression_level.format(level=compression_level)
-            )
+            logger.warning(T.error_in_compression_level.format(level=compression_level))
+            return C.COMPRESSION_LEVEL
 
         if 0 <= compression_level <= 9:
-            return
+            return compression_level
 
-        raise ValueError(T.error_in_compression_level)
+        logger.warning(T.error_in_compression_level.format(level=compression_level))
+        return C.COMPRESSION_LEVEL

@@ -7,7 +7,8 @@ import logging
 
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
-from SRC.ARCHIVES.search_programme import SearchProgramme
+from password_strength import PasswordStats
+
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
@@ -26,8 +27,8 @@ class Archiver(ABC, BacupManagerArchiver):
     """
 
     def __init__(
-            self,
-            parameters_dict: dict,
+        self,
+        parameters_dict: dict,
     ) -> None:
         """
         Инициализирует экземпляр класса.
@@ -43,6 +44,7 @@ class Archiver(ABC, BacupManagerArchiver):
         """
 
         self.parameters_dict = parameters_dict
+        self.SearchProgramme = parameters_dict["SearchProgramme"]
 
     def create_archive(self) -> str | None:
         """
@@ -97,7 +99,8 @@ class Archiver(ABC, BacupManagerArchiver):
         self._check_all_params()
 
         # готовим командную строку для запуска архиватора
-        cmd = self._get_cmd_archiver()
+        archiver_program = self.get_archiver_program()
+        cmd = self._get_cmd_archiver(archiver_program)
         logger.debug(
             T.starting_archiving.format(
                 cmd=self._mask_password_in_cmd(cmd=cmd, password=password)
@@ -132,7 +135,7 @@ class Archiver(ABC, BacupManagerArchiver):
         return str(Path(archive_dir, archive_name))
 
     @abstractmethod
-    def _get_cmd_archiver(self) -> list[str]:
+    def _get_cmd_archiver(self, archiver_program: str) -> list[str]:
         pass
 
     def _check_all_params(self) -> None:
@@ -152,6 +155,7 @@ class Archiver(ABC, BacupManagerArchiver):
         """
         self._check_arch_exists()
         self._check_list_file()
+        self._check_password()
 
     def _check_arch_exists(self) -> None:
         """
@@ -192,6 +196,61 @@ class Archiver(ABC, BacupManagerArchiver):
             )
         logger.debug(T.exists_list_file.format(list_file_path=list_file_path))
 
+    def _check_password(self) -> None:
+        password = self.parameters_dict.get("password")
+
+        if password is None:
+            logger.warning(T.password_not_set)
+            return
+
+        stats = PasswordStats(password=password)
+
+        strength_str, strength_level = self.classify_strength(stats.strength())
+        entropy_str, entropy_level = self.classify_entropy(stats.entropy_bits)
+        level = max(strength_level, entropy_level)
+        self.log_by_password_level(
+            level=level, strength_str=strength_str, entropy_str=entropy_str
+        )
+
+    @staticmethod
+    def log_by_password_level(level, strength_str, entropy_str):
+        # noinspection PyUnreachableCode
+        match level:
+            case logging.DEBUG:
+                logger.debug(f"Пароль {strength_str}, {entropy_str}")
+            case logging.INFO:
+                logger.info(f"Пароль {strength_str}, {entropy_str}")
+            case logging.WARNING:
+                logger.warning(f"Пароль {strength_str}, {entropy_str}")
+            case logging.ERROR:
+                logger.error(f"Пароль {strength_str}, {entropy_str}")
+            case _:
+                logger.critical("Неизвестная ошибка {strength_str} {entropy_str}")
+
+    @staticmethod
+    def classify_strength(x: float) -> tuple[str, int]:
+        match x:
+            case _ if 0.0 <= x < 0.25:
+                return "очень слабый", logging.ERROR
+            case _ if 0.25 <= x < 0.5:
+                return "слабый", logging.WARNING
+            case _ if 0.5 <= x < 0.75:
+                return "средний", logging.INFO
+            case _ if 0.75 <= x:
+                return "надёжный", logging.DEBUG
+        return "Неизвестная ошибка", logging.CRITICAL
+
+    @staticmethod
+    def classify_entropy(x: int) -> tuple[str, int]:
+        match x:
+            case _ if 0 <= x < 28:
+                return "ненадежный (взламывается мгновенно)", logging.ERROR
+            case _ if 28 <= x < 50:
+                return " уязвим к перебору", logging.WARNING
+            case _ if 0.50 <= x:
+                return "высоко-стойкий", logging.DEBUG
+        return "Неизвестная ошибка", logging.CRITICAL
+
     @staticmethod
     def _run_archive_process(cmd: list[str]) -> subprocess.CompletedProcess:
         """Запускает процесс архивации."""
@@ -217,8 +276,12 @@ class Archiver(ABC, BacupManagerArchiver):
         """
         if not password:
             return cmd
+
         masked_cmd = cmd.copy()
-        masked_cmd[2] = f"-p{'*' * len(password)}"
+        for index, item in enumerate(masked_cmd):
+            if item.find(password) != -1:
+                masked_cmd[index] = f"-p{'*' * len(password)}"
+
         return masked_cmd
 
     def get_archiver_program(self) -> str:
@@ -235,7 +298,10 @@ class Archiver(ABC, BacupManagerArchiver):
             "archive_standard_program_paths"
         )
         programme_template = self.parameters_dict["archiver_name"]
-        programme_path = SearchProgramme(config_file_path=config_file_path).get_path(
+        print(self.SearchProgramme)
+        _search_programme = self.SearchProgramme()
+        programme_path = _search_programme.get_path(
+            config_file_path=config_file_path,
             standard_program_paths=standard_program_paths,
             programme_template=programme_template,
         )

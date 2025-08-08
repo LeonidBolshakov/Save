@@ -1,6 +1,7 @@
 from typing import Any
 
 from SRC.ARCHIVES.archiver7z import Archiver7z
+from SRC.ARCHIVES.search_programme_7z import SearchProgramme7Z
 from SRC.GENERAL.backup_manager_abc import BackupManager
 from SRC.GENERAL.constants import Constants as C
 
@@ -47,15 +48,19 @@ class BackupManager7z(BackupManager):
         )
 
         Archiver = Archiver7z  # Ссылка на дочерний класс архиватора
+        search_programme_class = (
+            SearchProgramme7Z  # Ссылка на класс поиска программы архиватора
+        )
 
         return {
-            "list_archive_file_paths": list_archive_file_paths,
+            "Archiver": Archiver,
+            "SearchProgramme": search_programme_class,
+            "archive_extension": archive_extension,
             "archiver_name": archiver_name,
+            "archiver_standard_program_paths": archiver_standard_program_paths,
+            "compression_level": compression_level,
             "config_file_path": config_file_path,
+            "list_archive_file_paths": list_archive_file_paths,
             "local_archive_name": local_archive_name,
             "password": password,
-            "compression_level": compression_level,
-            "archiver_standard_program_paths": archiver_standard_program_paths,
-            "archive_extension": archive_extension,
-            "Archiver": Archiver,
         }

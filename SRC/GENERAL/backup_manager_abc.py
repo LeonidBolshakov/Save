@@ -101,7 +101,7 @@ class BackupManager(ABC):
                 if archive_path := archiver.create_archive():  # Создаём локальный архив
                     remote_path = write_file(
                         archive_path
-                    )  # Записываем локальный архив облако
+                    )  # Записываем локальный архив в облако
                     return remote_path
                 return None
         except Exception as e:
@@ -155,7 +155,7 @@ class BackupManager(ABC):
             )  # Отказ от предыдущей настройки логирования
 
     def _completion(
-            self, remote_path: str | None = None, e: Exception | None = None
+        self, remote_path: str | None = None, e: Exception | None = None
     ) -> None:
         """Завершает работу программы исходя их максимального уровня лога сообщений.
 

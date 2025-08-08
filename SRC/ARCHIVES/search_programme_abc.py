@@ -1,8 +1,7 @@
-import subprocess
 import string
 import json
 from pathlib import Path
-import tempfile
+from abc import ABC, abstractmethod
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,66 +9,73 @@ logger = logging.getLogger(__name__)
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class SearchProgramme:
+class SearchProgramme(ABC):
     """Класс для локального поиска пути программы"""
 
-    def __init__(self, config_file_path: str) -> None:
-        """
-        Инициализация объекта класса поиска архиватора.
-
-        :param config_file_path: Путь к JSON-файлу конфигурации (опционально)
-        """
+    def __init__(self) -> None:
+        """Инициализация объекта класса поиска архиватора"""
         # self.variables = EnvironmentVariables()
-        self.config_file_path: str | None = config_file_path
-        self.config: dict = {}
+        self.config_path: dict = {}
+
+    @abstractmethod
+    def _test_programme_execution(self, path: str) -> bool:
+        pass
 
     def get_path(
-            self, standard_program_paths: list[str] | str | None, programme_template: str
+        self,
+        config_file_path: str,
+        standard_program_paths: list[str] | str | None,
+        programme_template: str,
     ) -> str | None:
         """
         Основной метод получения пути к архиватору.
 
+        :param config_file_path: Путь к JSON-файлу конфигурации (опционально)
+        :param standard_program_paths: Список стандартных путей на программу
+        :param programme_template: шаблон имени программы
         :return: Найденный путь или None
         """
 
         # 1. Вывод пути из файла конфигуратора
-        if path := self._programme_from_config_file(programme_template):
-            return self._save_config(path, programme_template)
+        if path := self._programme_from_config_file(
+            programme_template, config_file_path
+        ):
+            return self._save_config(path, programme_template, config_file_path)
 
         # 2. Вывод пути из стандартных директорий сохранения программы
         if path := self._programme_from_common_paths(
-                programme_template=programme_template,
-                standard_program_paths=standard_program_paths,
+            programme_template=programme_template,
+            standard_program_paths=standard_program_paths,
         ):
-            return self._save_config(path, programme_template)
+            return self._save_config(path, programme_template, config_file_path)
 
         # 3. Проверка наличия программы в PATH
         if path := self._programme_in_system_path(programme_template):
-            return self._save_config(path, programme_template)
+            return self._save_config(path, programme_template, config_file_path)
 
         # 4. Вывод пути в результате глобального поиска по всем дискам
         if path := self._programme_from_global_search(
-                program_template=programme_template
+            program_template=programme_template
         ):
-            return self._save_config(path, programme_template)
+            return self._save_config(path, programme_template, config_file_path)
 
         # Программа не найдена
         return None
 
-    def _setup_config_from_file(self) -> bool:
+    def _setup_config_from_file(self, config_file_path: str) -> bool:
         """Загружает JSON-конфигурацию."""
-        if not (self.config_file_path and Path(self.config_file_path).exists()):
+        if not (config_file_path and Path(config_file_path).exists()):
             logger.warning(
-                T.not_found_config_file.format(config_file_path=self.config_file_path)
+                T.not_found_config_file.format(config_file_path=config_file_path)
             )
             return False
         try:
-            with open(self.config_file_path, "r", encoding="utf-8") as f:
-                self.config = json.load(f)
+            with open(config_file_path, "r", encoding="utf-8") as f:
+                self.config_path = json.load(f)
                 return True
         except Exception as e:
             logger.warning(
-                T.error_load_config.format(file_config=self.config_file_path, e=e)
+                T.error_load_config.format(file_config=config_file_path, e=e)
             )
             return False
 
@@ -79,21 +85,25 @@ class SearchProgramme:
             return None
         return programme_template
 
-    def _programme_from_config_file(self, programme_template: str) -> str | None:
+    def _programme_from_config_file(
+        self, programme_template: str, config_file_path: str
+    ) -> str | None:
         """
         Возвращает путь на архиватор из конфига
         :param programme_template: - имя программы
-        :return: Путь на программу или bkb None
+        :param config_file_path: Путь на файл конфигурации, содержащий путь на исполняемую программу
+
+        :return: Путь на программу или None
         """
         logger.debug(T.search_in_config)
-        if not self._setup_config_from_file():
+        if not self._setup_config_from_file(config_file_path):
             return None
 
         try:
-            path = self.config[programme_template]
+            path = self.config_path[programme_template]
             if not self._test_programme_execution(path):
                 logger.warning(
-                    T.invalid_path_programme.format(path=f"{self.config_file_path}")
+                    T.invalid_path_programme.format(path=f"{config_file_path}")
                 )
 
                 return None
@@ -116,32 +126,8 @@ class SearchProgramme:
             return False
         return True
 
-    @staticmethod
-    def _test_programme_execution(path: str) -> bool:
-        """Тестирует выполнение программы."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            try:
-                test_archive = Path(tmpdir) / "test.exe"
-                test_file = Path(tmpdir) / "test.txt"
-                test_file.write_text("Test", encoding="utf-8")
-
-                result = subprocess.run(
-                    [path, "a", "-sfx", str(test_archive), str(test_file)],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    timeout=2,
-                )
-                if result.returncode != 0:
-                    logger.debug(
-                        T.error_run_programme.format(path=path, e=result.stderr)
-                    )
-                return result.returncode == 0
-            except Exception as e:
-                logger.debug(T.error_run_programme_except.format(path=path, e=e))
-                return False
-
     def _programme_from_common_paths(
-            self, programme_template: str, standard_program_paths: list[str] | str | None
+        self, programme_template: str, standard_program_paths: list[str] | str | None
     ) -> str | None:
 
         if not standard_program_paths:
@@ -165,7 +151,7 @@ class SearchProgramme:
         logger.info(T.search_all_disks)
         for drive in self._get_available_drives():
             if path := self._global_search_in_disk(
-                    path=str(drive), program_template=program_template
+                path=str(drive), program_template=program_template
             ):
                 return path
         return None
@@ -188,20 +174,22 @@ class SearchProgramme:
 
         return None
 
-    def _save_config(self, path: str, programme_template: str) -> str:
+    def _save_config(
+        self, path: str, programme_template: str, config_file_path: str
+    ) -> str:
         """
-        Сохраняет путь к программе в конфигурационном файле и self.seven_zip_path."
+        Сохраняет путь к программе в конфигурационном файле и self.program_path."
         :param path: Полный путь к программе.
         :param programme_template: шаблон программы. Например - 7z.exe
         :return: Полный путь к программе
         """ ""
-        self.seven_zip_path = path
-        self.config[programme_template] = path
+        self.program_path = path
+        self.config_path[programme_template] = path
 
-        if self.config_file_path:
+        if config_file_path:
             try:
-                with open(self.config_file_path, "w", encoding="utf-8") as f:
-                    json.dump(self.config, f, ensure_ascii=False, indent=4)
+                with open(config_file_path, "w", encoding="utf-8") as f:
+                    json.dump(self.config_path, f, ensure_ascii=False, indent=4)
             except Exception as e:
                 logger.warning(T.error_saving_config.format(e=e))
 

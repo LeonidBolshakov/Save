@@ -130,7 +130,7 @@ def test_init_config_broken_json(temp_config_file):
     with patch("logging.Logger.warning") as mock_warning:
         manager = SevenZManager(str(temp_config_file))
         mock_warning.assert_called()
-        assert manager.seven_zip_path is None
+        assert manager.program_path is None
 
 
 def test_check_working_path_missing():
@@ -146,7 +146,7 @@ def test_init_config_valid_path(temp_config_file):
         SevenZManager, "_check_working_path", return_value=0
     ):
         manager = SevenZManager(str(temp_config_file))
-        assert manager.seven_zip_path == "C:/fake/path/7z.exe"
+        assert manager.program_path == "C:/fake/path/7z.exe"
 
 
 def test_init_config_key_missing(temp_config_file):
@@ -157,7 +157,7 @@ def test_init_config_key_missing(temp_config_file):
         SevenZManager, "_check_working_path", return_value=2
     ):
         manager = SevenZManager(str(temp_config_file))
-        assert manager.seven_zip_path is None
+        assert manager.program_path is None
 
 
 def test_init_config_invalid_path_raises(temp_config_file):
@@ -173,7 +173,7 @@ def test_init_config_invalid_path_raises(temp_config_file):
 
 def test_get_7z_path_cached():
     manager = SevenZManager()
-    manager.seven_zip_path = "C:/cached/7z.exe"
+    manager.program_path = "C:/cached/7z.exe"
     assert manager.get_path() == "C:/cached/7z.exe"
 
 
@@ -214,7 +214,7 @@ def test_save_config(temp_config_file):
     manager._save_config("C:/saved/path/7z.exe")
     saved = json.loads(Path(temp_config_file).read_text(encoding="utf-8"))
     assert saved["SEVEN_ZIP_PATH"] == "C:/saved/path/7z.exe"
-    assert manager.seven_zip_path == "C:/saved/path/7z.exe"
+    assert manager.program_path == "C:/saved/path/7z.exe"
 
 
 def test_get_available_drives_mocked():

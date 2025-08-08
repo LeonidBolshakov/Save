@@ -75,6 +75,7 @@ class TextMessage(frozenset):
         "{var_name} не сохранён в keyring! Записываемое значение не равно прочитанному."
     )
     not_save_env_empty = "{var_name} не сохранён в keyring! Задано пустое значение."
+    password_not_set = ""
     path_local_archive = "Путь к архиву на локальном диске: {local_path_str}"
     permission_error = "[Поиск программы]. Нет доступа к {path}"
     program_is_localed = "Программа находится по пути {path}"
