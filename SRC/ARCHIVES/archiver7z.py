@@ -23,15 +23,18 @@ class Archiver7z(Archiver, BacupManagerArchiver):
         Args:
             parameter_dict (dict): словарь параметров
 
-        Использует parameters_dict ключи (включая базовый класс) :
-            list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
+        Использует следующие parameters_dict ключи (включая базовый класс) :
+            Archiver: - Дочерний класс архиватора. Например, Archiver7z
+            SearchProgramme: - Дочерний класс для поиска программы. Например, SearchProgramme7Z
+            archive_extension: str - Расширение архива. Например, '.exe'
             archiver_name: str - Шаблон имени программы
+            archiver_standard_program_paths: list[str] - Стандартные пути программы (Опционально)
+            compression_level: int Уровень сжатия  (опционально) [0, 9]. 0- без сжатия, 9 - ультра сжатие
             config_file_path: str - Путь на файл конфигурации с путями программ
+            list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
             local_archive_name: str - Имя локального архива
             password: str - Пароль (опционально)
-            compression_level: int Уровень сжатия  (опционально) [0, 9] 0- без сжатия, 9 - ультра сжатие
-            archiver_standard_program_paths: list[str] - Стандартные пути программы (Опционально)
-            archive_extension: str - Расширение архива. Например, '.exe'
+
         """
         super().__init__(parameter_dict)
         self.parameter_dict = parameter_dict

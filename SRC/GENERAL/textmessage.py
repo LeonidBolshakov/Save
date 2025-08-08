@@ -33,7 +33,7 @@ class TextMessage(frozenset):
         "[Поиск программы]. Вариант программы по адресу {path} выдал ошибку {e}"
     )
     error_run_system_path = (
-        "[Поиск программы]. Выполнение программы по системным path закончилось неудачей"
+        "[Поиск программы]. Выполнение программы по системным PATH закончилось неудачей"
     )
     error_saving_config = "Ошибка сохранения в конфиг файл: {e}"
     error_saving_env = "Ошибка сохранения {var_name}: {e}"
@@ -78,6 +78,9 @@ class TextMessage(frozenset):
     password_not_set = ""
     path_local_archive = "Путь к архиву на локальном диске: {local_path_str}"
     permission_error = "[Поиск программы]. Нет доступа к {path}"
+    program_in_system_path = (
+        "Программа находится в системных путях. Путь к ней указывать не надо"
+    )
     program_is_localed = "Программа находится по пути {path}"
     prompt = "{var} = {current}, введите новое или Enter, чтобы оставить прежнее:"
     search_all_disks = "Поиск программы по всем дискам..."
@@ -85,7 +88,7 @@ class TextMessage(frozenset):
         "[Поиск программы]. Поиск программы по пути, указанном в файле конфигураторе"
     )
     search_in_standard_paths = (
-        "[Поиск программы]. Поиск {programme_template} в стандартных путях"
+        "[Поиск программы]. Поиск {programme_full_name} в стандартных путях"
     )
     search_in_standard_paths_failed = "Поиск в стандартных путях неудачен"
     start_create_archive = "Начало создания архива"

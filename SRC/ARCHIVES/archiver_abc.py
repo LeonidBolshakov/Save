@@ -5,6 +5,8 @@ from typing import Protocol, Callable
 import sys
 import logging
 
+from mypy.checkpattern import self_match_type_names
+
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
 from password_strength import PasswordStats
@@ -18,12 +20,24 @@ class BacupManagerArchiver(Protocol):
 
 class Archiver(ABC, BacupManagerArchiver):
     """
-    Класс для работы со специфичным архивом 7z.
+    Архиватор - Класс для создания архивов.
 
     Специфика архива:
-    1. Формируется самораспаковывающийся архив (SFX).
-    2. Архивируемые файлы передаются через список в файле.
-    3. Поддерживает шифрование паролем и защиту имен файлов.
+    1. Пути архивируемых файлов записаны строками в файле.
+    2. Поддерживает шифрование паролем и защиту имен файлов.
+
+    Использует следующие parameters_dict ключи (включая базовый класс) :
+        Archiver: - Дочерний класс архиватора. Например, Archiver7z
+        SearchProgramme: - Дочерний класс для поиска программы. Например, SearchProgramme7Z
+        archive_extension: str - Расширение архива. Например, '.exe'
+        archiver_name: str - Шаблон имени программы
+        archiver_standard_program_paths: list[str] - Стандартные пути программы (Опционально)
+        compression_level: int Уровень сжатия  (опционально) [0, 9].
+                0- без сжатия, 9 - ультра сжатие
+        config_file_path: str - Путь на файл конфигурации с путями программ
+        list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
+        local_archive_name: str - Имя локального архива
+        password: str - Пароль (опционально)
     """
 
     def __init__(
@@ -108,9 +122,23 @@ class Archiver(ABC, BacupManagerArchiver):
         )
 
         # Запускаем программу архиватор
-        return self.run_archiver(cmd=cmd, archive_path=archive_path)
+        return (  # archive_path было задано как имя архива при формировании cmd
+            archive_path
+            if self._run_archiver(cmd=cmd, archive_path=archive_path)
+            else None
+        )
 
-    def run_archiver(self, cmd: list[str], archive_path: str) -> str | None:
+    def _run_archiver(self, cmd: list[str], archive_path: str) -> bool:
+        """
+        запуск программы архиватора по заранее сформированной разобранной строке
+
+        :param cmd: Список строк, соединив которые, получаем команду для запуска программы архиватора.
+        :param archive_path:
+
+        :return: True, если сформирован "хороший" архив, False в противном случае
+
+        :raise: RuntimeError - была критическая ошибка при архивировании
+        """
         try:
             process = self._run_archive_process(cmd=cmd)
             if process.returncode == 1:
@@ -118,7 +146,7 @@ class Archiver(ABC, BacupManagerArchiver):
             if process.returncode > 1:
                 logger.error(process.stderr)
                 return None
-            return archive_path
+            return True
         except Exception as e:
             logger.critical("")
             raise RuntimeError(T.error_starting_archiving.format(e=e))
@@ -197,6 +225,10 @@ class Archiver(ABC, BacupManagerArchiver):
         logger.debug(T.exists_list_file.format(list_file_path=list_file_path))
 
     def _check_password(self) -> None:
+        """
+        контроль надёжности пароля.
+        Анализ производится на основании данных PasswordStats
+        """
         password = self.parameters_dict.get("password")
 
         if password is None:
@@ -213,7 +245,16 @@ class Archiver(ABC, BacupManagerArchiver):
         )
 
     @staticmethod
-    def log_by_password_level(level, strength_str, entropy_str):
+    def log_by_password_level(level, strength_str, entropy_str) -> None:
+        """
+        Программа выдаёт лог разного уровня исходя из надёжности пароля.
+
+        :param level: Максимальный уровень сообщений о е надёжности пароля.
+        :param strength_str: Сообщение strength анализа пароля.
+        :param entropy_str: Сообщение entropy анализа пароля.
+
+        :return: None
+        """
         # noinspection PyUnreachableCode
         match level:
             case logging.DEBUG:
@@ -229,6 +270,13 @@ class Archiver(ABC, BacupManagerArchiver):
 
     @staticmethod
     def classify_strength(x: float) -> tuple[str, int]:
+        """
+        На основании strength формируются часть сообщения и уровень лога
+
+        :param x: strength
+
+        :return: tuple[Часть сообщения, уровень лога]
+        """
         match x:
             case _ if 0.0 <= x < 0.25:
                 return "очень слабый", logging.ERROR
@@ -242,6 +290,13 @@ class Archiver(ABC, BacupManagerArchiver):
 
     @staticmethod
     def classify_entropy(x: int) -> tuple[str, int]:
+        """
+        На основании entropy формируются часть сообщения и уровень лога
+
+        :param x: entropy
+
+        :return: tuple[Часть сообщения, уровень лога]
+        """
         match x:
             case _ if 0 <= x < 28:
                 return "ненадежный (взламывается мгновенно)", logging.ERROR
@@ -251,9 +306,14 @@ class Archiver(ABC, BacupManagerArchiver):
                 return "высоко-стойкий", logging.DEBUG
         return "Неизвестная ошибка", logging.CRITICAL
 
-    @staticmethod
-    def _run_archive_process(cmd: list[str]) -> subprocess.CompletedProcess:
-        """Запускает процесс архивации."""
+    def _run_archive_process(self, cmd: list[str]) -> subprocess.CompletedProcess:
+        """
+        Запускает процесс архивации.
+
+        :param cmd: Список строк, собрав которые, получаем часть команды для формирования архива
+
+        :return:
+        """
 
         # Определяем кодировку для вывода
         encoding = "cp866" if sys.platform == "win32" else "utf-8"
@@ -285,25 +345,29 @@ class Archiver(ABC, BacupManagerArchiver):
         return masked_cmd
 
     def get_archiver_program(self) -> str:
-        """Инициализирует поиск пути к архиватору.
+        """
+        Инициализирует поиск пути к программе архиватору.
+
+        :return: Полный путь к программе архиватору
 
         Raises:
             OSError: Если программа не найдена в системе
         """
         logger.debug(T.init_FileArchiving)
 
-        # Получение пути к программе
+        # ПФормирование параметров для поиска программы
         config_file_path = self.parameters_dict["config_file_path"]
         standard_program_paths = self.parameters_dict.get(
-            "archive_standard_program_paths"
+            "archiver_standard_program_paths"
         )
-        programme_template = self.parameters_dict["archiver_name"]
-        print(self.SearchProgramme)
+        programme_full_name = self.parameters_dict["archiver_name"]
+
+        # Поиск пути к программе архиватору
         _search_programme = self.SearchProgramme()
         programme_path = _search_programme.get_path(
             config_file_path=config_file_path,
             standard_program_paths=standard_program_paths,
-            programme_template=programme_template,
+            programme_full_name=programme_full_name,
         )
 
         # Проверка наличия архиватора
@@ -312,15 +376,3 @@ class Archiver(ABC, BacupManagerArchiver):
             raise OSError(T.archiver_not_found)
 
         return programme_path
-
-    @staticmethod
-    def _handle_process_result(return_code: int) -> None:
-        # noinspection PyUnreachableCode
-        match return_code:
-            case 0:  # Нормальное завершение архивирования
-                logger.info(T.successful_archiving)
-            case 1:  # Завершение архивирования с не фатальными ошибками
-                logger.warning(T.no_fatal_error)
-            case _:  # Завершение архивации с фатальными ошибками
-                logger.critical("")
-                raise RuntimeError(T.fatal_error)
