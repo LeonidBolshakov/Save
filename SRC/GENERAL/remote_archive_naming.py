@@ -51,10 +51,10 @@ class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
         variables = EnvironmentVariables()
         self.target_date: date = date.today()  # Дата для наименования файла архива
         self.remote_archive_prefix: str = variables.get_var(
-            C.ENV_REMOTE_ARCHIVING_PREFIX, C.REMOTE_ARCHIVE_PREFIX
+            C.ENV_REMOTE_ARCHIVING_PREFIX, C.REMOTE_ARCHIVE_PREFIX_DEF
         )  # Префикс имени файла архива
         self.archive_ext: str = variables.get_var(
-            C.ENV_ARCHIVE_SUFFIX, C.ARCHIVE_SUFFIX
+            C.ENV_LOCAL_ARCHIVE_SUFFIX, C.LOCAL_ARCHIVE_SUFFIX_DEF
         )  # Расширение файла архива
         self.root_remote_archive_dir: str = variables.get_var(
             C.ENV_ROOT_REMOTE_ARCHIVE_DIR, C.ROOT_REMOTE_ARCHIVE_DIR
@@ -175,7 +175,7 @@ class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
 
         :return: str - сгенерированный путь на файл
         """
-        remote_path = rf"{self.full_remote_archive_dir}/{self._create_remote_name()}"
+        remote_path = f"{self.full_remote_archive_dir}/{self._create_remote_name()}"
         logger.debug(T.path_to_cloud.format(remote_path=remote_path))
 
         return remote_path

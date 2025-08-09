@@ -24,8 +24,8 @@ class MaxLevelHandler(logging.Handler):
         """Инициализирует обработчик логов."""
         super().__init__()
         self.permanent_lock = False  # Флаг блокировки обработки
-        self.email_send_trigger = C.EMAIL_SEND_TRIGGER
-        self.remote_link = C.REMOTE_LINK
+        self.archiving_end_trigger = C.ARCHIVING_END_TRIGGER
+        self.remote_link = C.LINK_REMOTE_ARCHIVE
 
     def emit(self, record: logging.LogRecord) -> None:
         """Обрабатывает каждую запись лога.
@@ -47,7 +47,7 @@ class MaxLevelHandler(logging.Handler):
         message = record.getMessage()
 
         # Триггер отправки email
-        if self.email_send_trigger in message:
+        if self.archiving_end_trigger in message:
             self.permanent_lock = True
             self.__class__.last_time = record.created
             self.__class__.remote_archive_path = self._extract_archive_path(message)

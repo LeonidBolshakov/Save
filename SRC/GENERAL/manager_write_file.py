@@ -27,12 +27,12 @@ def write_file(local_path: str) -> str:
     )
 
     programme_write_file = variables.get_var(
-        C.ENV_PROGRAMME_WRITE_FILE, C.PROGRAMME_WRITE_FILE
+        C.ENV_FULL_ARCHIVER_NAME, C.FULL_NAME_SEVEN_Z
     )
 
     # noinspection PyUnreachableCode
     match programme_write_file:
-        case "write_file_to_yandex_disk":
+        case C.FULL_NAME_SEVEN_Z:
             return write_file_to_yandex_disk(
                 local_path=local_path,
                 remote_dir=root_remote_archive_dir,

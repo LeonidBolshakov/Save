@@ -89,10 +89,10 @@ class Archiver7z(Archiver, BacupManagerArchiver):
         """
         if not isinstance(compression_level, int):
             logger.warning(T.error_in_compression_level.format(level=compression_level))
-            return C.COMPRESSION_LEVEL
+            return C.SEVEN_Z_COMPRESSION_LEVEL_DEF
 
         if 0 <= compression_level <= 9:
             return compression_level
 
         logger.warning(T.error_in_compression_level.format(level=compression_level))
-        return C.COMPRESSION_LEVEL
+        return C.SEVEN_Z_COMPRESSION_LEVEL_DEF

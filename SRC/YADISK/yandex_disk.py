@@ -71,7 +71,6 @@ class YandexDisk:
         remote_dir = self.call_back_obj.generate_remote_dir()
         if not self.ya_disk.exists(remote_dir):
             logger.info(YT.folder_not_found.format(archive_path=remote_dir))
-            print(f"{remote_dir=}")
             try:
                 current_path = self.mkdir_custom(remote_dir)  # Создаём папку с архивами
                 logger.info(YT.folder_created.format(archive_path=current_path))

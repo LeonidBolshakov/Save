@@ -5,10 +5,11 @@ import sys
 import logging
 
 from SRC.MAIL.yagmailhandler import YaGmailHandler
+from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
+from SRC.LOGGING.tunelogger import TuneLogger
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
-from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 
 # Инициализация логгера для текущего модуля
 logger = logging.getLogger(__name__)
@@ -21,8 +22,8 @@ class MessageMail:
         """Инициализирует обработчик email с учетными данными из переменных окружения."""
         # Получение учетных данных из переменных окружения
         self.months_ru = C.MONTHS_RU
-        self.max_retry_attempts = C.MAX_RETRY_ATTEMPTS
-        self.retry_delay = C.RETRY_DELAY
+        self.max_retry_attempts = C.SEND_MAIL_MAX_RETRY_ATTEMPTS
+        self.retry_delay = C.EMAIL_RETRY_DELAY_IN_SEC
         # Инициализация обработчика email (YaGmailHandler)
         self.email_handler = self.create_email_handler()
 
@@ -40,7 +41,6 @@ class MessageMail:
 
         :return: True при удачной отправке письма, False - при неудачной.
         """
-        return True
         try:
             max_level_handler = MaxLevelHandler()
             max_level = max_level_handler.get_highest_level()
@@ -136,32 +136,32 @@ class MessageMail:
                 logger.error(T.error_send_email.format(e=e))
 
             if attempt < self.max_retry_attempts:
-                time.sleep(C.RETRY_DELAY)
+                time.sleep(C.EMAIL_RETRY_DELAY_IN_SEC)
 
         logger.error(T.failed_send_email)
         return False
 
 
-def setup_logging(log_file: str = C.LOG_FILE_NAME):
+def setup_logging(log_file: str = C.LOG_FILE_NAME_DEF):
     """
     Настраивает систему логирования с выводом в консоль и файл.
     Действует после завершения работы основной системы логирования
     """
-    formatter = Formatter(T.format_log)
+
+    tune_logger = TuneLogger()
+    formatter = Formatter(C.LOG_FORMAT)
 
     # Обработчик для вывода в консоль (только сообщения уровня INFO и выше)
     console_handler = StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(formatter)
+    console_handler.setLevel(tune_logger.console_log_level)
 
     # Обработчик для записи в файл (все сообщения уровня DEBUG и выше)
     file_handler = FileHandler(log_file, encoding=C.ENCODING)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
+    file_handler.setLevel(tune_logger.file_log_level)
 
     # Настройка корневого логгера
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
 
     # Удаление существующих обработчиков
     for handler in root_logger.handlers[:]:

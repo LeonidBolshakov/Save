@@ -63,6 +63,10 @@ class BackupManager(ABC):
 
         try:
             TuneLogger().setup_logging()  # Настройка системы логирования
+        except Exception as e:
+            print(f"Ошибка при настройке системы логирования {e}")
+
+        try:
             remote_path = self._main_program_loop()  # Запуск основного процесса
         except KeyboardInterrupt:
             logger.error(T.canceled_by_user, exc_info=True)
@@ -132,7 +136,7 @@ class BackupManager(ABC):
 
     def _create_temp_logging(self) -> None:
         """Делает настройки временного логирования, применимого при выполнении одного метода"""
-        log_file_name = self.variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME)
+        log_file_name = self.variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME_DEF)
 
         logging.raiseExceptions = False  # запрет вывода трассировки
         logging.basicConfig(
@@ -155,7 +159,7 @@ class BackupManager(ABC):
             )  # Отказ от предыдущей настройки логирования
 
     def _completion(
-        self, remote_path: str | None = None, e: Exception | None = None
+            self, remote_path: str | None = None, e: Exception | None = None
     ) -> None:
         """Завершает работу программы исходя их максимального уровня лога сообщений.
 
@@ -213,17 +217,17 @@ class BackupManager(ABC):
         match max_level:
             case logging.NOTSET | logging.DEBUG | logging.INFO:
                 logger.info(
-                    T.task_successfully.format(name_max_level=max_level_name.upper())
+                    T.task_successfully.format(max_level_name=max_level_name.upper())
                 )
             case logging.WARNING:
                 logger.warning(
-                    T.task_warnings.format(name_max_level=max_level_name.upper())
+                    T.task_warnings.format(max_level_name=max_level_name.upper())
                 )
             case logging.ERROR:
-                logger.error(T.task_error.format(name_max_level=max_level_name.upper()))
+                logger.error(T.task_error.format(max_level_name=max_level_name.upper()))
             case logging.CRITICAL:
                 logger.critical(
-                    T.task_error.format(name_max_level=max_level_name.upper())
+                    T.task_error.format(max_level_name=max_level_name.upper())
                 )
 
         if e is not None:
@@ -238,7 +242,7 @@ class BackupManager(ABC):
         :return: None
         """
         logger.info(r"\n=== Произошла ошибка ===")
-        logger.info(f"Сообщение: {str(e)}")
+        logger.info(f"Сообщение: {e}")
 
         # Для логирования уровня DEBUG выводим полный traceback
         logger_root = logging.getLogger()

@@ -41,7 +41,7 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
             encoding=encoding,
             delay=delay,
         )
-        self.email_send_trigger = C.EMAIL_SEND_TRIGGER
+        self.email_send_trigger = C.ARCHIVING_END_TRIGGER
 
     def emit(self, record: logging.LogRecord) -> None:
         """

@@ -98,7 +98,7 @@ class SearchProgramme(ABC):
                 return True
         except Exception as e:
             logger.warning(
-                T.error_load_config.format(file_config=config_file_path, e=e)
+                T.error_load_config.format(config_file_path=config_file_path, e=e)
             )
             return False
 
@@ -140,7 +140,7 @@ class SearchProgramme(ABC):
                 return None
             return path
         except KeyError:
-            logger.warning(T.not_key_in_config)
+            logger.warning(T.not_key_in_config.format(key=programme_full_name))
             return None
 
     def _check_working_path(self, path: str | None) -> bool:
@@ -169,7 +169,6 @@ class SearchProgramme(ABC):
 
         :return: Путь на работающую программу или None
         """
-        print(f"{standard_program_paths=}")
         if not standard_program_paths:
             return None
 
@@ -221,12 +220,13 @@ class SearchProgramme(ABC):
 
         :return: Путь на найденную программу или None
         """
+        item = None
         try:
             for item in Path(path).rglob(program_full_name):
                 if self._check_working_path(str(item)):
                     return str(item)
         except PermissionError:
-            logger.info(T.permission_error.format(path=path))
+            logger.info(T.permission_error.format(path=path, item=str(item)))
 
         return None
 

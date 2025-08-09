@@ -21,30 +21,36 @@ class BackupManager7z(BackupManager):
         :rtype: dict[str, Any]
         """
 
+        archiver_name = self.variables.get_var(
+            C.ENV_FULL_ARCHIVER_NAME, C.FULL_NAME_SEVEN_Z
+        )
         list_archive_file_paths = self.variables.get_var(
-            C.ENV_LIST_ARCHIVE_FILE_PATH, C.LIST_ARCHIVE_FILE_PATCH
+            C.ENV_LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES,
+            C.LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES_DEF,
         )
 
-        archiver_name = self.variables.get_var(C.ENV_PATTERN_7Z, C.PATTERN_PROGRAMME)
+        full_archiver_name = self.variables.get_var(
+            C.ENV_FULL_ARCHIVER_NAME, C.FULL_NAME_SEVEN_Z
+        )
         config_file_path = self.variables.get_var(
-            C.ENV_CONFIG_FILE_PATH, C.CONFIG_FILE_PATH
+            C.ENV_CONFIG_FILE_WITH_PROGRAM_NAME, C.CONFIG_FILE_WITH_PROGRAM_NAME
         )
 
         local_archive_name = self.variables.get_var(
-            C.ENV_LOCAL_ARCHIVE_FILE_NAME, C.LOCAL_ARCHIVE_FILE_NAME
+            C.ENV_LOCAL_ARCHIVE_FILE_NAME, C.LOCAL_ARCHIVE_FILE_NAME_DEF
         )
 
         password = self.variables.get_var(C.ENV_PASSWORD_ARCHIVE)
         compression_level = self.variables.get_var(
-            C.ENV_COMPRESSION_LEVEL, C.COMPRESSION_LEVEL
+            C.ENV_SEVEN_Z_COMPRESSION_LEVEL, C.SEVEN_Z_COMPRESSION_LEVEL_DEF
         )
 
         archiver_standard_program_paths = self.variables.get_var(
-            C.ENV_STANDARD_PROGRAM_PATHS, C.STANDARD_7Z_PATHS
+            C.ENV_ARCHIVER_STANDARD_PROGRAM_PATHS, C.SEVEN_Z_STANDARD_PATHS
         )
 
         archive_extension = self.variables.get_var(
-            C.ENV_ARCHIVE_SUFFIX, C.ARCHIVE_SUFFIX
+            C.ENV_LOCAL_ARCHIVE_SUFFIX, C.LOCAL_ARCHIVE_SUFFIX_DEF
         )
 
         Archiver = Archiver7z  # Ссылка на дочерний класс архиватора
@@ -57,6 +63,7 @@ class BackupManager7z(BackupManager):
             "SearchProgramme": search_programme_class,
             "archive_extension": archive_extension,
             "archiver_name": archiver_name,
+            "full_archiver_name": full_archiver_name,
             "archiver_standard_program_paths": archiver_standard_program_paths,
             "compression_level": compression_level,
             "config_file_path": config_file_path,

@@ -21,7 +21,7 @@ class EnvironmentVariables:
         Инициализация класса.
         Загружает имя приложения из констант и читает переменные из .env файла.
         """
-        self.app_name = C.APP_NAME
+        self.app_name = C.KEYRING_APP_NAME
         self._custom_dot_env()
 
     @staticmethod
@@ -35,8 +35,10 @@ class EnvironmentVariables:
                 logging.getLogger(name).setLevel(logging.INFO)
 
         # Загрузка переменных окружения
-        if not load_dotenv(dotenv_path=C.DOTENV_PATH):
-            logger.info(T.env_not_found.format(env=C.DOTENV_PATH, dir=Path.cwd()))
+        if not load_dotenv(dotenv_path=C.VARIABLES_DOTENV_PATH):
+            logger.info(
+                T.env_not_found.format(env=C.VARIABLES_DOTENV_PATH, dir=Path.cwd())
+            )
 
     def get_var(self, var_name: str, default: str = "") -> str:
         """
@@ -64,9 +66,13 @@ class EnvironmentVariables:
                 keyring.set_password(self.app_name, var_name, value)
                 result = keyring.get_password(self.app_name, var_name)
                 if result != value:
-                    raise RuntimeError(T.not_save_env)
+                    raise RuntimeError(
+                        T.not_save_env.format(
+                            var_name=var_name, value=value, result=result
+                        )
+                    )
             else:
-                raise RuntimeError(T.not_save_env_empty)
+                raise RuntimeError(T.not_save_env_empty.format(var_name=var_name))
         except Exception as e:
             raise RuntimeError(T.error_saving_env.format(var_name=var_name, e=e)) from e
 
@@ -93,7 +99,8 @@ class EnvironmentVariables:
         if missing:
             raise EnvironmentError(
                 T.missing_mandatory_variables.format(
-                    dot_env=Path(C.DOTENV_PATH).absolute(), missing=", ".join(missing)
+                    dot_env=Path(C.VARIABLES_DOTENV_PATH).absolute(),
+                    missing=", ".join(missing),
                 )
             )
 

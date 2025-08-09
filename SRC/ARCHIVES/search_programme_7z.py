@@ -41,5 +41,5 @@ class SearchProgramme7Z(SearchProgramme):
                     )
                 return result.returncode == 0
             except Exception as e:  # Аварийное завершение архиватора
-                logger.debug(T.error_run_programme_except.format(path=path, e=e))
+                logger.debug(T.error_run_programme.format(path=path, e=e))
                 return False

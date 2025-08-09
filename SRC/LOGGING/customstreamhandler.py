@@ -7,7 +7,7 @@ class CustomStreamHandler(logging.StreamHandler):
     def __init__(self, stream=None):
         super().__init__(stream)
         self.stream = stream
-        self.email_send_trigger = C.EMAIL_SEND_TRIGGER
+        self.email_send_trigger = C.ARCHIVING_END_TRIGGER
 
     def emit(self, record):
         """

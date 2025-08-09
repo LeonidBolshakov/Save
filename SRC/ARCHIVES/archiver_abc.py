@@ -5,8 +5,6 @@ from typing import Protocol, Callable
 import sys
 import logging
 
-from mypy.checkpattern import self_match_type_names
-
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
 from password_strength import PasswordStats
@@ -32,8 +30,6 @@ class Archiver(ABC, BacupManagerArchiver):
         archive_extension: str - Расширение архива. Например, '.exe'
         archiver_name: str - Шаблон имени программы
         archiver_standard_program_paths: list[str] - Стандартные пути программы (Опционально)
-        compression_level: int Уровень сжатия  (опционально) [0, 9].
-                0- без сжатия, 9 - ультра сжатие
         config_file_path: str - Путь на файл конфигурации с путями программ
         list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
         local_archive_name: str - Имя локального архива
@@ -145,7 +141,7 @@ class Archiver(ABC, BacupManagerArchiver):
                 logger.warning(process.stderr)
             if process.returncode > 1:
                 logger.error(process.stderr)
-                return None
+                return False
             return True
         except Exception as e:
             logger.critical("")
@@ -306,7 +302,8 @@ class Archiver(ABC, BacupManagerArchiver):
                 return "высоко-стойкий", logging.DEBUG
         return "Неизвестная ошибка", logging.CRITICAL
 
-    def _run_archive_process(self, cmd: list[str]) -> subprocess.CompletedProcess:
+    @staticmethod
+    def _run_archive_process(cmd: list[str]) -> subprocess.CompletedProcess:
         """
         Запускает процесс архивации.
 
@@ -340,7 +337,9 @@ class Archiver(ABC, BacupManagerArchiver):
         masked_cmd = cmd.copy()
         for index, item in enumerate(masked_cmd):
             if item.find(password) != -1:
-                masked_cmd[index] = f"-p{'*' * len(password)}"
+                masked_cmd[index] = masked_cmd[index].replace(
+                    password, f"{'*' * len(password)}"
+                )
 
         return masked_cmd
 
@@ -353,17 +352,19 @@ class Archiver(ABC, BacupManagerArchiver):
         Raises:
             OSError: Если программа не найдена в системе
         """
-        logger.debug(T.init_FileArchiving)
+        logger.debug(T.init_SearchProgramme)
 
-        # ПФормирование параметров для поиска программы
+        # Формирование параметров для поиска программы
         config_file_path = self.parameters_dict["config_file_path"]
         standard_program_paths = self.parameters_dict.get(
             "archiver_standard_program_paths"
         )
         programme_full_name = self.parameters_dict["archiver_name"]
 
-        # Поиск пути к программе архиватору
+        # Создание объекта класса поиска программы
         _search_programme = self.SearchProgramme()
+
+        # Поиск пути к программе архиватору
         programme_path = _search_programme.get_path(
             config_file_path=config_file_path,
             standard_program_paths=standard_program_paths,
