@@ -59,15 +59,14 @@ class BackupManager7z(BackupManager):
         )
 
         return {
-            "Archiver": Archiver,
-            "SearchProgramme": search_programme_class,
-            "archive_extension": archive_extension,
-            "archiver_name": archiver_name,
-            "full_archiver_name": full_archiver_name,
-            "archiver_standard_program_paths": archiver_standard_program_paths,
-            "compression_level": compression_level,
-            "config_file_path": config_file_path,
-            "list_archive_file_paths": list_archive_file_paths,
-            "local_archive_name": local_archive_name,
-            "password": password,
+            C.PAR___ARCHIVER: Archiver,
+            C.PAR___SEARCH_PROGRAMME: search_programme_class,
+            C.PAR_ARCHIVE_EXTENSION: archive_extension,
+            C.PAR_ARCHIVER_NAME: archiver_name,
+            C.PAR_STANDARD_PROGRAM_PATHS: archiver_standard_program_paths,
+            C.PAR_COMPRESSION_LEVEL: compression_level,
+            C.PAR_CONFIG_FILE_PATH: config_file_path,
+            C.PAR_LIST_ARCHIVE_FILE_PATHS: list_archive_file_paths,
+            C.PAR_LOCAL_ARCHIVE_NAME: local_archive_name,
+            C.PAR_PASSWORD: password,
         }

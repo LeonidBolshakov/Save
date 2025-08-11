@@ -192,7 +192,7 @@ def run_test_scenarios() -> None:
     try:
         1 / 0  # Генерация ошибки деления на ноль
     except Exception as e:
-        logger.error(f"Ошибка вычисления: {e}", exc_info=True)
+        logger.exception(f"Ошибка вычисления: {e}")
     logger.warning("Ресурсы на исходе")
     logger.critical("Критическая ситуация!")
     logger.info("Команда *Stop* - отправка отчета")

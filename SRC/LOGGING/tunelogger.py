@@ -63,7 +63,7 @@ class TuneLogger:
             self.log_format, self.console_log_level, self.file_log_level
         )
 
-        # Для сторонних библиотек устанавливаем более высокий уровень
+        # Для сторонних библиотек устанавливаем более высокий уровень логирования
         for lib in YC.YANDEX_LIBS:
             logging.getLogger(lib).setLevel(C.LOG_LEVEL_FOR_LIBRARIES)
 
@@ -100,11 +100,19 @@ class TuneLogger:
 
         self.configure_root_handlers(handlers)
 
-    @staticmethod
-    def configure_root_handlers(handlers: list[logging.Handler]) -> None:
+    def configure_root_handlers(self, handlers: list[logging.Handler]) -> None:
         """Добавление обработчиков к корневому логгеру"""
+        self._remove_loging()  # Удаление всех прежних обработчиков
+
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
 
         for handler in handlers:
             root_logger.addHandler(handler)
+
+    @staticmethod
+    def _remove_loging() -> None:
+        """Удаление настроек логирования"""
+        logger_root = logging.getLogger()
+        for handler in logger_root.handlers[:]:
+            logger_root.removeHandler(handler)

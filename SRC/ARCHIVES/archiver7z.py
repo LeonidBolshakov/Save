@@ -5,12 +5,12 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # Импорт зависимостей
-from SRC.ARCHIVES.archiver_abc import Archiver, BacupManagerArchiver
+from SRC.ARCHIVES.archiver_abc import Archiver, BackupManagerArchiver
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
 
-class Archiver7z(Archiver, BacupManagerArchiver):
+class Archiver7z(Archiver, BackupManagerArchiver):
     """Класс для создания архивов 7z.
 
     Обеспечивает:
@@ -52,14 +52,16 @@ class Archiver7z(Archiver, BacupManagerArchiver):
         Note:
             Пароль в логах маскируется звездочками для безопасности
         """
-        compression_level: int = self.parameters_dict["compression_level"]
+        compression_level: int = self.parameters_dict[C.PAR_COMPRESSION_LEVEL]
         compression_level = self._check_validate_of_compression(
             compression_level=compression_level
         )
-        archive_path: str = self.parameters_dict["archive_path"]
-        password: str = self.parameters_dict["password"]
-        list_archive_file_paths: str = self.parameters_dict["list_archive_file_paths"]
-        archive_extension: str = self.parameters_dict["archive_extension"]
+        archive_path: str = self.parameters_dict[C.PAR_ARCHIVE_PATH]
+        password: str = self.parameters_dict[C.PAR_PASSWORD]
+        list_archive_file_paths: str = self.parameters_dict[
+            C.PAR_LIST_ARCHIVE_FILE_PATHS
+        ]
+        archive_extension: str = self.parameters_dict[C.PAR_ARCHIVE_EXTENSION]
         cmd = [
             archiver_program,  # Путь к программе архиватору
             "a",  # Добавляем файлы в архив

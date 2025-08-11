@@ -27,7 +27,7 @@ class TokenManager:
         self.variables = EnvironmentVariables()
 
     def save_tokens(
-            self, access_token: str, refresh_token: str | None, expires_at: str
+        self, access_token: str, refresh_token: str | None, expires_at: str
     ) -> None:
         """Сохраняет токены и время жизни токена в secure storage.
 
@@ -40,7 +40,7 @@ class TokenManager:
             Автоматически вычитает 60 секунд из expires_in для раннего обновления
         """
         try:
-            # Сохраняем токены и время истечения в памяти (keyring)
+            # Сохраняем токены и время истечения в компьютере (keyring)
             self.variables.put_keyring_var(YC.YANDEX_ACCESS_TOKEN, access_token)
             self.variables.put_keyring_var(YC.YANDEX_EXPIRES_AT, expires_at)
             if refresh_token:

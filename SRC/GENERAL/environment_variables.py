@@ -72,9 +72,9 @@ class EnvironmentVariables:
                         )
                     )
             else:
-                raise RuntimeError(T.not_save_env_empty.format(var_name=var_name))
+                logger.error(T.not_save_env_empty.format(var_name=var_name))
         except Exception as e:
-            raise RuntimeError(T.error_saving_env.format(var_name=var_name, e=e)) from e
+            logger.error(T.error_saving_env.format(var_name=var_name, e=e))
 
     def write_keyring_vars(self):
         """
@@ -96,13 +96,27 @@ class EnvironmentVariables:
         :raises EnvironmentError: При отсутствии одной или нескольких обязательных переменных.
         """
         missing = [var for var in C.VARS_REQUIRED if not self.get_var(var)]
-        if missing:
-            raise EnvironmentError(
-                T.missing_mandatory_variables.format(
+        if not missing:
+            return
+        recorded_in_keyring = [var for var in C.VARS_KEYRING]
+        missing_env = [var for var in missing if var not in recorded_in_keyring]
+        missing_keyring = [var for var in missing if var in recorded_in_keyring]
+
+        if missing_env:
+            logger.error(
+                T.missing_mandatory_variables_env.format(
                     dot_env=Path(C.VARIABLES_DOTENV_PATH).absolute(),
                     missing=", ".join(missing),
                 )
             )
+        if missing_keyring:
+            logger.error(
+                T.missing_mandatory_variables_keyring.format(
+                    missing=", ".join(missing),
+                )
+            )
+
+        raise RuntimeError(T.missing_mandatory_variables)
 
 
 if __name__ == "__main__":

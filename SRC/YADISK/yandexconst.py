@@ -5,27 +5,12 @@ class YandexConstants(frozenset):
     YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
 
     API_YANDEX_LOAD_FILE = "https://cloud-api.yandex.net/v1/disk/resources/upload"
-    ENCODING = "utf-8"
-    ENV_YANDEX_CLIENT_ID = "BOL_SAVE_YANDEX_CLIENT_ID"
-    ENV_YANDEX_CLIENT_SECRET = "BOL_SAVE_YANDEX_CLIENT_SECRET"
+    ENV_YANDEX_CLIENT_ID = "YANDEX_CLIENT_ID"
+    ENV_YANDEX_CLIENT_SECRET = "YANDEX_CLIENT_SECRET"
     MISSING = " ** --> Отсутствуют"
     PRESENT = "Представлены"
     URL_API_YANDEX_DISK = "https://cloud-api.yandex.net/v1/disk"
     URL_AUTORIZATION_YANDEX_OAuth = "https://oauth.yandex.ru/authorize"
-    YANDEX_VARS_KEYRING = [  # секретные переменные окружения
-        f"{ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента
-        f"{ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
-        f"{YANDEX_ACCESS_TOKEN}",  # token доступа к Яндекс-Диску
-        f"{YANDEX_REFRESH_TOKEN}",  # refresh token к Яндекс-Диску
-        f"{YANDEX_REDIRECT_URI}",
-        f"{YANDEX_EXPIRES_AT}",  # Время истечения токена
-    ]
-    YANDEX_VARS_REQUIRED = [  # Обязательные переменные окружения
-        f"{ENV_YANDEX_CLIENT_ID}",  # ID OAuth-приложения Яндекс для API доступа
-        f"{ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
-        f"{YANDEX_REDIRECT_URI}",
-    ]
-    YANDEX_AUTH_URL = "AUTH_URL"
     YANDEX_HTML_WINDOW_SUCCESSFUL = """
             <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
                 <h1 style="color: #4CAF50;">✅ Авторизация Яндекс.Диск прошла успешно!</h1>
@@ -44,5 +29,4 @@ class YandexConstants(frozenset):
             """
     YANDEX_LIBS = ["urllib3", "yadisk"]
     YANDEX_SCOPE = "cloud_api:disk.app_folder cloud_api:disk.read cloud_api:disk.write"
-    YANDEX_TOKEN_URL = "YANDEX_TOKEN_URL"
-    YANDEX_TOKEN_URL_DEFAULT = "https://oauth.yandex.ru/token"
+    YANDEX_TOKEN_URL = "https://oauth.yandex.ru/token"

@@ -9,8 +9,9 @@ if __name__ == "__main__":
     """Точка входа в приложение резервного копирования"""
     try:
         BackupManager7z().main()
-        exit(0)
+        sys.exit(0)
     except KeyboardInterrupt:
         sys.exit(130)
-    except Exception:
+    except Exception as e:
+        logger.exception("Необработанная ошибка")
         sys.exit(1)

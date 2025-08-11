@@ -19,6 +19,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 import yadisk
 from yadisk import YaDisk
 from yadisk.exceptions import (
@@ -70,10 +76,10 @@ class YandexDisk:
         # CALLBACK
         remote_dir = self.call_back_obj.generate_remote_dir()
         if not self.ya_disk.exists(remote_dir):
-            logger.info(YT.folder_not_found.format(archive_path=remote_dir))
+            logger.info(YT.folder_not_found.format(remote_dir=remote_dir))
             try:
                 current_path = self.mkdir_custom(remote_dir)  # Создаём папку с архивами
-                logger.info(YT.folder_created.format(archive_path=current_path))
+                logger.info(YT.folder_created.format(current_path=current_path))
             except Exception as e:
                 raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e))
         return remote_dir
@@ -87,7 +93,9 @@ class YandexDisk:
             logger.info(YT.get_token)
             self.access_token = OAuthFlow().get_access_token()
             if not self.access_token:
-                logger.critical("")
+                logger.critical(
+                    ""
+                )  # Для поднятия уровня логов до CRITICAL. В LOG не выводится обработчиками
                 raise PermissionError(YT.no_valid_token)
             logger.debug(YT.valid_token)
             return self.access_token
@@ -103,13 +111,13 @@ class YandexDisk:
                 return disk
             raise PermissionError(YT.authorization_error.format(e=""))
         except UnauthorizedError as e:
-            raise PermissionError(YT.authorization_error.format(e="")) from e
+            raise PermissionError(YT.authorization_error.format(e=e)) from e
         except BadRequestError as e:
             raise PermissionError(YT.invalid_request) from e
         except YaDiskError as e:
             raise RuntimeError(YT.error_ya_disk.format(e=e)) from e
         except ConnectionError as e:
-            raise RuntimeError(YT.no_internet) from e
+            raise RuntimeError(YT.no_internet.format(e=e)) from e
         except Exception as e:
             raise RuntimeError(YT.unknown_error.format(e=e)) from e
 
@@ -183,6 +191,13 @@ class YandexDisk:
             logger.error(YT.error_load_file.format(err=err))
             return None
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(
+            (YaDiskError, requests.exceptions.RequestException)
+        ),
+    )
     def _get_upload_url(self, remote_path: str) -> str:
         """Выполняет запрос к API для получения URL загрузки."""
         response = requests.get(
@@ -194,6 +209,13 @@ class YandexDisk:
             raise RuntimeError(YT.error_upload_URL)
         return response.json()["href"]
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(
+            (YaDiskError, requests.exceptions.RequestException)
+        ),
+    )
     def mkdir_custom(self, path: str) -> str:
         """
         Рекурсивно создаёт директорию на Яндекс-Диске.

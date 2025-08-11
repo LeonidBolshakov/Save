@@ -54,12 +54,15 @@ class BackupManager(ABC):
         remote_path = None
 
         self._create_temp_logging()
+        logging.raiseExceptions = False  # запрет вывода трассировки
+
         try:
             self.variables.validate_vars()  # Проверка наличия необходимых переменных окружения
         except Exception as e:
             logger.critical(str(e))
             exit(1)
-        self._remove_temp_loging()
+
+        logging.raiseExceptions = True  # Отмена запрета вывода трассировки
 
         try:
             TuneLogger().setup_logging()  # Настройка системы логирования
@@ -69,8 +72,8 @@ class BackupManager(ABC):
         try:
             remote_path = self._main_program_loop()  # Запуск основного процесса
         except KeyboardInterrupt:
-            logger.error(T.canceled_by_user, exc_info=True)
-            raise
+            logger.error(T.canceled_by_user)
+            self._completion(remote_path=remote_path, e=None)
         except Exception as e:
             self._completion(remote_path=remote_path, e=e)
         else:
@@ -97,7 +100,7 @@ class BackupManager(ABC):
         try:
             # Используем with для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
-                parameters_dict["archive_dir"] = temp_dir
+                parameters_dict[C.PAR_ARCHIVE_DIR] = temp_dir
 
                 archiver = self.get_archiver(
                     parameters_dict
@@ -109,7 +112,7 @@ class BackupManager(ABC):
                     return remote_path
                 return None
         except Exception as e:
-            raise RuntimeError(e)
+            raise RuntimeError(e) from e
 
     @staticmethod
     def get_archiver(parameters_dict: dict[str, Any]) -> Archiver:
@@ -123,7 +126,7 @@ class BackupManager(ABC):
 
         :return: объект класса дочернего архиватора
         """
-        _Archiver = parameters_dict["Archiver"]
+        _Archiver = parameters_dict[C.PAR___ARCHIVER]
         return _Archiver(parameters_dict)
 
     @abstractmethod
@@ -138,7 +141,6 @@ class BackupManager(ABC):
         """Делает настройки временного логирования, применимого при выполнении одного метода"""
         log_file_name = self.variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME_DEF)
 
-        logging.raiseExceptions = False  # запрет вывода трассировки
         logging.basicConfig(
             level=logging.INFO,
             format=C.LOG_FORMAT,
@@ -148,18 +150,8 @@ class BackupManager(ABC):
             ],
         )  # Настройка действует только до настройки основного логирования
 
-    @staticmethod
-    def _remove_temp_loging() -> None:
-        """Удаление настроек временного логирования"""
-        logging.raiseExceptions = True  # Отмена запрета вывода трассировки
-        logger_root = logging.getLogger()
-        for handler in logger_root.handlers[:]:
-            logger_root.removeHandler(
-                handler
-            )  # Отказ от предыдущей настройки логирования
-
     def _completion(
-            self, remote_path: str | None = None, e: Exception | None = None
+        self, remote_path: str | None = None, e: Exception | None = None
     ) -> None:
         """Завершает работу программы исходя их максимального уровня лога сообщений.
 
@@ -171,9 +163,9 @@ class BackupManager(ABC):
             remote_path: (str). Путь к файлу на Яндекс-Диске (для уведомления)
             e: Exception. Прерывание программы.
         """
-        if e is not None:
-            logger.error("")
         max_level = MaxLevelHandler().get_highest_level()
+        if e is not None:
+            max_level = max(max_level, logging.ERROR)
 
         if not self._start_finishing_work(remote_path=remote_path):
             max_level = max(

@@ -55,7 +55,7 @@ class Constants(frozenset):
     ENV_REMOTE_ARCHIVING_PREFIX = "REMOTE_ARCHIVE_PREFIX_DEF"
     ENV_ROOT_REMOTE_ARCHIVE_DIR = "ROOT_REMOTE_ARCHIVE_DIR"
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
-    ENV_SENDER_PASSWORD = "BOL_SAVE_SENDER_PASSWORD"
+    ENV_SENDER_PASSWORD = "SENDER_PASSWORD"
     ENV_SEVEN_Z_COMPRESSION_LEVEL = "SEVEN_Z_COMPRESSION_LEVEL"
     FILE_LOG_LEVEL_DEF = "INFO"
     FULL_NAME_SEVEN_Z = "7z.exe"
@@ -72,7 +72,6 @@ class Constants(frozenset):
     LOG_FILE_NAME_DEF = "save.log"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVEL_FOR_LIBRARIES = logging.WARNING
-    MISSING = " ** --> Отсутствуют"
     MONTHS_RU = [
         "",  # Заглушка для нулевого месяца. Нумерация месяцев начинается с 1.
         "января",
@@ -88,6 +87,23 @@ class Constants(frozenset):
         "ноября",
         "декабря",
     ]
+    PAR___ARCHIVER = (
+        "Archiver"  # Параметр формируется дочерним классом buckup_manager.abc
+    )
+    PAR___SEARCH_PROGRAMME = (
+        "SearchProgramme"  # Параметр формируется дочерним классом buckup_manager.abc
+    )
+    PAR_ARCHIVE_DIR = "archive_dir"
+    PAR_ARCHIVE_EXTENSION = "archive_extension"
+    PAR_ARCHIVE_PATH = "archive_path"
+    PAR_ARCHIVER_NAME = "archiver_name"
+    PAR_COMPRESSION_LEVEL = "compression_level"
+    PAR_CONFIG_FILE_PATH = "config_file_path"
+    PAR_LIST_ARCHIVE_FILE_PATHS = "list_archive_file_paths"
+    PAR_LOCAL_ARCHIVE_NAME = "local_archive_name"
+    PAR_PASSWORD = "password"
+    PAR_STANDARD_PROGRAM_PATHS = "standard_program_paths"
+    PROGRAM_WRITE_VARS = "write_vars"
     REMOTE_ARCHIVE_PREFIX_DEF = "archive"
     ROOT_REMOTE_ARCHIVE_DIR = "/Архивы"
     ROTATING_BACKUP_COUNT = 3
