@@ -39,7 +39,7 @@ class YandexTextMessage(frozenset):
     invalid_token = "Яндекс отклонил токен доступа к Яндекс.Диск!"
     load = "Загрузка {local_path} -> {remote_path}"
     loaded_token = "Будут использоваться сохраненные закрытые данные"
-    load_success = "Файл {local_path} успешно загружен yf Яндекс-Диск в {remote_path}"
+    load_success = "Файл {local_path} успешно загружен на Яндекс-Диск в {remote_path}"
     no_auth_code = "В присланной Яндекс информации нет кода авторизации"
     no_callback_path = "Яндекс не авторизовал наш запрос."
     no_correct_redirect_uri = (

@@ -53,14 +53,9 @@ class BackupManager7z(BackupManager):
             C.ENV_LOCAL_ARCHIVE_SUFFIX, C.LOCAL_ARCHIVE_SUFFIX_DEF
         )
 
-        Archiver = Archiver7z  # Ссылка на дочерний класс архиватора
-        search_programme_class = (
-            SearchProgramme7Z  # Ссылка на класс поиска программы архиватора
-        )
-
         return {
-            C.PAR___ARCHIVER: Archiver,
-            C.PAR___SEARCH_PROGRAMME: search_programme_class,
+            C.PAR___ARCHIVER: Archiver7z,  # Ссылка на дочерний класс архиватора
+            C.PAR___SEARCH_PROGRAMME: SearchProgramme7Z,  # Ссылка на класс поиска программы архиватора
             C.PAR_ARCHIVE_EXTENSION: archive_extension,
             C.PAR_ARCHIVER_NAME: archiver_name,
             C.PAR_STANDARD_PROGRAM_PATHS: archiver_standard_program_paths,

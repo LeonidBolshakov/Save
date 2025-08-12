@@ -22,7 +22,7 @@ class Archiver(ABC, BackupManagerArchiver):
     Архиватор - Класс для создания архивов.
 
     Специфика архива:
-    1. Пути архивируемых файлов записаны строками в файле.
+    1. Есть файл с путями архивируемых файлов.
     2. Поддерживает шифрование паролем и защиту имен файлов.
 
     Использует следующие parameters_dict ключи (включая базовый класс) :
@@ -54,8 +54,14 @@ class Archiver(ABC, BackupManagerArchiver):
             FileNotFoundError: Если файл со списком архивируемых файлов не существует
         """
 
-        self.parameters_dict = parameters_dict
-        self.SearchProgramme = parameters_dict[C.PAR___SEARCH_PROGRAMME]
+        try:
+            self.parameters_dict = parameters_dict
+            self.SearchProgramme = parameters_dict[C.PAR___SEARCH_PROGRAMME]
+        except KeyError:
+            logger.critical(
+                T.error_parameter_archiver.format(param=C.PAR___SEARCH_PROGRAMME)
+            )
+            raise
 
     def create_archive(self) -> str | None:
         """
@@ -170,7 +176,7 @@ class Archiver(ABC, BackupManagerArchiver):
         archive_name = self.parameters_dict[C.PAR_LOCAL_ARCHIVE_NAME]
         return str(Path(archive_dir, archive_name))
 
-    @abstractmethod
+    @abstractmethod  # формирует команду для выполнения subprocess.run
     def _get_cmd_archiver(self, archiver_program: str) -> list[str]:
         pass
 

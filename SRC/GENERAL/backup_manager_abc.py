@@ -126,14 +126,29 @@ class BackupManager(ABC):
 
         :return: объект класса дочернего архиватора
         """
-        _Archiver = parameters_dict[C.PAR___ARCHIVER]
-        return _Archiver(parameters_dict)
+        try:
+            _Archiver = parameters_dict[C.PAR___ARCHIVER]
+            return _Archiver(parameters_dict)
+        except Exception as e:
+            logger.critical(T.error_parameter_archiver.format(param=C.PAR___ARCHIVER))
+            raise KeyError(e) from e
 
     @abstractmethod
     def get_parameters_dict(self) -> dict[str, Any]:
         """
         Функция формирует и возвращает словарь параметров
         :return: Словарь параметров
+        Обязательные ключи словаря:
+            Archiver: - Дочерний класс архиватора. Например, Archiver7z
+            SearchProgramme: - Дочерний класс для поиска программы. Например, SearchProgramme7Z
+            archive_extension: str - Расширение архива. Например, '.exe'
+            archiver_name: str - Шаблон имени программы
+            archiver_standard_program_paths: list[str] - Стандартные пути программы (Опционально)
+            compression_level: int Уровень сжатия  (опционально) [0, 9]. 0- без сжатия, 9 - ультра сжатие
+            config_file_path: str - Путь на файл конфигурации с путями программ
+            list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
+            local_archive_name: str - Имя локального архива
+            password: str - Пароль (опционально)
         """
         pass
 
