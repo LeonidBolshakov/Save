@@ -17,29 +17,15 @@ class Archiver7z(Archiver, BackupManagerArchiver):
     - Подготовку командной строки для создания архива 7z
     """
 
-    def __init__(self, parameter_dict: dict[str, Any]) -> None:
-        """Инициализация архивации.
-
-        Args:
-            parameter_dict (dict): словарь параметров
-
-        Использует следующие parameters_dict ключи (включая базовый класс) :
-            archive_extension: str - Расширение архива. Например, '.exe' или '7z'
-            archive_path: str - Путь на архив
-            compression_level: int Уровень сжатия  (опционально) [0, 9]. 0- без сжатия, 9 - ультра сжатие
-            list_archive_file_paths: str - Путь на файл, содержащий архивируемые файлы
-            password: str - Пароль (опционально)
-
-        """
-        super().__init__(parameter_dict)
-        self.parameter_dict = parameter_dict
-
-    def _get_cmd_archiver(self, archiver_program: str) -> list[str]:
+    def get_cmd_archiver(
+        self, archiver_program: str, parameters_dict: dict[str, Any]
+    ) -> list[str]:
         """
         Формирует команду для выполнения архивации с помощью 7z.
 
         Parameters:
             archiver_program: str Путь на программу архивации
+            parameters_dict: dict[str, Any] - Словарь параметров
 
         Returns:
             list[str]: Список аргументов команды для subprocess.run
@@ -47,35 +33,59 @@ class Archiver7z(Archiver, BackupManagerArchiver):
         Note:
             Пароль в логах маскируется звездочками для безопасности
         """
-        compression_level: int = self.parameters_dict[C.PAR_COMPRESSION_LEVEL]
+        try:
+            compression_level: int = parameters_dict[C.PAR_COMPRESSION_LEVEL]
+        except KeyError as e:
+            logger.warning(
+                T.error_parameter_archiver.format(param=C.PAR_COMPRESSION_LEVEL)
+            )
+            compression_level = C.SEVEN_Z_COMPRESSION_LEVEL_DEF
+
         compression_level = self._check_validate_of_compression(
             compression_level=compression_level
         )
-        archive_path: str = self.parameters_dict[C.PAR_ARCHIVE_PATH]
-        password: str = self.parameters_dict[C.PAR_PASSWORD]
-        list_archive_file_paths: str = self.parameters_dict[
-            C.PAR_LIST_ARCHIVE_FILE_PATHS
-        ]
-        archive_extension: str = self.parameters_dict[C.PAR_ARCHIVE_EXTENSION]
-        cmd = [
-            archiver_program,  # Путь к программе архиватору
-            "a",  # Добавляем файлы в архив
-            *(
-                [f"-p{password}"] if password else []
-            ),  # Если пароль не задан параметр не формируется
-            "-mhe=on",  # Если задан пароль шифровать имена файлов
-            *(
-                ["-sfx"] if archive_extension == ".exe" else []
-            ),  # Если расширение не exe - параметр не формируется
-            f"-mx={compression_level}",  # Уровень компрессии
-            archive_path,  # Полный путь на формируемый архив
-            f"@{list_archive_file_paths}",
-            # Добавляем параметры для подавления лишнего вывода
-            "-bso0",  # отключить вывод в stdout
-            "-bsp0",  # отключить индикатор прогресса
-        ]
+        archive_path: str = parameters_dict[C.PAR_ARCHIVE_PATH]
+        password: str = parameters_dict.get(C.PAR_PASSWORD)
+        list_archive_file_paths: str = parameters_dict[C.PAR_LIST_ARCHIVE_FILE_PATHS]
+        try:
+            archive_extension: str = parameters_dict[C.PAR_ARCHIVE_EXTENSION]
+        except KeyError as e:
+            logger.critical(
+                T.error_parameter_archiver.format(param=C.PAR_ARCHIVE_EXTENSION)
+            )
+            raise KeyError from e
 
-        return cmd
+        return self._cmd_archiver(
+            archiver_program,
+            password,
+            archive_extension,
+            compression_level,
+            archive_path,
+            list_archive_file_paths,
+        )
+
+    @staticmethod
+    def _cmd_archiver(
+        archiver_program: str,
+        password: str | None,
+        archive_extension: str,
+        compression_level: int,
+        archive_path: str,
+        list_archive_file_paths: str,
+    ) -> list[str]:
+        """Собирает команду для 7z с валидацией параметров."""
+        return [
+            archiver_program,
+            "a",
+            *([f"-p{password}"] if password else []),
+            "-mhe=on",
+            *(["-sfx"] if archive_extension == ".exe" else []),
+            f"-mx={compression_level}",
+            archive_path,
+            f"@{list_archive_file_paths}",
+            "-bso0",
+            "-bsp0",
+        ]
 
     @staticmethod
     def _check_validate_of_compression(compression_level: int) -> int:

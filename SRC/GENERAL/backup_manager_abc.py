@@ -13,7 +13,7 @@ from SRC.MAIL.messagemail import MessageMail
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.manager_write_file import write_file
 from SRC.LOGGING.tunelogger import TuneLogger
-from SRC.ARCHIVES.archiver_abc import Archiver
+from SRC.GENERAL.checkparameter import get_parameter
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
@@ -100,12 +100,21 @@ class BackupManager(ABC):
         try:
             # Используем with для автоматической очистки временных файлов
             with TemporaryDirectory() as temp_dir:
-                parameters_dict[C.PAR_ARCHIVE_DIR] = temp_dir
+                try:
+                    parameters_dict[C.PAR_ARCHIVE_DIR] = temp_dir
+                except Exception as e:
+                    logger.critical(
+                        T.error_parameter_archiver.format(param=C.PAR_ARCHIVE_DIR)
+                    )
+                    raise KeyError from e
 
-                archiver = self.get_archiver(
-                    parameters_dict
-                )  # Получаем объект класса архиватора
-                if archive_path := archiver.create_archive():  # Создаём локальный архив
+                Archiver = get_parameter(
+                    C.PAR___ARCHIVER, parameters_dict=parameters_dict
+                )  # Получаем класса архиватора
+                archiver = Archiver()
+                if archive_path := archiver.create_archive(
+                    parameters_dict=parameters_dict
+                ):  # Создаём локальный архив
                     remote_path = write_file(
                         archive_path
                     )  # Записываем локальный архив в облако
@@ -113,25 +122,6 @@ class BackupManager(ABC):
                 return None
         except Exception as e:
             raise RuntimeError(e) from e
-
-    @staticmethod
-    def get_archiver(parameters_dict: dict[str, Any]) -> Archiver:
-        """
-        Получаем объект класса дочернего архиватора.
-        Ссылку на дочерний класс архиватора записывает в словарь параметров
-        дочерний класс менеджера при выполнении метода get_parameters_dict
-
-        :param parameters_dict: Словарь параметров
-        :type parameters_dict: dict[str, Any]
-
-        :return: объект класса дочернего архиватора
-        """
-        try:
-            _Archiver = parameters_dict[C.PAR___ARCHIVER]
-            return _Archiver(parameters_dict)
-        except Exception as e:
-            logger.critical(T.error_parameter_archiver.format(param=C.PAR___ARCHIVER))
-            raise KeyError(e) from e
 
     @abstractmethod
     def get_parameters_dict(self) -> dict[str, Any]:

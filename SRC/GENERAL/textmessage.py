@@ -69,7 +69,7 @@ class TextMessage(frozenset):
         + f"Задайте переменный с помощью программы {C.PROGRAM_WRITE_VARS}"
     )
     password_message = (
-        "Пароль архива имеет силу - {strength_str}, сложность вскрытия {entropy_str}.\n"
+        "Пароль архива имеет силу - {strength_str}, сложность вскрытия - {entropy_str}.\n"
         "Пароль задают программой {program}, параметр {parameter}"
     )
     path_to_cloud = "Путь на архив в облаке: {remote_path}"

@@ -5,7 +5,7 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 
 class Constants(frozenset):
     ARCHIVING_END_TRIGGER = "*Stop"
-    CONFIG_FILE_WITH_PROGRAM_NAME = "config_file_path.txt"
+    CONFIG_FILE_WITH_PROGRAM_NAME_DEF = "config_file_path.txt"
     CONSOLE_LOG_LEVEL_DEF = "WARNING"
     CONVERT_LOGGING_NAME_TO_CODE = {
         "DEBUG": logging.DEBUG,
@@ -41,7 +41,7 @@ class Constants(frozenset):
     EMAIL_WARNING_SUBJECT = "🔥 Предупреждение при архивации"
     ENCODING = "utf-8"
     ENV_ARCHIVER_STANDARD_PROGRAM_PATHS = "ARCHIVER_STANDARD_PROGRAM_PATHS"
-    ENV_CONFIG_FILE_WITH_PROGRAM_NAME = "CONFIG_FILE_WITH_PROGRAM_NAME"
+    ENV_CONFIG_FILE_WITH_PROGRAM_NAME = "CONFIG_FILE_WITH_PROGRAM_NAME_DEF"
     ENV_CONSOLE_LOG_LEVEL = "CONSOLE_LOG_LEVEL"
     ENV_FILE_LOG_LEVEL = "FILE_LOG_LEVEL"
     ENV_FULL_ARCHIVER_NAME = "FULL_ARCHIVER_NAME"
