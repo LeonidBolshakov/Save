@@ -13,15 +13,29 @@ from SRC.GENERAL.textmessage import TextMessage as T
 
 class RemoteArchiveNamingProtokol(Protocol):
     accept_remote_directory_element: Callable[[str], None]
-    generate_remote_dir: Callable[[], str]
-    generate_remote_path: Callable[[], str]
+    generate_path_remote_dir: Callable[[], str]
+    generate_path_remote_file: Callable[[], str]
 
 
 class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
     """
     Сервис для генерации имён архивных файлов и путей к ним на удалённом (облачном) диске.
 
-    Класс реализует протокол `RemoteArchiveNamingProtokol` и предназначен для:
+    Класс реализует протокол `RemoteArchiveNamingProtokol`
+    и должен передаваться в качестве CallBack для классов работы с облачными дисками.
+    Программы работы с облачными дисками обязаны для каждого элемента директории,
+    предназначенной для записи архива обращаться к методу:
+
+    accept_remote_directory_element: Callable[[str], None]
+
+    Для получения пути архива и файла программа должна обращаться, соответственно, к методам:
+
+    generate_path_remote_dir: Callable[[], str]
+    generate_path_remote_file: Callable[[], str]
+
+
+
+    Класс предназначен для:
     - приёма списка имён файлов из облачной директории;
     - анализа существующих имён архивов с учётом текущей даты;
     - генерации уникального имени нового архива;
@@ -36,14 +50,7 @@ class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
         file_nums (list[int]): Список извлечённых номеров файлов за выбранную дату
         archive_name_format (str): Формат имени архива.
 
-    Методы вызываемые из классов работы с облачным диском:
-        accept_remote_directory_element(item): Обработка имени файла и извлечение номера.
-            Этот метод должен быть ОБЯЗАТЕЛЬНО вызван для каждого элемента директории архива
-        generate_remote_dir(): Генерация пути к директории архива.
-            Этот метод должен быть вызван для определения/формирования пути к директории архива
-        generate_remote_path(): Генерация полного пути к новому архиву.
-
-    Пример использования в:
+    Пример использования находится в файле:
         SRC\\YADISK\\yandex_disk.py
     """
 
@@ -148,7 +155,7 @@ class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
             re.IGNORECASE,  # Независимый от регистра поиск
         )
 
-    def generate_remote_dir(self) -> str:
+    def generate_path_remote_dir(self) -> str:
         """
         CALLBACK
 
@@ -167,7 +174,7 @@ class RemoteArchiveNaming(RemoteArchiveNamingProtokol):
         self.full_remote_archive_dir = f"{root_dir}/{children_dir}"
         return self.full_remote_archive_dir
 
-    def generate_remote_path(self) -> str:
+    def generate_path_remote_file(self) -> str:
         """
         CALLBACK
 

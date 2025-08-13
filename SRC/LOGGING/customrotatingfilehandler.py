@@ -1,4 +1,7 @@
 import logging.handlers
+import logging
+
+logger = logging.getLogger(__name__)
 
 from SRC.GENERAL.constants import Constants as C
 
@@ -63,4 +66,5 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
                     super().emit(record)
 
         except Exception:
+            logger.exception("...")
             self.handleError(record)

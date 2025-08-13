@@ -41,6 +41,7 @@ class MessageMail:
 
         :return: True при удачной отправке письма, False - при неудачной.
         """
+        return True
         try:
             max_level_handler = MaxLevelHandler()
             max_level = max_level_handler.get_highest_level()

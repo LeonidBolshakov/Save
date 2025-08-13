@@ -77,6 +77,7 @@ class TextMessage(frozenset):
     not_key_in_config = (
         "В файле конфигураторе не задана информация о пути архиватора: {key}"
     )
+    not_keyring = "Не обнаружен keyring. Дальнейшая работа невозможна"
     not_found_config_file = "Конфигурационный файл ({config_file_path}) с путём на программу не задан или не существует - "
     not_found_list_file_path = (
         "Не найден файл, состоящий из списка архивируемых файлов.\n"

@@ -12,6 +12,10 @@ class YandexTextMessage(frozenset):
     error_API_Yandex_disk = "Файл на Яндекс-Диск не записан"
     error_check_token = "Яндекс не принял наш токен: {e}"
     error_create_directory_ya_disk = "Ошибка создания директории на Яндекс-Диск: {e}"
+    error_hash = (
+        "Файл {file} записан на Яндекс-Диск, но записан с ошибкой.\n"
+        "Приступаем к удалению файла и, возможно, повторной записи"
+    )
     error_load_file = "Ошибка при загрузке файла на Яндекс-Диск: {err}"
     error_load_tokens = (
         "[Token Load] Ошибка загрузки закрытой информации из keyring: {e}"

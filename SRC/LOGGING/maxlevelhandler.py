@@ -1,4 +1,7 @@
 import logging
+
+logger = logging.getLogger(__name__)
+
 from SRC.GENERAL.constants import Constants as C
 
 
@@ -96,5 +99,6 @@ class MaxLevelHandler(logging.Handler):
                 # Берем текст после 'remote_path=' до первого пробела
                 return message.split(self.remote_link)[1].split()[0]
             return ""
-        except Exception as e:
+        except Exception:
+            logger.exception("...")
             return ""

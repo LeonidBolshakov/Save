@@ -14,7 +14,6 @@
 """
 
 import time
-import requests
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,6 +38,8 @@ from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
+from SRC.YADISK.uploader_yadisk import UploaderToYaDisk
+
 
 class YandexDisk:
     """Класс для работы с файлами (архивами) на Яндекс-Диске"""
@@ -51,12 +52,13 @@ class YandexDisk:
             class RemoteArchiveNamingProtokol:
 
                 accept_remote_directory_element: Callable[[str], None]
-                generate_remote_name: Callable[[], str]
+                generate_path_remote_dir: Callable[[], str]
+                generate_path_remote_file: Callable[[], str]
 
                 accept_remote_directory_element -   должен вызываться для каждого элемента удалённой директории,
                                                     передавая параметром имя файла элемента
-                generate_remote_dir             -   возвращает сгенерированный путь на удалённую директорию.
-                generate_remote_path            -   возвращает сгенерированный путь удалённого файла
+                generate_path_remote_dir             -   возвращает сгенерированный путь на удалённую директорию.
+                generate_path_remote_file            -   возвращает сгенерированный путь удалённого файла
         """
 
         variables = EnvironmentVariables()
@@ -69,12 +71,17 @@ class YandexDisk:
         )  # токен доступа к Яндекс-Диску
 
         self.ya_disk = self.init_ya_disk(self.access_token)
-        # Яндекс-Диск
+
+        self.uploader = (
+            UploaderToYaDisk(  # делегат загрузки (повторы, таймауты, проверку MD5)
+                ya_disk=self.ya_disk, remote_path=self.remote_path
+            )
+        )
         self.remote_dir = self.create_remote_dir()
 
     def create_remote_dir(self) -> str:
         # CALLBACK
-        remote_dir = self.call_back_obj.generate_remote_dir()
+        remote_dir = self.call_back_obj.generate_path_remote_dir()
         if not self.ya_disk.exists(remote_dir):
             logger.info(YT.folder_not_found.format(remote_dir=remote_dir))
             try:
@@ -93,9 +100,7 @@ class YandexDisk:
             logger.info(YT.get_token)
             self.access_token = OAuthFlow().get_access_token()
             if not self.access_token:
-                logger.critical(
-                    ""
-                )  # Для поднятия уровня логов до CRITICAL. В LOG не выводится обработчиками
+                logger.critical("")  # поднимаем уровень логов до CRITICAL
                 raise PermissionError(YT.no_valid_token)
             logger.debug(YT.valid_token)
             return self.access_token
@@ -109,17 +114,23 @@ class YandexDisk:
             # Проверка доступности диска
             if disk.check_token(token=access_token):
                 return disk
-            raise PermissionError(YT.authorization_error.format(e=""))
+            logger.info(YT.authorization_error.format(e=""))
+            raise PermissionError
         except UnauthorizedError as e:
-            raise PermissionError(YT.authorization_error.format(e=e)) from e
+            logger.error(YT.authorization_error.format(e=e))
+            raise PermissionError from e
         except BadRequestError as e:
-            raise PermissionError(YT.invalid_request) from e
+            logger.error(YT.invalid_request)
+            raise PermissionError from e
         except YaDiskError as e:
-            raise RuntimeError(YT.error_ya_disk.format(e=e)) from e
+            logger.error(YT.error_ya_disk.format(e=e))
+            raise RuntimeError from e
         except ConnectionError as e:
-            raise RuntimeError(YT.no_internet.format(e=e)) from e
+            logger.error((YT.no_internet.format(e=e)))
+            raise RuntimeError from e
         except Exception as e:
-            raise RuntimeError(YT.unknown_error.format(e=e)) from e
+            logger.error(YT.unknown_error.format(e=e))
+            raise RuntimeError from e
 
     def create_remote_path(self) -> str:
         for item in self.ya_disk.listdir(self.remote_dir):
@@ -128,18 +139,18 @@ class YandexDisk:
                 self.call_back_obj.accept_remote_directory_element(item.name)
 
         # CALLBACK
-        return self.call_back_obj.generate_remote_path()
+        return self.call_back_obj.generate_path_remote_file()
 
     def _upload_file(self, local_path: str, remote_path: str) -> None:
-        """Выполняет загрузку файла и логирует время."""
+        """Выполняет загрузку файла и логирует время (через high-level API yadisk)."""
         logger.debug(YT.load.format(local_path=local_path, remote_path=remote_path))
         t_start = time.time()
         self.ya_disk.upload(
             local_path,
             remote_path,
             overwrite=False,
-            timeout=120,
-            chunk_size=4 * 1024 * 1024,
+            timeout=YC.TIME_OUT_SECONDS,
+            chunk_size=YC.CHUNK_SIZE,
         )
         during = f"{time.time() - t_start:.2f}"
         logger.info(YT.during.format(during=during))
@@ -149,72 +160,31 @@ class YandexDisk:
         Быстрая загрузка файла на Яндекс-Диск через прямой REST API.
 
         Метод использует двухэтапную загрузку:
-        1. Получает уникальный URL для загрузки от Яндекс-Диска (через API).
-        2. Загружает файл напрямую по этому URL с помощью HTTP PUT.
-
-        Этот способ обеспечивает максимальную производительность, сопоставимую
-        с загрузкой через веб-интерфейс, в отличие от стандартного метода через yadisk.
-
-        Args:
-            local_path (str): Путь к локальному файлу, который нужно загрузить.
+        1) формирует целевой удалённый путь;
+        2) делегирует загрузку `UploaderToYaDisk`, который на каждой попытке
+           сам получает одноразовый upload_url и загружает файл с ретраями/таймаутами.
 
         Returns:
-            bool: путь на архив на целевом (облачном) диске, если загрузка прошла успешно, иначе None.
-
-        Raises:
-            Непосредственно не выбрасывает исключения наружу, но печатает ошибки,
-            возникшие при получении URL или при самой загрузке файла.
+            str | None: путь архива на облаке, если загрузка прошла успешно, иначе None.
         """
         logger.info(YT.fast_load.format(local_path=local_path))
         try:
             self.remote_path = self.create_remote_path()
 
-            upload_url = self._get_upload_url(self.remote_path)
-            logger.debug(YT.url_received.format(upload_url=upload_url))
-            # Открываем локальный файл в бинарном режиме
-            with open(local_path, "rb") as f:
-                # Шаг 2: загружаем файл напрямую на полученный URL через HTTP PUT
-                logger.info(YT.start_fast_load.format(local_path=local_path))
-                response = requests.put(upload_url, data=f)
+            # Делегируем загрузку: внутри загрузчик сам получит upload_url, сделает ретраи и проверит MD5
+            self.uploader.remote_path = self.remote_path
+            self.uploader.write_file_direct(local_path)
 
-            # Проверка на успешную загрузку (ошибки вызовут исключение)
-            response.raise_for_status()
-            logger.info(
-                YT.load_success.format(
-                    local_path=local_path, remote_path=self.remote_path
-                )
-            )
             return self.remote_path
 
         except Exception as err:
-            # Обработка любых исключений при загрузке
             logger.error(YT.error_load_file.format(err=err))
             return None
 
     @retry(
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type(
-            (YaDiskError, requests.exceptions.RequestException)
-        ),
-    )
-    def _get_upload_url(self, remote_path: str) -> str:
-        """Выполняет запрос к API для получения URL загрузки."""
-        response = requests.get(
-            YC.API_YANDEX_LOAD_FILE,
-            headers={"Authorization": f"OAuth {self.access_token}"},
-            params={"path": remote_path, "overwrite": "false"},
-        )
-        if not response.ok:
-            raise RuntimeError(YT.error_upload_URL)
-        return response.json()["href"]
-
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type(
-            (YaDiskError, requests.exceptions.RequestException)
-        ),
+        retry=retry_if_exception_type((YaDiskError,)),
     )
     def mkdir_custom(self, path: str) -> str:
         """

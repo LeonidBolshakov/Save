@@ -1,13 +1,18 @@
 from dotenv import load_dotenv
 from pathlib import Path
 import os
-import keyring
 import logging
 
 logger = logging.getLogger(__name__)
 
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+
+try:
+    import keyring
+except ImportError as err:
+    logger.critical(T.not_keyring)
+    raise ImportError() from err
 
 
 class EnvironmentVariables:

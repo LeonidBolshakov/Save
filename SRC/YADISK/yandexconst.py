@@ -5,10 +5,12 @@ class YandexConstants(frozenset):
     YANDEX_REDIRECT_URI = "YANDEX_REDIRECT_URI"
 
     API_YANDEX_LOAD_FILE = "https://cloud-api.yandex.net/v1/disk/resources/upload"
+    CHUNK_SIZE = 8 * 1024 * 1024
     ENV_YANDEX_CLIENT_ID = "YANDEX_CLIENT_ID"
     ENV_YANDEX_CLIENT_SECRET = "YANDEX_CLIENT_SECRET"
     MISSING = " ** --> Отсутствуют"
     PRESENT = "Представлены"
+    TIME_OUT_SECONDS = 120
     URL_API_YANDEX_DISK = "https://cloud-api.yandex.net/v1/disk"
     URL_AUTORIZATION_YANDEX_OAuth = "https://oauth.yandex.ru/authorize"
     YANDEX_HTML_WINDOW_SUCCESSFUL = """

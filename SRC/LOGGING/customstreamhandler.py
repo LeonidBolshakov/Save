@@ -1,4 +1,6 @@
 import logging
+
+logger = logging.getLogger(__name__)
 from SRC.GENERAL.constants import Constants as C
 
 
@@ -21,4 +23,5 @@ class CustomStreamHandler(logging.StreamHandler):
                 if len(record.getMessage()):
                     super().emit(record)
         except Exception:
+            logger.exception("...")
             self.handleError(record)
