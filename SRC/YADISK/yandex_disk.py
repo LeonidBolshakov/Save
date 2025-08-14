@@ -72,11 +72,6 @@ class YandexDisk:
 
         self.ya_disk = self.init_ya_disk(self.access_token)
 
-        self.uploader = (
-            UploaderToYaDisk(  # делегат загрузки (повторы, таймауты, проверку MD5)
-                ya_disk=self.ya_disk, remote_path=self.remote_path
-            )
-        )
         self.remote_dir = self.create_remote_dir()
 
     def create_remote_dir(self) -> str:
@@ -171,9 +166,13 @@ class YandexDisk:
         try:
             self.remote_path = self.create_remote_path()
 
-            # Делегируем загрузку: внутри загрузчик сам получит upload_url, сделает ретраи и проверит MD5
-            self.uploader.remote_path = self.remote_path
-            self.uploader.write_file_direct(local_path)
+            # Делегируем загрузку: внутри загрузчик сам получит upload_url, сделает повторы и проверит MD5
+            uploader = (
+                UploaderToYaDisk(  # делегат загрузки (повторы, таймауты, проверку MD5)
+                    ya_disk=self.ya_disk, remote_path=self.remote_path
+                )
+            )
+            uploader.write_file_direct(local_path)
 
             return self.remote_path
 

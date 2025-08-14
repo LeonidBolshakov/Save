@@ -44,8 +44,8 @@ class Archiver7z(Archiver, BackupManagerArchiver):
         compression_level = self._check_validate_of_compression(
             compression_level=compression_level
         )
-        archive_path: str = parameters_dict[C.PAR_ARCHIVE_PATH]
-        password: str = parameters_dict.get(C.PAR_PASSWORD)
+        archive_path = parameters_dict[C.PAR_ARCHIVE_PATH]
+        password = parameters_dict.get(C.PAR_PASSWORD)
         list_archive_file_paths: str = parameters_dict[C.PAR_LIST_ARCHIVE_FILE_PATHS]
         try:
             archive_extension: str = parameters_dict[C.PAR_ARCHIVE_EXTENSION]

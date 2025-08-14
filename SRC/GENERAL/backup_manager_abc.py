@@ -13,7 +13,7 @@ from SRC.MAIL.messagemail import MessageMail
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.manager_write_file import write_file
 from SRC.LOGGING.tunelogger import TuneLogger
-from SRC.GENERAL.checkparameter import get_parameter
+from SRC.GENERAL.getparameter import get_parameter
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 

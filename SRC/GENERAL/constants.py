@@ -98,7 +98,7 @@ class Constants(frozenset):
     PAR_ARCHIVE_PATH = "archive_path"
     PAR_ARCHIVER_NAME = "archiver_name"
     PAR_COMPRESSION_LEVEL = "compression_level"
-    PAR_CONFIG_FILE_PATH = "config_file_path"
+    CONFIG_FILE_WITH_PROGRAM_NAME = "config_file_path"
     PAR_LIST_ARCHIVE_FILE_PATHS = "list_archive_file_paths"
     PAR_LOCAL_ARCHIVE_NAME = "local_archive_name"
     PAR_PASSWORD = "password"

@@ -60,7 +60,7 @@ class BackupManager7z(BackupManager):
             C.PAR_ARCHIVER_NAME: archiver_name,
             C.PAR_STANDARD_PROGRAM_PATHS: archiver_standard_program_paths,
             C.PAR_COMPRESSION_LEVEL: compression_level,
-            C.PAR_CONFIG_FILE_PATH: config_file_path,
+            C.CONFIG_FILE_WITH_PROGRAM_NAME: config_file_path,
             C.PAR_LIST_ARCHIVE_FILE_PATHS: list_archive_file_paths,
             C.PAR_LOCAL_ARCHIVE_NAME: local_archive_name,
             C.PAR_PASSWORD: password,

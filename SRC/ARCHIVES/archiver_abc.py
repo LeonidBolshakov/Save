@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 import subprocess
 from typing import Any
 from pathlib import Path
@@ -8,11 +9,18 @@ import logging
 
 logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
-from password_strength import PasswordStats
+from password_strength import PasswordStats  # type: ignore
 
-from SRC.GENERAL.checkparameter import get_parameter
+from SRC.GENERAL.getparameter import get_parameter
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+
+
+@dataclass(frozen=True)
+class _ArchiveContext:
+    archive_path: str
+    password: str | None
+    archiver_program: str
 
 
 class BackupManagerArchiver(Protocol):
@@ -88,50 +96,77 @@ class Archiver(ABC, BackupManagerArchiver):
 
         То в архив будут добавлены все файлы "*.cpp" из каталогов "My programs" и "Src".
         """
-        # Контроль параметров
-        logger.debug(T.init_arch)
 
-        search_programme = get_parameter(
-            parameter=C.PAR___SEARCH_PROGRAMME, parameters_dict=parameters_dict
-        )
-
-        # Загрузка параметров
-        archive_path = self.get_archive_path(parameters_dict)
-
-        try:
-            parameters_dict[C.PAR_ARCHIVE_PATH] = archive_path
-        except KeyError as e:
-            logger.critical(T.error_parameter_archiver.format(param=C.PAR_ARCHIVE_PATH))
-            raise KeyError from e
-
-        list_archive_file_paths = get_parameter(
-            C.PAR_LIST_ARCHIVE_FILE_PATHS, parameters_dict=parameters_dict
-        )
-
-        password: str | None = parameters_dict.get(C.PAR_PASSWORD)
-
-        # Контроль параметров
+        ctx = self._prepare_context(parameters_dict)
         self._check_all_params(parameters_dict)
 
-        # готовим командную строку для запуска архиватора
+        cmd = self._build_cmd(ctx.archiver_program, parameters_dict)
+        self._log_start(cmd, ctx.password)
+
+        return self._run_and_return(cmd, ctx.archive_path, ctx.password)
+
+    def _prepare_context(self, parameters_dict: dict[str, Any]) -> _ArchiveContext:
+        """
+        Собирает всё, что нужно для архивации, и записывает archive_path в параметры.
+
+        :param parameters_dict: Словарь параметров
+
+        :return: Данные, необходимые для архивации
+        """
+        archive_path = self.get_archive_path(parameters_dict)
+        parameters_dict[C.PAR_ARCHIVE_PATH] = archive_path
+
+        password: str | None = parameters_dict.get(C.PAR_PASSWORD)
         archiver_program = self.get_archiver_program(parameters_dict)
-        cmd = self.get_cmd_archiver(archiver_program, parameters_dict)
+
+        return _ArchiveContext(
+            archive_path=archive_path,
+            password=password,
+            archiver_program=archiver_program,
+        )
+
+    def _build_cmd(
+        self, archiver_program: str, parameters_dict: dict[str, Any]
+    ) -> list[str]:
+        """
+        Сборка командной строки архивации.
+
+        :param archiver_program: Программа архиватор
+        :param parameters_dict: Словарь параметров
+        :return: командная строка для запуска архиватора
+        """
+        return self.get_cmd_archiver(archiver_program, parameters_dict)
+
+    def _log_start(self, cmd: list[str], password: str | None) -> None:
+        """Точка логирования старта с маскировкой пароля."""
         logger.debug(
             T.starting_archiving.format(
                 cmd=self._mask_password_in_cmd(cmd=cmd, password=password)
             )
         )
 
-        # Запускаем программу архиватор
-        return (  # archive_path было задано как имя архива при формировании cmd
+    def _run_and_return(
+        self, cmd: list[str], archive_path: str, password: str | None
+    ) -> str | None:
+        """
+        Запуск процесса архивации
+
+        :param cmd: Команда запуска процесса
+        :param archive_path: Путь на архив
+        :param password: Пароль
+        :return: Путь на архив или None
+        """
+        return (
             archive_path
             if self._run_archiver(cmd=cmd, archive_path=archive_path, password=password)
             else None
         )
 
-    def _run_archiver(self, cmd: list[str], archive_path: str, password: str) -> bool:
+    def _run_archiver(
+        self, cmd: list[str], archive_path: str, password: str | None
+    ) -> bool:
         """
-        запуск программы архиватора по заранее сформированной разобранной строке
+        Запуск программы архиватора по заранее сформированной разобранной строке
 
         :param cmd: Список строк, соединив которые, получаем команду для запуска программы архиватора.
         :param archive_path: Путь на архив
@@ -151,24 +186,35 @@ class Archiver(ABC, BackupManagerArchiver):
             return True
         except Exception as e:
             logger.critical(
-                ""
-            )  # Для поднятия уровня логов до CRITICAL. В LOG не выводится обработчиками
-            raise RuntimeError(T.error_starting_archiving.format(e=e))
+                "T.error_starting_archiving.format(e=e)"
+            )  # Для поднятия уровня логов до CRITICAL
+            raise RuntimeError
 
-    def _error_subprocess(self, process, cmd: list[str], password: str):
-        return logger.error(
-            T.error_subprocess.format(
-                cmd_mask=self._mask_password_in_cmd(cmd=cmd, password=password),
-                stderr=process.stderr,
-            )
+    def _error_subprocess(
+        self, process: subprocess.CompletedProcess, cmd: list[str], password: str | None
+    ) -> str:
+        """
+        Формирование сообщения об ошибке subprocess
+
+        :param process: Выполненный процесс
+        :param cmd: Команда запуска процесса
+        :param password: Пароль
+
+        :return: Текст сообщения
+        """
+        return T.error_subprocess.format(
+            cmd_mask=self._mask_password_in_cmd(cmd=cmd, password=password),
+            stderr=process.stderr,
         )
 
     @staticmethod
-    def get_archive_path(parameters_dict: dict[str:Any]) -> str:
+    def get_archive_path(parameters_dict: dict[str, Any]) -> str:
         """
         Формирует и возвращает полный путь на архив
 
-        :return: (str) полный путь на архив
+        :param parameters_dict: Словарь параметров
+
+        :return: полный путь на архив
         """
 
         archive_dir = parameters_dict[C.PAR_ARCHIVE_DIR]
@@ -238,16 +284,14 @@ class Archiver(ABC, BackupManagerArchiver):
         list_file_path = Path(list_archive_file_paths)
         if not list_file_path.exists():
             logger.critical(
-                ""
-            )  # Для поднятия уровня логов до CRITICAL. В LOG не выводится обработчиками
-            raise FileNotFoundError(
                 T.not_found_list_file_path.format(
                     list_file_path=list_file_path,
                     env=Path(C.VARIABLES_DOTENV_PATH).absolute(),
                     parameter=C.ENV_LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES,
                     default=C.LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES_DEF,
                 )
-            )
+            )  # Для поднятия уровня логов до CRITICAL. В LOG не выводится обработчиками
+            raise FileNotFoundError
         logger.debug(T.exists_list_file.format(list_file_path=list_file_path))
 
     def _check_password(self, parameters_dict: dict[str, Any]) -> None:
@@ -261,14 +305,21 @@ class Archiver(ABC, BackupManagerArchiver):
             logger.info(T.password_not_set)
             return
 
-        stats = PasswordStats(password=password)
+        strength_str, strength_level, entropy_str, entropy_level = (
+            self._password_metrics(password)
+        )
 
-        strength_str, strength_level = self.classify_strength(stats.strength())
-        entropy_str, entropy_level = self.classify_entropy(stats.entropy_bits)
         level = max(strength_level, entropy_level)
         self.log_by_password_level(
             level=level, strength_str=strength_str, entropy_str=entropy_str
         )
+
+    def _password_metrics(self, password) -> tuple[str, int, str, int]:
+        stats = PasswordStats(password=password)
+
+        strength_str, strength_level = self.classify_strength(stats.strength())
+        entropy_str, entropy_level = self.classify_entropy(stats.entropy_bits)
+        return strength_str, strength_level, entropy_str, entropy_level
 
     def log_by_password_level(self, level, strength_str, entropy_str) -> None:
         """
@@ -335,7 +386,7 @@ class Archiver(ABC, BackupManagerArchiver):
                 return T.entropy_Unreliable, logging.WARNING
             case _ if 28 <= x < 50:
                 return T.entropy_brute_force, logging.INFO
-            case _ if 0.50 <= x:
+            case _ if 50 <= x:
                 return T.entropy_highly, logging.DEBUG
         return T.error_unknown, logging.CRITICAL
 
@@ -381,53 +432,107 @@ class Archiver(ABC, BackupManagerArchiver):
 
         return masked_cmd
 
-    @staticmethod
-    def get_archiver_program(parameters_dict: dict[str, Any]) -> str:
+    def get_archiver_program(self, parameters_dict: dict[str, Any]) -> str:
         """
         Инициализирует поиск пути к программе архиватору.
+        1. Читает параметры конфигурации.
+        2. Ищет программу архивации по заданному пути или имени.
+        3. Генерирует исключение, если программа не найдена.
 
-        :return: Полный путь к программе архиватору
-
-        Raises:
-            OSError: Если программа не найдена в системе
+        :parameters: Словарь параметров
+        :return: Полный путь к программе архиватора.
+        :raises OSError: Если программа не найдена в системе.
         """
         logger.debug(T.init_SearchProgramme)
 
-        # Формирование параметров для поиска программы
-        config_file_path = get_parameter(
-            C.PAR_CONFIG_FILE_PATH, parameters_dict=parameters_dict, level=logging.DEBUG
+        # 1. Читает параметры конфигурации.
+        config_file_path, standard_program_paths, programme_full_name = (
+            self._load_search_config(parameters_dict)
         )
-        if config_file_path is None:
-            config_file_path = C.CONFIG_FILE_WITH_PROGRAM_NAME_DEF
+
+        # 2. Ищет программу архивации по заданному пути или имени.
+        search_programme = self._init_search_programme(parameters_dict)
+        programme_path = self._resolve_program_path(
+            search_programme,
+            config_file_path,
+            standard_program_paths,
+            programme_full_name,
+        )
+
+        # 3. Генерирует исключение, если программа не найдена.
+        if not programme_path:
+            logger.critical("Архиватор не найден в системе.")
+            raise OSError(T.archiver_not_found)
+
+        # 4. Возвращает путь на архиватор
+        return programme_path
+
+    @staticmethod
+    def _load_search_config(
+        parameters_dict: dict[str, Any],
+    ) -> tuple[str, list[str], str]:
+        """
+        Загружает параметры для поиска архиватора: путь конфигурации, стандартные пути и имя программы.
+
+        :param parameters_dict: Словарь параметров.
+        :return: tuple (config_file_path, standard_program_paths, programme_full_name)
+        """
+        config_file_path = get_parameter(
+            C.CONFIG_FILE_WITH_PROGRAM_NAME,
+            parameters_dict=parameters_dict,
+            level=logging.DEBUG,
+        )
+        if not config_file_path:
+            config_file_path = get_parameter(
+                C.CONFIG_FILE_WITH_PROGRAM_NAME_DEF,
+                parameters_dict=parameters_dict,
+                level=logging.INFO,
+            )
 
         standard_program_paths = get_parameter(
             C.PAR_STANDARD_PROGRAM_PATHS,
             parameters_dict=parameters_dict,
             level=logging.DEBUG,
         )
+
         programme_full_name = get_parameter(
             C.PAR_ARCHIVER_NAME, parameters_dict=parameters_dict
         )
 
-        # Создание объекта класса поиска программы
-        SearchProgramme = get_parameter(
+        return config_file_path, standard_program_paths, programme_full_name
+
+    @staticmethod
+    def _init_search_programme(parameters_dict: dict[str, Any]) -> object:
+        """
+        Инициализирует объект программы для поиска пути к архиватору.
+
+        :param parameters_dict: Словарь параметров.
+        :return: Экземпляр класса для поиска.
+        """
+        search_programme_class = get_parameter(
             C.PAR___SEARCH_PROGRAMME, parameters_dict=parameters_dict
         )
 
-        _search_programme = SearchProgramme()
+        return search_programme_class()
 
-        # Поиск пути к программе архиватору
-        programme_path = _search_programme.get_path(
+    @staticmethod
+    def _resolve_program_path(
+        search_programme,
+        config_file_path: str,
+        standard_program_paths: list[str],
+        programme_full_name: str,
+    ) -> str:
+        """
+        Ищет путь к архиватору, используя заданные параметры.
+
+        :param search_programme: Экземпляр класса поиска программы.
+        :param config_file_path: Путь к конфигурационному файлу.
+        :param standard_program_paths: Список стандартных путей для поиска.
+        :param programme_full_name: Имя программы архиватора.
+        :return: Путь к архиватору или None, если не найдено.
+        """
+        return search_programme.get_path(
             config_file_path=config_file_path,
             standard_program_paths=standard_program_paths,
             programme_full_name=programme_full_name,
         )
-
-        # Проверка наличия архиватора
-        if not programme_path:
-            logger.critical(
-                ""
-            )  # Для поднятия уровня логов до CRITICAL. В LOG не выводится обработчиками
-            raise OSError(T.archiver_not_found)
-
-        return programme_path
