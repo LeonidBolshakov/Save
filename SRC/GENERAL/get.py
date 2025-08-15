@@ -23,3 +23,11 @@ def get_parameter(
             case _:
                 logger.info(T.error_parameter_archiver.format(param=parameter))
     return None
+
+
+def get_value(const: Any) -> Any:
+    return const
+
+
+def get_ya_value(const: Any) -> Any:
+    return const

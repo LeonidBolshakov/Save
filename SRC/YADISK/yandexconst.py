@@ -10,7 +10,7 @@ class YandexConstants(frozenset):
     ENV_YANDEX_CLIENT_SECRET = "YANDEX_CLIENT_SECRET"
     MISSING = " ** --> Отсутствуют"
     PRESENT = "Представлены"
-    TIME_OUT_SECONDS = 120
+    TIME_OUT_SECONDS = 90
     URL_API_YANDEX_DISK = "https://cloud-api.yandex.net/v1/disk"
     URL_AUTORIZATION_YANDEX_OAuth = "https://oauth.yandex.ru/authorize"
     YANDEX_HTML_WINDOW_SUCCESSFUL = """

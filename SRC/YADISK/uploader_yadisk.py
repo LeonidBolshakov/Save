@@ -12,6 +12,9 @@ from tenacity import (
 
 logger = logging.getLogger(__name__)
 
+from SRC.YADISK.yandexconst import YandexConstants as YC
+from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
+
 
 class HashMismatchError(Exception):
     """Выбрасывается при несовпадении контрольных сумм после загрузки."""
@@ -74,11 +77,13 @@ class UploaderToYaDisk:
         if isinstance(exc, HashMismatchError):
             return True
 
-        # 2) Сетевая ошибка requests — да
+        # 2) Сетевая ошибка
         if isinstance(exc, requests.exceptions.RequestException):
+
             resp = getattr(exc, "response", None)
             if resp is not None and resp.status_code is not None:
                 return UploaderToYaDisk._is_retryable_status(resp.status_code)
+
             return True  # нет ответа (timeout/connect error) — повторяем
 
         # 3) По умолчанию — не повторяем (например, FileNotFoundError и пр.)
@@ -88,7 +93,7 @@ class UploaderToYaDisk:
     def _is_retryable_status(code: int) -> bool:
         """
         Определяет необходимость повтора, в зависимости от статуса кода ответа сервера
-        :param code: статус код ответа сервера
+        :param code: статус кода ответа сервера
         :return: True - нужен повтор, False - не нужен повтор
         """
         if code == 429 or 500 <= code <= 504:
@@ -117,10 +122,8 @@ class UploaderToYaDisk:
             return href
 
         # Если формат неожиданный — записываем в лог и падаем с понятной ошибкой
-        logger.error(
-            f"Не удалось извлечь адрес для загрузки файла из ответа Яндекс-Диска:\n {type(res)!r} -> {res!r}"
-        )
-        raise ValueError("Неожиданный формат ссылки для загрузки")
+        logger.error(YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}"))
+        raise ValueError(YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}"))
 
     @retry(
         stop=stop_after_attempt(5),
@@ -136,18 +139,20 @@ class UploaderToYaDisk:
 
         # 1) Открываем локальный файл
         with self._open_local_file(path=local_path) as f:
-            logger.info(f"Начинаю быструю загрузку: {local_path}")
+            logger.info(YT.start_fast_load.format(local_path=local_path))
 
             # 2) На КАЖДОЙ попытке берём новый upload_url
             upload_url = self._get_upload_url()
 
             # 3) Загрузка файла с таймаутом
-            self._put_file(upload_url=upload_url, f=f, timeout=60)
+            self._put_file(upload_url=upload_url, f=f, timeout=YC.TIME_OUT_SECONDS)
 
         # 4) Контроль целостности (MD5 локальный vs MD5 из метаданных Яндекс-Диска)
         self._verify_integrity(local_path=local_path, remote_path=self.remote_path)
         # 5) Успех
-        logger.info(f"Загрузка завершена: {local_path} → {self.remote_path}")
+        logger.info(
+            YT.finish_load.format(local_path=local_path, remote_path=self.remote_path)
+        )
 
     @staticmethod
     def _open_local_file(path: str) -> BinaryIO:
@@ -160,7 +165,7 @@ class UploaderToYaDisk:
         try:
             return open(path, "rb")
         except FileNotFoundError:
-            logger.error(f"Локальный файл не найден: {path}")
+            logger.error(YT.local_file_not_found.format(path=path))
             raise  # tenacity не будет повторять (см. _should_retry)
 
     def _put_file(
@@ -178,7 +183,7 @@ class UploaderToYaDisk:
             self._raise_for_bad_status(resp)
             return resp
         except requests.exceptions.RequestException as e:
-            logger.info(f"Сетевая ошибка при загрузке: {e}")
+            logger.info(YT.error_network.format(e=e))
             raise  # поймает tenacity и решит, повторять ли
 
     @staticmethod
@@ -206,13 +211,11 @@ class UploaderToYaDisk:
             not self.calculate_md5(local_path).lower()
             == (self.get_remote_md5_yadisk(remote_path) or "").lower()
         ):
-            logger.info(
-                f"Несовпадение MD5 для {self.remote_path}— возможно попробуем ещё раз",
-            )
+            logger.info(YT.mismatch_MD5.format(remote_path=remote_path))
             raise HashMismatchError
 
     @staticmethod
-    def calculate_md5(file_path: str, chunk_size: int = 64 * 1024) -> str:
+    def calculate_md5(file_path: str, chunk_size: int = YC.CHUNK_SIZE) -> str:
         """Вычисляет MD5-хэш файла (по частям)."""
 
         h = hashlib.md5()

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)  # Используем логгер по �
 
 from password_strength import PasswordStats  # type: ignore
 
-from SRC.GENERAL.getparameter import get_parameter
+from SRC.GENERAL.get import get_parameter
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
