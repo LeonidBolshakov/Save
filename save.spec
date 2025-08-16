@@ -1,4 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
 
 a = Analysis(
@@ -8,8 +9,8 @@ a = Analysis(
     datas=[
 	('_internal\\env', '.'),
 	('_internal\\list.txt', '.'),
-],
-    hiddenimports=[],
+] + collect_data_files('password_strength') + collect_data_files('yadisk'),
+    hiddenimports=collect_submodules('password_strength') + collect_submodules('yadisk'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

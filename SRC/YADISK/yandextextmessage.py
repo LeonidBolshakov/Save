@@ -20,7 +20,7 @@ class YandexTextMessage(frozenset):
     error_load_tokens = (
         "[Token Load] Ошибка загрузки закрытой информации из keyring: {e}"
     )
-    error_network = "Сетевая ошибка при загрузке: {e}"
+    error_network = "Ошибка Internet при загрузке файла в облако: {e}"
     error_processing_request = "Ошибка авторизации Яндекс: {e}"
     error_refresh_token = (
         "Яндекс отказал обновить токена доступа с помощью refresh токена. "
@@ -47,7 +47,7 @@ class YandexTextMessage(frozenset):
     loaded_token = "Будут использоваться сохраненные закрытые данные"
     load_success = "Файл {local_path} успешно загружен на Яндекс-Диск в {remote_path}"
     local_file_not_found = "Локальный файл не найден: {path}"
-    mismatch_MD5="Несовпадение MD5 для {remote_path}— возможно попробуем ещё раз"
+    mismatch_MD5 = "Несовпадение контрольной суммы(MD5) для {remote_path}— возможно попробуем ещё раз"
     no_auth_code = "В присланной Яндекс информации нет кода авторизации"
     no_callback_path = "Яндекс не авторизовал наш запрос."
     no_correct_redirect_uri = (

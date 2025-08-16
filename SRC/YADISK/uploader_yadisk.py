@@ -9,6 +9,7 @@ from tenacity import (
     retry_if_exception,
     before_sleep_log,
 )
+from yadisk.exceptions import YaDiskError
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,45 @@ class UploaderToYaDisk:
         self.ya_disk = ya_disk
         self.remote_path = remote_path
 
+    @staticmethod
+    def _is_retryable_status(code: int) -> bool:
+        """
+        Определяет необходимость повтора, в зависимости от статуса кода ответа сервера
+        :param code: статус кода ответа сервера
+        :return: True - нужен повтор, False - не нужен повтор
+        """
+        if code == 429 or 500 <= code <= 504:
+            return True
+        return False
+
+    # --- Получить новый upload_url перед каждой попыткой ---
+    def _get_upload_url(self) -> str:
+        """
+        Получает одноразовую ссылку для загрузки на Яндекс-Диск.
+        Обрабатывает разные форматы ответа API.
+        """
+        try:
+            res = self.ya_disk.get_upload_link(self.remote_path, overwrite=True)
+
+            # Вариант 1: сразу строка
+            if isinstance(res, str):
+                return res
+
+            # Вариант 2: dict с ключом 'href'
+            if isinstance(res, dict) and "href" in res:
+                return res["href"]
+
+            # Вариант 3: объект с атрибутом .href
+            href = getattr(res, "href", None)
+            if isinstance(href, str) and href:
+                return href
+        except Exception as e:
+            raise YaDiskError from e
+
+        # Если формат неожиданный — записываем в лог и падаем с понятной ошибкой
+        logger.error(YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}"))
+        raise ValueError(YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}"))
+
     # --- Фильтр: по каким ошибкам повторяем ---
     @staticmethod
     def _should_retry(exc: BaseException) -> bool:
@@ -88,42 +128,6 @@ class UploaderToYaDisk:
 
         # 3) По умолчанию — не повторяем (например, FileNotFoundError и пр.)
         return False
-
-    @staticmethod
-    def _is_retryable_status(code: int) -> bool:
-        """
-        Определяет необходимость повтора, в зависимости от статуса кода ответа сервера
-        :param code: статус кода ответа сервера
-        :return: True - нужен повтор, False - не нужен повтор
-        """
-        if code == 429 or 500 <= code <= 504:
-            return True
-        return False
-
-    # --- Получить новый upload_url перед каждой попыткой ---
-    def _get_upload_url(self) -> str:
-        """
-        Получает одноразовую ссылку для загрузки на Яндекс-Диск.
-        Обрабатывает разные форматы ответа API.
-        """
-        res = self.ya_disk.get_upload_link(self.remote_path, overwrite=True)
-
-        # Вариант 1: сразу строка
-        if isinstance(res, str):
-            return res
-
-        # Вариант 2: dict с ключом 'href'
-        if isinstance(res, dict) and "href" in res:
-            return res["href"]
-
-        # Вариант 3: объект с атрибутом .href
-        href = getattr(res, "href", None)
-        if isinstance(href, str) and href:
-            return href
-
-        # Если формат неожиданный — записываем в лог и падаем с понятной ошибкой
-        logger.error(YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}"))
-        raise ValueError(YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}"))
 
     @retry(
         stop=stop_after_attempt(5),
@@ -224,7 +228,7 @@ class UploaderToYaDisk:
                 h.update(chunk)
         return h.hexdigest()
 
-    def get_remote_md5_yadisk(self, remote_path: str):
+    def get_remote_md5_yadisk(self, remote_path: str) -> str | None:
         """Получает MD5 загруженного файла с Яндекс-Диска (если доступно)."""
         meta = self.ya_disk.get_meta(remote_path, fields="md5")
         if hasattr(meta, "md5"):

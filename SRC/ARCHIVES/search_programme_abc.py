@@ -88,7 +88,7 @@ class SearchProgramme(ABC):
         :return: True, если JSON конфигурация загружена, FALSE в противном случае
         """
         if not (config_file_path and Path(config_file_path).exists()):
-            logger.warning(
+            logger.info(
                 T.not_found_config_file.format(config_file_path=config_file_path)
             )
             return False
@@ -97,7 +97,7 @@ class SearchProgramme(ABC):
                 self.config_path = json.load(f)
                 return True
         except Exception as e:
-            logger.warning(
+            logger.info(
                 T.error_load_config.format(config_file_path=config_file_path, e=e)
             )
             return False

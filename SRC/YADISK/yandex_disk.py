@@ -75,16 +75,16 @@ class YandexDisk:
         self.remote_dir = self.create_remote_dir()
 
     def create_remote_dir(self) -> str:
-        # CALLBACK
-        remote_dir = self.call_back_obj.generate_path_remote_dir()
-        if not self.ya_disk.exists(remote_dir):
-            logger.info(YT.folder_not_found.format(remote_dir=remote_dir))
-            try:
+        try:
+            # CALLBACK
+            remote_dir = self.call_back_obj.generate_path_remote_dir()
+            if not self.ya_disk.exists(remote_dir):
+                logger.info(YT.folder_not_found.format(remote_dir=remote_dir))
                 current_path = self.mkdir_custom(remote_dir)  # Создаём папку с архивами
                 logger.info(YT.folder_created.format(current_path=current_path))
-            except Exception as e:
-                raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e))
-        return remote_dir
+            return remote_dir
+        except Exception as e:
+            raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e))
 
     def get_token_for_API(self) -> str:
         """
@@ -157,7 +157,7 @@ class YandexDisk:
         Метод использует двухэтапную загрузку:
         1) формирует целевой удалённый путь;
         2) делегирует загрузку `UploaderToYaDisk`, который на каждой попытке
-           сам получает одноразовый upload_url и загружает файл с ретраями/таймаутами.
+           сам получает одноразовый upload_url и загружает файл с повторами/таймаутами.
 
         Returns:
             str | None: путь архива на облаке, если загрузка прошла успешно, иначе None.
@@ -183,7 +183,9 @@ class YandexDisk:
     @retry(
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type((YaDiskError,)),
+        retry=retry_if_exception_type(
+            YaDiskError,
+        ),
     )
     def mkdir_custom(self, path: str) -> str:
         """
@@ -199,8 +201,8 @@ class YandexDisk:
                 current_path += f"/{part}"
                 if not self.ya_disk.exists(current_path):
                     self.ya_disk.mkdir(current_path)
-
             return current_path
 
         except Exception as e:
-            raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e)) from e
+            logger.error(YT.error_create_directory_ya_disk.format(e=e))
+            raise YaDiskError from e
