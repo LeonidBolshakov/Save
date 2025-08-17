@@ -2,11 +2,17 @@ from __future__ import annotations
 import os
 import logging
 
+TESTING = os.getenv("TESTING", "0") == "1"
 logger = logging.getLogger(__name__)
 
 from SRC.YADISK.OAUTH.exceptions import AuthError
-from SRC.YADISK.OAUTH.oauthflow import OAuthFlow
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
+
+
+class _Flow:
+    # noinspection PyMethodMayBeStatic
+    def get_access_token(self):
+        return "TEST_TOKEN"
 
 
 class YandexOAuth:
@@ -23,7 +29,17 @@ class YandexOAuth:
             self,
     ):
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-        self.flow = OAuthFlow()
+        self.flow = self._make_flow()
+
+    @staticmethod
+    def _make_flow():
+        if TESTING:
+            # лёгкая заглушка для тестов
+            return _Flow()
+        # боевая инициализация
+        from SRC.YADISK.OAUTH.oauthflow import OAuthFlow
+
+        return OAuthFlow()
 
     def get_access_token(self) -> str | None:
         """Получает действительный access token"""

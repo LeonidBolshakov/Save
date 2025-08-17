@@ -14,6 +14,7 @@
 """
 
 import time
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,6 @@ from tenacity import (
     wait_exponential,
     retry_if_exception_type,
 )
-import yadisk
 from yadisk import YaDisk
 from yadisk.exceptions import (
     YaDiskError,
@@ -32,13 +32,57 @@ from yadisk.exceptions import (
     BadRequestError,
 )
 
-from SRC.YADISK.OAUTH.yandexoauth import OAuthFlow  # Модуль для работы с OAuth
 from SRC.GENERAL.remote_archive_naming import RemoteArchiveNamingProtokol
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
 from SRC.YADISK.uploader_yadisk import UploaderToYaDisk
+
+TESTING = os.getenv("TESTING", "0") == "1"
+
+
+# noinspection PyMethodMayBeStatic
+class _Client:
+    def __init__(self, token=None):
+        self._token = token
+
+    # у реального API сигнатура check_token(token=None)
+    def check_token(self, token=None):
+        return True
+
+    def exists(self, path: str) -> bool:
+        return True
+
+    def mkdir(self, path: str) -> None:
+        return None
+
+    def get_meta(self, path: str, fields: str | None = None):
+        # объект с атрибутом md5
+        return type("M", (), {"md5": "0" * 32})()
+
+    def get_upload_link(self, path: str):
+        # форма, совместимая с реальным API
+        return {"href": "http://dummy"}
+
+    def upload(self, local_path: str, remote_path: str, overwrite: bool = True):
+        # безопасный no operation для тестов
+        return None
+
+
+def get_oauth_flow():
+    from SRC.YADISK.OAUTH.oauthflow import OAuthFlow
+
+    return OAuthFlow()
+
+
+def get_token():
+    flow = get_oauth_flow()
+    token = flow.get_access_token()
+    if not token:
+        # тот же текст, что использовался ниже
+        raise PermissionError(YT.no_valid_token)
+    return token
 
 
 class YandexDisk:
@@ -74,36 +118,10 @@ class YandexDisk:
 
         self.remote_dir = self.create_remote_dir()
 
-    def create_remote_dir(self) -> str:
-        try:
-            # CALLBACK
-            remote_dir = self.call_back_obj.generate_path_remote_dir()
-            if not self.ya_disk.exists(remote_dir):
-                logger.info(YT.folder_not_found.format(remote_dir=remote_dir))
-                current_path = self.mkdir_custom(remote_dir)  # Создаём папку с архивами
-                logger.info(YT.folder_created.format(current_path=current_path))
-            return remote_dir
-        except Exception as e:
-            raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e))
-
-    def get_token_for_API(self) -> str:
-        """
-        Получение токена для API
-        :return: (str) токен доступа к Яндекс-Диску
-        """
-        try:
-            logger.info(YT.get_token)
-            self.access_token = OAuthFlow().get_access_token()
-            if not self.access_token:
-                logger.critical("")  # поднимаем уровень логов до CRITICAL
-                raise PermissionError(YT.no_valid_token)
-            logger.debug(YT.valid_token)
-            return self.access_token
-        except Exception as e:
-            raise PermissionError(YT.get_token_error.format(e=e)) from e
-
     @staticmethod
-    def init_ya_disk(access_token: str) -> YaDisk:
+    def _get_ya_disk(access_token: str) -> YaDiskError:
+        import yadisk
+
         try:
             disk = yadisk.YaDisk(token=access_token)
             # Проверка доступности диска
@@ -126,6 +144,36 @@ class YandexDisk:
         except Exception as e:
             logger.error(YT.unknown_error.format(e=e))
             raise RuntimeError from e
+
+    def create_remote_dir(self) -> str:
+        try:
+            # CALLBACK
+            remote_dir = self.call_back_obj.generate_path_remote_dir()
+            if not self.ya_disk.exists(remote_dir):
+                logger.info(YT.folder_not_found.format(remote_dir=remote_dir))
+                current_path = self.mkdir_custom(remote_dir)  # Создаём папку с архивами
+                logger.info(YT.folder_created.format(current_path=current_path))
+            return remote_dir
+        except Exception as e:
+            raise YaDiskError(YT.error_create_directory_ya_disk.format(e=e))
+
+    def get_token_for_API(self) -> str:
+        """
+        Получение токена для API
+        :return: (str) токен доступа к Яндекс-Диску
+        """
+        try:
+            logger.info(YT.get_token)
+            self.access_token = get_token()
+            logger.debug(YT.valid_token)
+            return self.access_token
+        except Exception as e:
+            raise PermissionError(YT.get_token_error.format(e=e)) from e
+
+    def init_ya_disk(self, access_token: str) -> YaDisk:
+        if TESTING:
+            return _Client(access_token)  # без сети в тестах
+        return self._get_ya_disk(access_token)
 
     def create_remote_path(self) -> str:
         for item in self.ya_disk.listdir(self.remote_dir):

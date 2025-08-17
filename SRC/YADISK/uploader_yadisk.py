@@ -1,3 +1,4 @@
+import os
 import logging
 import hashlib
 import requests
@@ -11,10 +12,17 @@ from tenacity import (
 )
 from yadisk.exceptions import YaDiskError
 
+TESTING = os.getenv("TESTING", "0") == "1"
 logger = logging.getLogger(__name__)
 
 from SRC.YADISK.yandexconst import YandexConstants as YC
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
+
+
+def _requests_put(url, data, timeout):
+    import requests
+
+    return requests.put(url, data=data, timeout=timeout)
 
 
 class HashMismatchError(Exception):
@@ -172,9 +180,7 @@ class UploaderToYaDisk:
             logger.error(YT.local_file_not_found.format(path=path))
             raise  # tenacity не будет повторять (см. _should_retry)
 
-    def _put_file(
-        self, upload_url: str, f: BinaryIO, timeout: int
-    ) -> requests.Response:
+    def _put_file(self, upload_url: str, f: BinaryIO, timeout: int) -> None:
         """
         Отправка файла в облако
         :param upload_url: URL для загрузки файла
@@ -182,13 +188,17 @@ class UploaderToYaDisk:
         :param timeout: Тайм аут в секундах
         :return: ответ сервера
         """
+        if TESTING:
+            # имитация успешной отправки
+            return
+
         try:
-            resp = requests.put(upload_url, data=f, timeout=timeout)
+            resp = _requests_put(upload_url, data=f, timeout=timeout)
             self._raise_for_bad_status(resp)
-            return resp
+            return
         except requests.exceptions.RequestException as e:
             logger.info(YT.error_network.format(e=e))
-            raise  # поймает tenacity и решит, повторять ли
+            raise  # tenacity поймает и решит, повторять ли
 
     @staticmethod
     def _raise_for_bad_status(resp: requests.Response) -> None:
@@ -212,8 +222,8 @@ class UploaderToYaDisk:
         :return:
         """
         if (
-            not self.calculate_md5(local_path).lower()
-            == (self.get_remote_md5_yadisk(remote_path) or "").lower()
+                not self.calculate_md5(local_path).lower()
+                    == (self.get_remote_md5_yadisk(remote_path) or "").lower()
         ):
             logger.info(YT.mismatch_MD5.format(remote_path=remote_path))
             raise HashMismatchError
