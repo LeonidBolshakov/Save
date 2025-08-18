@@ -1,5 +1,3 @@
-from email.header import Header
-
 import yagmail  # type: ignore
 from yagmail.error import YagAddressError, YagInvalidEmailAddress  # type: ignore
 import logging

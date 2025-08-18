@@ -23,6 +23,7 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
         maxBytes: int = 0,
         backupCount: int = 0,
         encoding: str | None = None,
+        errors: str | None = None,
         delay: bool = False,
     ):
         """
@@ -42,6 +43,7 @@ class CustomRotatingFileHandler(logging.handlers.RotatingFileHandler):
             maxBytes=maxBytes,
             backupCount=backupCount,
             encoding=encoding,
+            errors=errors,
             delay=delay,
         )
         self.email_send_trigger = C.ARCHIVING_END_TRIGGER

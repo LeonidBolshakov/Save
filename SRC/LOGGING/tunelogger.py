@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 import logging
 from enum import Enum
 
@@ -71,13 +72,17 @@ class TuneLogger:
     def create_file_handler() -> CustomRotatingFileHandler:
         """Создание файлового обработчика"""
         variables = EnvironmentVariables()
-        log_file_name = variables.get_var(C.ENV_LOG_FILE_PATH, C.LOG_FILE_PATH_DEF)
+        log_file_path = variables.get_var(C.ENV_LOG_FILE_PATH, C.LOG_FILE_PATH_DEF)
+
+        p = Path(log_file_path)
+        mode = "w" if (not p.exists() or p.stat().st_size == 0) else "a"
 
         return CustomRotatingFileHandler(
-            filename=log_file_name,
+            filename=log_file_path,
+            mode=mode,
             maxBytes=C.ROTATING_MAX_BYTES,
             backupCount=C.ROTATING_BACKUP_COUNT,
-            encoding=C.ENCODING,
+            encoding="utf-8-sig",
             delay=True,
         )
 
@@ -91,7 +96,6 @@ class TuneLogger:
         # Настройка форматирования
         for handler in handlers:
             handler.setFormatter(logging.Formatter(log_format))
-            handler.encoding = "utf-8"
 
         # Настройка уровней логирования
         self.handlers_logger[HandlerLogger.file].setLevel(file_log_level)

@@ -30,7 +30,7 @@ def get_parameter(
 def _runtime_base() -> Path:
     if getattr(sys, "frozen", False):
         mp = getattr(sys, "_MEIPASS", None)  # onefile → временная папка с ресурсами
-        return Path(mp) if mp else Path(sys.executable).parent  # onedir
+        return Path(mp) if mp else Path(sys.executable).parent
     # dev: корень проекта (ищем каталог с SRC)
     here = Path(__file__).resolve()
     for p in here.parents:
