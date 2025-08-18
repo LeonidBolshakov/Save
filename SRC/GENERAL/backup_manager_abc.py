@@ -144,14 +144,14 @@ class BackupManager(ABC):
 
     def _create_temp_logging(self) -> None:
         """Делает настройки временного логирования, применимого при выполнении одного метода"""
-        log_file_name = self.variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME_DEF)
+        log_file_path = self.variables.get_var(C.ENV_LOG_FILE_PATH, C.LOG_FILE_PATH_DEF)
 
         logging.basicConfig(
             level=logging.INFO,
             format=C.LOG_FORMAT,
             handlers=[
                 logging.StreamHandler(sys.stdout),
-                logging.FileHandler(log_file_name),
+                logging.FileHandler(log_file_path),
             ],
         )  # Настройка действует только до настройки основного логирования
 

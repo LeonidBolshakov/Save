@@ -15,7 +15,7 @@ class TextMessage(frozenset):
     entropy_brute_force = "уязвим к перебору"
     entropy_highly = "высоко-стойкий"
     entropy_Unreliable = "ненадёжный (взламывается мгновенно)"
-    env_not_found = "Файл {env} не найден. Текущая директория {dir_archive}"
+    env_not_found = "Файл {env} не найден. Текущая директория {dir}"
     error_address_email = "Ошибка в email адресе: {e}"
     error_compose_message = "Ошибка при составлении e-mail сообщения {e}"
     error_in_compression_level = (

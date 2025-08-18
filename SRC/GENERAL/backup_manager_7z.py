@@ -1,5 +1,6 @@
 from typing import Any
 
+import SRC.GENERAL.get
 from SRC.ARCHIVES.archiver7z import Archiver7z
 from SRC.ARCHIVES.search_programme_7z import SearchProgramme7Z
 from SRC.GENERAL.backup_manager_abc import BackupManager
@@ -28,6 +29,7 @@ class BackupManager7z(BackupManager):
             C.ENV_LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES,
             C.LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES_DEF,
         )
+        list_archive_file_paths = SRC.GENERAL.get.get_path(list_archive_file_paths)
 
         full_archiver_name = self.variables.get_var(
             C.ENV_FULL_ARCHIVER_NAME, C.FULL_NAME_SEVEN_Z

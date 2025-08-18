@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 from typing import Any
 import logging
 from logging import getLogger
@@ -25,9 +27,17 @@ def get_parameter(
     return None
 
 
-def get_value(const: Any) -> Any:
-    return const
+def _runtime_base() -> Path:
+    if getattr(sys, "frozen", False):
+        mp = getattr(sys, "_MEIPASS", None)  # onefile → временная папка с ресурсами
+        return Path(mp) if mp else Path(sys.executable).parent  # onedir
+    # dev: корень проекта (ищем каталог с SRC)
+    here = Path(__file__).resolve()
+    for p in here.parents:
+        if (p / "SRC").is_dir():
+            return p
+    return here.parent
 
 
-def get_ya_value(const: Any) -> Any:
-    return const
+def get_path(rel: str) -> Path:
+    return _runtime_base() / rel

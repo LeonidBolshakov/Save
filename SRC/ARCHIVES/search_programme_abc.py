@@ -14,7 +14,6 @@ class SearchProgramme(ABC):
 
     def __init__(self) -> None:
         """Инициализация объекта класса поиска архиватора"""
-        # self.variables = EnvironmentVariables()
         self.config_path: dict = {}
 
     @abstractmethod

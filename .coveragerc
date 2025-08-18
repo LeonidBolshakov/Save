@@ -1,0 +1,8 @@
+[run]
+branch = True
+omit =
+    SRC/GENERAL/main.py
+    SRC/debug.py
+
+[report]
+show_missing = True

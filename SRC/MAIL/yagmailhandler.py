@@ -1,3 +1,5 @@
+from email.header import Header
+
 import yagmail  # type: ignore
 from yagmail.error import YagAddressError, YagInvalidEmailAddress  # type: ignore
 import logging
@@ -26,7 +28,12 @@ class YaGmailHandler:
                 port=C.EMAIL_SMTP_PORT,
                 smtp_ssl=True,
             ) as yag:
-                yag.send(to=self.recipient_email, subject=subject, contents=content)
+                yag.send(
+                    to=self.recipient_email,
+                    subject=subject,
+                    contents=content,
+                )
+
             return True
         except (YagAddressError, YagInvalidEmailAddress) as e:
             logger.error(T.error_address_email.format(e=e))

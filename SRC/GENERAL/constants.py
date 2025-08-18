@@ -5,7 +5,7 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 
 class Constants(frozenset):
     ARCHIVING_END_TRIGGER = "*Stop"
-    CONFIG_FILE_WITH_PROGRAM_NAME_DEF = "config_file_path.txt"
+    CONFIG_FILE_WITH_PROGRAM_NAME_DEF = r"C:\TEMP\config_file_path.txt"
     CONSOLE_LOG_LEVEL_DEF = "WARNING"
     CONVERT_LOGGING_NAME_TO_CODE = {
         "DEBUG": logging.DEBUG,
@@ -48,7 +48,7 @@ class Constants(frozenset):
     ENV_LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES = "LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES"
     ENV_LOCAL_ARCHIVE_FILE_NAME = "LOCAL_ARCHIVE_FILE_NAME"
     ENV_LOCAL_ARCHIVE_SUFFIX = "LOCAL_ARCHIVE_SUFFIX"
-    ENV_LOG_FILE_NAME = "LOG_FILE_NAME"
+    ENV_LOG_FILE_PATH = "LOG_FILE_NAME"
     ENV_PASSWORD_ARCHIVE = "PASSWORD_ARCHIVE"
     ENV_PROGRAMME_WRITE_FILE = "PROGRAMME_WRITE_FILE"
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
@@ -69,7 +69,7 @@ class Constants(frozenset):
     LOCAL_ARCHIVE_FILE_NAME_DEF = (
         f"{LOCAL_ARCHIVE_PREFIX_DEF}{LOCAL_ARCHIVE_SUFFIX_DEF}"
     )
-    LOG_FILE_NAME_DEF = "save.log"
+    LOG_FILE_PATH_DEF = r"C:\TEMP\save.log"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVEL_FOR_LIBRARIES = logging.WARNING
     MONTHS_RU = [
@@ -98,7 +98,7 @@ class Constants(frozenset):
     PAR_ARCHIVE_PATH = "archive_path"
     PAR_ARCHIVER_NAME = "archiver_name"
     PAR_COMPRESSION_LEVEL = "compression_level"
-    CONFIG_FILE_WITH_PROGRAM_NAME = "config_file_path"
+    CONFIG_FILE_WITH_PROGRAM_NAME = r"C:\TEMP\config_file_path.txt"
     PAR_LIST_ARCHIVE_FILE_PATHS = "list_archive_file_paths"
     PAR_LOCAL_ARCHIVE_NAME = "local_archive_name"
     PAR_PASSWORD = "password"

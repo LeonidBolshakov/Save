@@ -71,7 +71,7 @@ class TuneLogger:
     def create_file_handler() -> CustomRotatingFileHandler:
         """Создание файлового обработчика"""
         variables = EnvironmentVariables()
-        log_file_name = variables.get_var(C.ENV_LOG_FILE_NAME, C.LOG_FILE_NAME_DEF)
+        log_file_name = variables.get_var(C.ENV_LOG_FILE_PATH, C.LOG_FILE_PATH_DEF)
 
         return CustomRotatingFileHandler(
             filename=log_file_name,

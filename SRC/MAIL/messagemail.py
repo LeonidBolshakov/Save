@@ -59,7 +59,7 @@ class MessageMail:
     def _compose_message_content(
         self, last_time: float, max_level: int, remote_archive_path: str
     ) -> tuple[str, str]:
-        """Формирует тему и содержание email в зависимости от уровня важности."""
+        """Формирует тему и содержание email в зависимости от уровня логирования."""
         level_name = logging.getLevelName(max_level)
         last_time_str = self._format_timestamp(last_time)
         log_path = self._get_log_path()
@@ -142,7 +142,7 @@ class MessageMail:
         return False
 
 
-def setup_logging(log_file: str = C.LOG_FILE_NAME_DEF):
+def setup_logging(log_file: str = C.LOG_FILE_PATH_DEF):
     """
     Настраивает систему логирования с выводом в консоль и файл.
     Действует после завершения работы основной системы логирования

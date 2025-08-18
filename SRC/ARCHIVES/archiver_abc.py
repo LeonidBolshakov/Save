@@ -467,8 +467,8 @@ class Archiver(ABC, BackupManagerArchiver):
         # 4. Возвращает путь на архиватор
         return programme_path
 
-    @staticmethod
     def _load_search_config(
+        self,
         parameters_dict: dict[str, Any],
     ) -> tuple[str, list[str], str]:
         """
@@ -482,12 +482,6 @@ class Archiver(ABC, BackupManagerArchiver):
             parameters_dict=parameters_dict,
             level=logging.DEBUG,
         )
-        if not config_file_path:
-            config_file_path = get_parameter(
-                C.CONFIG_FILE_WITH_PROGRAM_NAME_DEF,
-                parameters_dict=parameters_dict,
-                level=logging.INFO,
-            )
 
         standard_program_paths = get_parameter(
             C.PAR_STANDARD_PROGRAM_PATHS,

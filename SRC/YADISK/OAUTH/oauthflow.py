@@ -42,7 +42,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -314,6 +314,12 @@ class OAuthFlow:
             "client_id": self.yandex_client_id,
             "client_secret": self.variables.get_var(YC.ENV_YANDEX_CLIENT_SECRET),
         }
+        print(
+            f"{self.variables.get_var(YC.YANDEX_REFRESH_TOKEN)=}\n"
+            f"{self.yandex_client_id=}\n"
+            f"{self.variables.get_var(YC.ENV_YANDEX_CLIENT_SECRET)=}"
+        )
+        input("*****")
 
         response = requests.post(
             YC.YANDEX_TOKEN_URL,
