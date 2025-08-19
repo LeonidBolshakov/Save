@@ -4,6 +4,8 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
 class Constants(frozenset):
+    SETTINGS_DIRECTORY_DEF = "_internal"
+
     ARCHIVING_END_TRIGGER = "*Stop"
     CONFIG_FILE_WITH_PROGRAM_NAME_DEF = r"C:\TEMP\config_file_path.txt"
     CONSOLE_LOG_LEVEL_DEF = "WARNING"
@@ -45,7 +47,6 @@ class Constants(frozenset):
     ENV_CONSOLE_LOG_LEVEL = "CONSOLE_LOG_LEVEL"
     ENV_FILE_LOG_LEVEL = "FILE_LOG_LEVEL"
     ENV_FULL_ARCHIVER_NAME = "FULL_ARCHIVER_NAME"
-    ENV_LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES = "LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES"
     ENV_LOCAL_ARCHIVE_FILE_NAME = "LOCAL_ARCHIVE_FILE_NAME"
     ENV_LOCAL_ARCHIVE_SUFFIX = "LOCAL_ARCHIVE_SUFFIX"
     ENV_LOG_FILE_PATH = "LOG_FILE_NAME"
@@ -57,12 +58,13 @@ class Constants(frozenset):
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "SENDER_PASSWORD"
     ENV_SEVEN_Z_COMPRESSION_LEVEL = "SEVEN_Z_COMPRESSION_LEVEL"
+    ENVIRON_SETTINGS_DIRECTORY = "INTERNAL_DIR"
     FILE_LOG_LEVEL_DEF = "INFO"
     FULL_NAME_SEVEN_Z = "7z.exe"
     GENERAL_REMOTE_ARCHIVE_FORMAT = "{archive}_{year}_{month}_{day}_{file_num}"
     KEYRING_APP_NAME = "bol_save"
     LINK_REMOTE_ARCHIVE = "remote_path="
-    LIST_NAME_TO_LIST_OF_ARCHIVABLE_FILES_DEF = "list.txt"
+    LIST_NAMS_OF_ARCHIVABLE_FILES = "list.txt"
     LOCAL_ARCHIVE_PREFIX_DEF = "archive"
 
     LOCAL_ARCHIVE_SUFFIX_DEF = ".7z"
@@ -119,7 +121,7 @@ class Constants(frozenset):
         f"{ARCHIVING_END_TRIGGER}"
         f"{LINK_REMOTE_ARCHIVE}"
     )
-    VARIABLES_DOTENV_NAME = "env"
+    VARIABLES_DOTENV_NAME_DEF = "env"
     VARS_KEYRING = [  # секретные переменные окружения
         f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента
         f"{YC.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента

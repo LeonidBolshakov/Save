@@ -5,7 +5,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-import SRC.GENERAL.get
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
@@ -28,17 +27,16 @@ class EnvironmentVariables:
         Загружает имя приложения из констант и читает переменные из .env файла.
         """
         self.app_name = C.KEYRING_APP_NAME
-        self.dotenv_path = SRC.GENERAL.get.get_path(C.VARIABLES_DOTENV_NAME)
+        self.dotenv_path = (
+            Path(os.environ.get(C.ENVIRON_SETTINGS_DIRECTORY, C.SETTINGS_DIRECTORY_DEF))
+            / C.VARIABLES_DOTENV_NAME_DEF
+        )
         self._custom_dot_env()
 
     def _custom_dot_env(self):
         """
         Загружает переменные из env файла.
         """
-        # Блокировка выдачи спама
-        for name in logging.root.manager.loggerDict:
-            if name.startswith("dotenv"):
-                logging.getLogger(name).setLevel(logging.INFO)
 
         # Загрузка переменных окружения
         if not dotenv.load_dotenv(dotenv_path=self.dotenv_path):
@@ -109,7 +107,7 @@ class EnvironmentVariables:
         if missing_env:
             logger.error(
                 T.missing_mandatory_variables_env.format(
-                    dot_env=self.dotenv_path.absolute(),
+                    dot_env=Path(self.dotenv_path).absolute(),
                     missing=", ".join(missing),
                 )
             )

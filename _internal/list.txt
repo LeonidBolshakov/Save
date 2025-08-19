@@ -1,1 +1,3 @@
+C:\PycharmProjects\Save\SRC\*.py
 C:\LIC\*.xlsx
+C:\Users\LB\Documents\
