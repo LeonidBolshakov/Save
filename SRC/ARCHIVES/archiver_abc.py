@@ -286,9 +286,9 @@ class Archiver(ABC, BackupManagerArchiver):
             logger.critical(
                 T.not_found_list_file_path.format(
                     list_file_path=list_file_path,
-                    env=Path(C.VARIABLES_DOTENV_PATH).absolute(),
+                    env=Path(C.VARIABLES_DOTENV_NAME).absolute(),
                     parameter=C.ENV_LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES,
-                    default=C.LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES_DEF,
+                    default=C.LIST_NAME_TO_LIST_OF_ARCHIVABLE_FILES_DEF,
                 )
             )  # Для поднятия уровня логов до CRITICAL. В LOG не выводится обработчиками
             raise FileNotFoundError

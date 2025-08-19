@@ -26,6 +26,7 @@ from tenacity import (
     retry_if_exception_type,
 )
 from yadisk import YaDisk
+from yadisk.sessions.requests_session import RequestsSession
 from yadisk.exceptions import (
     YaDiskError,
     UnauthorizedError,
@@ -123,9 +124,10 @@ class YandexDisk:
         import yadisk
 
         try:
-            disk = yadisk.YaDisk(token=access_token)
+            session = RequestsSession()
+            disk = yadisk.YaDisk(token=access_token, session=session)
             # Проверка доступности диска
-            if disk.check_token(token=access_token):
+            if disk.check_token():
                 return disk
             logger.info(YT.authorization_error.format(e=""))
             raise PermissionError

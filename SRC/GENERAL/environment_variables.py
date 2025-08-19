@@ -28,7 +28,7 @@ class EnvironmentVariables:
         Загружает имя приложения из констант и читает переменные из .env файла.
         """
         self.app_name = C.KEYRING_APP_NAME
-        self.dotenv_path = SRC.GENERAL.get.get_path(C.VARIABLES_DOTENV_PATH)
+        self.dotenv_path = SRC.GENERAL.get.get_path(C.VARIABLES_DOTENV_NAME)
         self._custom_dot_env()
 
     def _custom_dot_env(self):

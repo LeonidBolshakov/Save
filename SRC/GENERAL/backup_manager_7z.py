@@ -27,7 +27,7 @@ class BackupManager7z(BackupManager):
         )
         list_archive_file_paths = self.variables.get_var(
             C.ENV_LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES,
-            C.LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES_DEF,
+            C.LIST_NAME_TO_LIST_OF_ARCHIVABLE_FILES_DEF,
         )
         list_archive_file_paths = SRC.GENERAL.get.get_path(list_archive_file_paths)
 

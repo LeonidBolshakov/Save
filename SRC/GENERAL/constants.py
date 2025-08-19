@@ -62,7 +62,7 @@ class Constants(frozenset):
     GENERAL_REMOTE_ARCHIVE_FORMAT = "{archive}_{year}_{month}_{day}_{file_num}"
     KEYRING_APP_NAME = "bol_save"
     LINK_REMOTE_ARCHIVE = "remote_path="
-    LIST_PATH_TO_LIST_OF_ARCHIVABLE_FILES_DEF = "_INTERNAL/list.txt"
+    LIST_NAME_TO_LIST_OF_ARCHIVABLE_FILES_DEF = "list.txt"
     LOCAL_ARCHIVE_PREFIX_DEF = "archive"
 
     LOCAL_ARCHIVE_SUFFIX_DEF = ".7z"
@@ -119,7 +119,7 @@ class Constants(frozenset):
         f"{ARCHIVING_END_TRIGGER}"
         f"{LINK_REMOTE_ARCHIVE}"
     )
-    VARIABLES_DOTENV_PATH = r"_INTERNAL/env"
+    VARIABLES_DOTENV_NAME = "env"
     VARS_KEYRING = [  # секретные переменные окружения
         f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента
         f"{YC.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
