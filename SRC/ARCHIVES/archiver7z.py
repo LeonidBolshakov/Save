@@ -83,6 +83,7 @@ class Archiver7z(Archiver, BackupManagerArchiver):
             f"-mx={compression_level}",
             archive_path,
             f"@{list_archive_file_paths}",
+            "-spf",
             "-bso0",
             "-bsp0",
         ]

@@ -15,6 +15,8 @@ from SRC.GENERAL.get import get_parameter
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
+CREATE_NO_WINDOW = 0x08000000
+
 
 @dataclass(frozen=True)
 class _ArchiveContext:
@@ -54,8 +56,8 @@ class Archiver(ABC, BackupManagerArchiver):
     """
 
     def create_archive(
-            self,
-            parameters_dict: dict[str, Any],
+        self,
+        parameters_dict: dict[str, Any],
     ) -> str | None:
         """
         Выполняет создание архива.
@@ -126,7 +128,7 @@ class Archiver(ABC, BackupManagerArchiver):
         )
 
     def _build_cmd(
-            self, archiver_program: str, parameters_dict: dict[str, Any]
+        self, archiver_program: str, parameters_dict: dict[str, Any]
     ) -> list[str]:
         """
         Сборка командной строки архивации.
@@ -146,7 +148,7 @@ class Archiver(ABC, BackupManagerArchiver):
         )
 
     def _run_and_return(
-            self, cmd: list[str], archive_path: str, password: str | None
+        self, cmd: list[str], archive_path: str, password: str | None
     ) -> str | None:
         """
         Запуск процесса архивации
@@ -163,7 +165,7 @@ class Archiver(ABC, BackupManagerArchiver):
         )
 
     def _run_archiver(
-            self, cmd: list[str], archive_path: str, password: str | None
+        self, cmd: list[str], archive_path: str, password: str | None
     ) -> bool:
         """
         Запуск программы архиватора по заранее сформированной разобранной строке
@@ -192,7 +194,7 @@ class Archiver(ABC, BackupManagerArchiver):
             raise RuntimeError from e
 
     def _error_subprocess(
-            self, process: subprocess.CompletedProcess, cmd: list[str], password: str | None
+        self, process: subprocess.CompletedProcess, cmd: list[str], password: str | None
     ) -> str:
         """
         Формирование сообщения об ошибке subprocess
@@ -226,7 +228,7 @@ class Archiver(ABC, BackupManagerArchiver):
 
     @abstractmethod  # формирует команду для выполнения subprocess.run
     def get_cmd_archiver(
-            self, archiver_program: str, parameters_dict: dict[str, Any]
+        self, archiver_program: str, parameters_dict: dict[str, Any]
     ) -> list[str]:
         pass
 
@@ -407,6 +409,7 @@ class Archiver(ABC, BackupManagerArchiver):
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
+            creationflags=CREATE_NO_WINDOW,  # скрыть окно консоли дочернего процесса
             text=True,
             encoding=encoding,
             errors="replace",
@@ -468,8 +471,8 @@ class Archiver(ABC, BackupManagerArchiver):
         return programme_path
 
     def _load_search_config(
-            self,
-            parameters_dict: dict[str, Any],
+        self,
+        parameters_dict: dict[str, Any],
     ) -> tuple[str, list[str], str]:
         """
         Загружает параметры для поиска архиватора: путь конфигурации, стандартные пути и имя программы.
@@ -511,10 +514,10 @@ class Archiver(ABC, BackupManagerArchiver):
 
     @staticmethod
     def _resolve_program_path(
-            search_programme,
-            config_file_path: str,
-            standard_program_paths: list[str],
-            programme_full_name: str,
+        search_programme,
+        config_file_path: str,
+        standard_program_paths: list[str],
+        programme_full_name: str,
     ) -> str:
         """
         Ищет путь к архиватору, используя заданные параметры.

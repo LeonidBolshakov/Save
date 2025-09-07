@@ -64,9 +64,9 @@ class TextMessage(frozenset):
         "Включите переменные и их значения в файл {dot_env}"
     )
     missing_mandatory_variables_keyring = (
-            "Отсутствуют обязательные переменные окружения:\n"
-            "{missing}.\n"
-            + f"Задайте переменный с помощью программы {C.PROGRAM_WRITE_VARS}"
+        "Отсутствуют обязательные переменные окружения:\n"
+        "{missing}.\n"
+        + f"Задайте переменный с помощью программы {C.PROGRAM_WRITE_VARS}"
     )
     password_message = (
         "Пароль архива имеет силу - {strength_str}, сложность вскрытия - {entropy_str}.\n"
