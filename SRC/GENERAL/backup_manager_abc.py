@@ -94,7 +94,6 @@ class BackupManager(ABC):
         Логирует все этапы процесса и обрабатывает возможные ошибки.
         """
         logger.info(T.init_main)
-        remote_path = None
 
         parameters_dict = self.get_parameters_dict()
         try:
@@ -113,7 +112,7 @@ class BackupManager(ABC):
                 )  # Получаем класса архиватора
                 archiver = Archiver()
                 if archive_path := archiver.create_archive(
-                    parameters_dict=parameters_dict
+                        parameters_dict=parameters_dict
                 ):  # Создаём локальный архив
                     remote_path = write_file(
                         archive_path
@@ -156,7 +155,7 @@ class BackupManager(ABC):
         )  # Настройка действует только до настройки основного логирования
 
     def _completion(
-        self, remote_path: str | None = None, e: Exception | None = None
+            self, remote_path: str | None = None, e: Exception | None = None
     ) -> None:
         """Завершает работу программы исходя их максимального уровня лога сообщений.
 
@@ -172,7 +171,7 @@ class BackupManager(ABC):
         if e is not None:
             max_level = max(max_level, logging.ERROR)
 
-        if not self._start_finishing_work(remote_path=remote_path):
+        if not self._init_finishing_work(remote_path=remote_path):
             max_level = max(
                 max_level, logging.ERROR
             )  # Если письмо не отправлено - уровень сообщений не ниже ERROR
@@ -182,7 +181,7 @@ class BackupManager(ABC):
         sys.exit(1 if logging.ERROR <= max_level else 0)
 
     @staticmethod
-    def _start_finishing_work(remote_path: str | None) -> bool:
+    def _init_finishing_work(remote_path: str | None) -> bool:
         """
         Инициация завершающего действия после завершения копирования -
         формирование и отправка служебного e-mail.

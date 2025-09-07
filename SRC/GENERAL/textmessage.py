@@ -44,7 +44,7 @@ class TextMessage(frozenset):
     )
     error_send_email = "Ошибка отправки email: {e}"
     error_starting_archiving = "Ошибка при запуске процесса архивации: {e}"
-    error_subprocess = "Ошибка при выполнении процесса {cmd_mask}. Код возврата {return_code}.\n{stderr}"
+    error_subprocess = "Ошибка при выполнении процесса {cmd_mask}.\n{stderr}"
     error_unknown = "Неизвестная ошибка"
     exists_list_file = "Файл списка файлов архивации существует: {list_file_path}"
     failed_send_email = "Все попытки отправки email провалились"
@@ -64,9 +64,9 @@ class TextMessage(frozenset):
         "Включите переменные и их значения в файл {dot_env}"
     )
     missing_mandatory_variables_keyring = (
-        "Отсутствуют обязательные переменные окружения:\n"
-        "{missing}.\n"
-        + f"Задайте переменный с помощью программы {C.PROGRAM_WRITE_VARS}"
+            "Отсутствуют обязательные переменные окружения:\n"
+            "{missing}.\n"
+            + f"Задайте переменный с помощью программы {C.PROGRAM_WRITE_VARS}"
     )
     password_message = (
         "Пароль архива имеет силу - {strength_str}, сложность вскрытия - {entropy_str}.\n"

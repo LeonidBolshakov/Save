@@ -54,8 +54,8 @@ class Archiver(ABC, BackupManagerArchiver):
     """
 
     def create_archive(
-        self,
-        parameters_dict: dict[str, Any],
+            self,
+            parameters_dict: dict[str, Any],
     ) -> str | None:
         """
         Выполняет создание архива.
@@ -126,7 +126,7 @@ class Archiver(ABC, BackupManagerArchiver):
         )
 
     def _build_cmd(
-        self, archiver_program: str, parameters_dict: dict[str, Any]
+            self, archiver_program: str, parameters_dict: dict[str, Any]
     ) -> list[str]:
         """
         Сборка командной строки архивации.
@@ -146,7 +146,7 @@ class Archiver(ABC, BackupManagerArchiver):
         )
 
     def _run_and_return(
-        self, cmd: list[str], archive_path: str, password: str | None
+            self, cmd: list[str], archive_path: str, password: str | None
     ) -> str | None:
         """
         Запуск процесса архивации
@@ -163,7 +163,7 @@ class Archiver(ABC, BackupManagerArchiver):
         )
 
     def _run_archiver(
-        self, cmd: list[str], archive_path: str, password: str | None
+            self, cmd: list[str], archive_path: str, password: str | None
     ) -> bool:
         """
         Запуск программы архиватора по заранее сформированной разобранной строке
@@ -178,6 +178,7 @@ class Archiver(ABC, BackupManagerArchiver):
         """
         try:
             process = self._run_archive_process(cmd=cmd)
+            logger.info(f"{process.returncode=}")
             if process.returncode == 1:
                 logger.warning(self._error_subprocess(process, cmd, password))
             if process.returncode > 1:
@@ -186,12 +187,12 @@ class Archiver(ABC, BackupManagerArchiver):
             return True
         except Exception as e:
             logger.critical(
-                "T.error_starting_archiving.format(e=e)"
+                T.error_starting_archiving.format(e=e)
             )  # Для поднятия уровня логов до CRITICAL
-            raise RuntimeError
+            raise RuntimeError from e
 
     def _error_subprocess(
-        self, process: subprocess.CompletedProcess, cmd: list[str], password: str | None
+            self, process: subprocess.CompletedProcess, cmd: list[str], password: str | None
     ) -> str:
         """
         Формирование сообщения об ошибке subprocess
@@ -225,7 +226,7 @@ class Archiver(ABC, BackupManagerArchiver):
 
     @abstractmethod  # формирует команду для выполнения subprocess.run
     def get_cmd_archiver(
-        self, archiver_program: str, parameters_dict: dict[str, Any]
+            self, archiver_program: str, parameters_dict: dict[str, Any]
     ) -> list[str]:
         pass
 
@@ -467,8 +468,8 @@ class Archiver(ABC, BackupManagerArchiver):
         return programme_path
 
     def _load_search_config(
-        self,
-        parameters_dict: dict[str, Any],
+            self,
+            parameters_dict: dict[str, Any],
     ) -> tuple[str, list[str], str]:
         """
         Загружает параметры для поиска архиватора: путь конфигурации, стандартные пути и имя программы.
@@ -510,10 +511,10 @@ class Archiver(ABC, BackupManagerArchiver):
 
     @staticmethod
     def _resolve_program_path(
-        search_programme,
-        config_file_path: str,
-        standard_program_paths: list[str],
-        programme_full_name: str,
+            search_programme,
+            config_file_path: str,
+            standard_program_paths: list[str],
+            programme_full_name: str,
     ) -> str:
         """
         Ищет путь к архиватору, используя заданные параметры.
