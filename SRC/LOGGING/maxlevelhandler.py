@@ -1,8 +1,8 @@
 import logging
 
-logger = logging.getLogger(__name__)
-
 from SRC.GENERAL.constants import Constants as C
+
+logger = logging.getLogger(__name__)
 
 
 class MaxLevelHandler(logging.Handler):

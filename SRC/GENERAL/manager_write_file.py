@@ -1,12 +1,12 @@
 import logging
 
-logger = logging.getLogger(__name__)
-
 from SRC.YADISK.writefileyandexdisk import write_file_to_yandex_disk
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.remote_archive_naming import RemoteArchiveNaming
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+
+logger = logging.getLogger(__name__)
 
 
 def write_file(local_path: str) -> str:

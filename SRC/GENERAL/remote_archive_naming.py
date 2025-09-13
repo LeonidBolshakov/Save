@@ -4,11 +4,11 @@ from typing import Protocol, Callable
 from datetime import date
 import logging
 
-logger = logging.getLogger(__name__)
-
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+
+logger = logging.getLogger(__name__)
 
 
 class RemoteArchiveNamingProtokol(Protocol):

@@ -2,11 +2,11 @@ from __future__ import annotations
 import os
 import logging
 
-TESTING = os.getenv("TESTING", "0") == "1"
-logger = logging.getLogger(__name__)
-
 from SRC.YADISK.OAUTH.exceptions import AuthError
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
+
+TESTING = os.getenv("TESTING", "0") == "1"
+logger = logging.getLogger(__name__)
 
 
 class _Flow:
@@ -26,7 +26,7 @@ class YandexOAuth:
     """
 
     def __init__(
-            self,
+        self,
     ):
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
         self.flow = self._make_flow()

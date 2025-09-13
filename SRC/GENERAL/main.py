@@ -1,9 +1,9 @@
 import sys
 import logging
 
-logger = logging.getLogger(__name__)
-
 from SRC.GENERAL.backup_manager_7z import BackupManager7z
+
+logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     """Точка входа в приложение резервного копирования"""
@@ -13,5 +13,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         sys.exit(130)
     except Exception as e:
-        logger.exception("Необработанная ошибка")
+        logger.exception(f"Необработанная ошибка {e}")
         sys.exit(1)

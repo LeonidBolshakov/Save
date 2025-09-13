@@ -79,7 +79,7 @@ class YandexTextMessage(frozenset):
     )
     token_valid = "Токен успешно прошел проверку через API Яндекса"
     tokens_saved = "Токены сохранены в keyring"
-    unknown_error = "Ошибка доступа к Яндекс-Диску: {e}"
+    unknown_error = "Ошибка доступа кcls Яндекс-Диску: {e}"
     unknown_format = "Неизвестный формат для ссылки для прямой загрузки файла на Яндекс-Диск:\n {type} -> {res}"
     valid_token = "Токен успешно получен"
     valid_token_found = "[Token Load] Найден валидный {token} в keyring"

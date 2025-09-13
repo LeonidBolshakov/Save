@@ -32,9 +32,6 @@ class BackupManager7z(BackupManager):
             / C.LIST_NAMS_OF_ARCHIVABLE_FILES
         )
 
-        full_archiver_name = self.variables.get_var(
-            C.ENV_FULL_ARCHIVER_NAME, C.FULL_NAME_SEVEN_Z
-        )
         config_file_path = self.variables.get_var(
             C.ENV_CONFIG_FILE_WITH_PROGRAM_NAME, C.CONFIG_FILE_WITH_PROGRAM_NAME_DEF
         )

@@ -6,8 +6,6 @@ from abc import ABC, abstractmethod
 from tempfile import TemporaryDirectory
 import logging
 
-logger = logging.getLogger(__name__)
-
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 from SRC.MAIL.messagemail import MessageMail
 from SRC.GENERAL.environment_variables import EnvironmentVariables
@@ -16,6 +14,8 @@ from SRC.LOGGING.tunelogger import TuneLogger
 from SRC.GENERAL.get import get_parameter
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+
+logger = logging.getLogger(__name__)
 
 
 class BackupManager(ABC):
@@ -251,8 +251,8 @@ class BackupManager(ABC):
                     level=logging.DEBUG,
                     fn="",
                     lno=0,
-                    msg=f"%s",
-                    args=(tb_text,),
+                    msg=tb_text,
+                    args=(),
                     exc_info=None,
                 )
                 handler.handle(record)

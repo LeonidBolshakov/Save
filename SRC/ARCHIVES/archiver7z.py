@@ -1,13 +1,13 @@
 import logging
 from typing import Any
 
-# Инициализация логгера для текущего модуля
-logger = logging.getLogger(__name__)
-
 # Импорт зависимостей
 from SRC.ARCHIVES.archiver_abc import Archiver, BackupManagerArchiver
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+
+# Инициализация логгера для текущего модуля
+logger = logging.getLogger(__name__)
 
 
 class Archiver7z(Archiver, BackupManagerArchiver):
@@ -37,7 +37,7 @@ class Archiver7z(Archiver, BackupManagerArchiver):
             compression_level: int = parameters_dict[C.PAR_COMPRESSION_LEVEL]
         except KeyError as e:
             logger.warning(
-                T.error_parameter_archiver.format(param=C.PAR_COMPRESSION_LEVEL)
+                T.error_parameter_archiver.format(param=C.PAR_COMPRESSION_LEVEL, e=e)
             )
             compression_level = C.SEVEN_Z_COMPRESSION_LEVEL_DEF
 

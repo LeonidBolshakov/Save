@@ -20,8 +20,6 @@ from urllib.parse import urlparse, parse_qs
 from typing import Any, cast
 import logging
 
-logger = logging.getLogger(__name__)
-
 from oauthlib.oauth2 import WebApplicationClient
 
 from SRC.GENERAL.environment_variables import EnvironmentVariables
@@ -33,6 +31,8 @@ from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.GENERAL.constants import Constants as C
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
+logger = logging.getLogger(__name__)
+
 ACCESS_TOKEN_IN_TOKEN = "access_token"
 REFRESH_TOKEN_IN_TOKEN = "refresh_token"
 EXPIRES_IN_IN_TOKEN = "expires_in"
@@ -42,7 +42,7 @@ class OAuthHTTPServer(HTTPServer):
     """Кастомный HTTP-сервер для OAuth-авторизации"""
 
     def __init__(
-            self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
+        self, server_address: tuple[str, int], handler_class: Any, oauth_flow: OAuthFlow
     ) -> None:
         super().__init__(server_address, handler_class)
         self.oauth_flow: OAuthFlow = oauth_flow
@@ -134,7 +134,7 @@ class OAuthFlow:
             # 4. Полная аутентификация
             return self.run_full_auth_flow()
 
-        except AuthCancelledError as e:
+        except AuthCancelledError:
             raise AuthCancelledError(YT.canceled_authorization)
         except AuthError as e:
             raise AuthError(YT.authorization_error.format(e=e))

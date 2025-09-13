@@ -17,8 +17,6 @@ import time
 import os
 import logging
 
-logger = logging.getLogger(__name__)
-
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -34,13 +32,14 @@ from yadisk.exceptions import (
 )
 
 from SRC.GENERAL.remote_archive_naming import RemoteArchiveNamingProtokol
-from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
 
 from SRC.YADISK.uploader_yadisk import UploaderToYaDisk
 
 TESTING = os.getenv("TESTING", "0") == "1"
+
+logger = logging.getLogger(__name__)
 
 
 # noinspection PyMethodMayBeStatic
@@ -105,8 +104,6 @@ class YandexDisk:
                 generate_path_remote_dir             -   возвращает сгенерированный путь на удалённую директорию.
                 generate_path_remote_file            -   возвращает сгенерированный путь удалённого файла
         """
-
-        variables = EnvironmentVariables()
 
         self.call_back_obj = call_back_obj  # Объект с call_back функциями.
         self.remote_path: str = ""

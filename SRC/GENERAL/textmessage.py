@@ -26,7 +26,7 @@ class TextMessage(frozenset):
         "\n{config_file_path}: {e}"
     )
     error_parameter_archiver = (
-        "Дочерний класс BackUpManager не сформировал параметр {param}"
+        "Дочерний класс BackUpManager не сформировал параметр {param}\n{e}"
     )
     error_run_programme = (
         "[Поиск программы]. Вариант программы по адресу {path} вернул ошибку {e}"

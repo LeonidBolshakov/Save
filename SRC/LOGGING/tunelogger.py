@@ -3,14 +3,14 @@ from pathlib import Path
 import logging
 from enum import Enum
 
-logger = logging.getLogger(__name__)
-
 from SRC.LOGGING.maxlevelhandler import MaxLevelHandler
 from SRC.LOGGING.customstreamhandler import CustomStreamHandler
 from SRC.LOGGING.customrotatingfilehandler import CustomRotatingFileHandler
 from SRC.GENERAL.constants import Constants as C
 from SRC.YADISK.yandexconst import YandexConstants as YC
 from SRC.GENERAL.environment_variables import EnvironmentVariables
+
+logger = logging.getLogger(__name__)
 
 
 # Обозначения обработчиков логеров внутри класса

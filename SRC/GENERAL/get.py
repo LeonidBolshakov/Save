@@ -2,9 +2,9 @@ from typing import Any
 import logging
 from logging import getLogger
 
-logger = getLogger(__name__)
-
 from SRC.GENERAL.textmessage import TextMessage as T
+
+logger = getLogger(__name__)
 
 
 def get_parameter(

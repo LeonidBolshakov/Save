@@ -5,9 +5,9 @@ import logging
 
 from SRC.ARCHIVES.search_programme_abc import SearchProgramme
 
-logger = logging.getLogger(__name__)
-
 from SRC.GENERAL.textmessage import TextMessage as T
+
+logger = logging.getLogger(__name__)
 
 
 class SearchProgramme7Z(SearchProgramme):

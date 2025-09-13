@@ -3,12 +3,12 @@ import time
 import requests
 import logging
 
-logger = logging.getLogger(__name__)
-
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.YADISK.OAUTH.exceptions import AuthError
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
 from SRC.YADISK.yandexconst import YandexConstants as YC
+
+logger = logging.getLogger(__name__)
 
 
 class TokenManager:

@@ -12,11 +12,11 @@ from tenacity import (
 )
 from yadisk.exceptions import YaDiskError
 
-TESTING = os.getenv("TESTING", "0") == "1"
-logger = logging.getLogger(__name__)
-
 from SRC.YADISK.yandexconst import YandexConstants as YC
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
+
+TESTING = os.getenv("TESTING", "0") == "1"
+logger = logging.getLogger(__name__)
 
 
 def _requests_put(url, data, timeout):
@@ -222,8 +222,8 @@ class UploaderToYaDisk:
         :return:
         """
         if (
-                not self.calculate_md5(local_path).lower()
-                    == (self.get_remote_md5_yadisk(remote_path) or "").lower()
+            not self.calculate_md5(local_path).lower()
+            == (self.get_remote_md5_yadisk(remote_path) or "").lower()
         ):
             logger.info(YT.mismatch_MD5.format(remote_path=remote_path))
             raise HashMismatchError

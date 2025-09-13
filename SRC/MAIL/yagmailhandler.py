@@ -2,10 +2,10 @@ import yagmail  # type: ignore
 from yagmail.error import YagAddressError, YagInvalidEmailAddress  # type: ignore
 import logging
 
-logger = logging.getLogger(__name__)
-
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+
+logger = logging.getLogger(__name__)
 
 
 class YaGmailHandler:

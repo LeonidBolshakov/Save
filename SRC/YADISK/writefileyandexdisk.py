@@ -1,10 +1,10 @@
 import logging
 
-logger = logging.getLogger(__name__)
-
 from SRC.YADISK.yandex_disk import YandexDisk
 from SRC.GENERAL.remote_archive_naming import RemoteArchiveNamingProtokol
 from SRC.YADISK.yandextextmessage import YandexTextMessage as YT
+
+logger = logging.getLogger(__name__)
 
 
 def write_file_to_yandex_disk(

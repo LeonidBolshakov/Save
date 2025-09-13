@@ -7,13 +7,13 @@ from typing import Protocol, Callable
 import sys
 import logging
 
-logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
-
 from password_strength import PasswordStats  # type: ignore
 
 from SRC.GENERAL.get import get_parameter
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
+
+logger = logging.getLogger(__name__)  # Используем логгер по имени модуля
 
 CREATE_NO_WINDOW = 0x08000000
 
