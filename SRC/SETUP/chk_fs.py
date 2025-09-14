@@ -17,17 +17,17 @@ from pathlib import Path
 from PyQt6 import uic
 from PyQt6.QtCore import Qt, QDir, QModelIndex, QIdentityProxyModel, QTimer
 from PyQt6.QtGui import QBrush, QFileSystemModel, QFont
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView, QMessageBox
 
 ERROR_TEXT = (
-    "Файла с пометками сохраняемых файлов/каталогов {p} не обнаружен.\n"  # 0
-    "Начинаем работу 'с чистого листа'",
-    "Нарушена структура файла с пометками сохраняемых файлов/каталогов {p}\n"  # 1
+    "Файл '{p}' с пометками сохраняемых файлов/каталогов не обнаружен.\n"  # 0
+    "Начинаем работу 'с чистого листа'?",
+    "Нарушена структура файла '{p}' с пометками сохраняемых файлов/каталогов\n"  # 1
     "{e}\n"
-    "Считаем что такого файла нет",
-    "Нет доступа к файлу с пометками сохраняемых файлов/каталогов {p}\n"  # 2
+    "Навсегда забываем ранее сделанные пометки?",
+    "Нет доступа к файлу '{p}' с пометками сохраняемых файлов/каталогов\n"  # 2
     "{e}\n"
-    "Считаем что такого файла нет",
+    "Навсегда забываем сделанные пометки?",
     "Не могу сохранить информацию об отмеченных файлах/каталогах. Нет доступа к файлу {p}\n"  # 3
     "{e}\n",
     "Не могу сохранить информацию об отмеченных файлах/каталогах. Ошибка вывода {p}\n"  # 4
@@ -91,21 +91,6 @@ def get_set_marked_files(p: Path) -> set[str]:
     return {str(x) for x in data}
 
 
-def error_message(error_number: int, p: Path, e: Exception | None = None) -> None:
-    """Выводит диагностическое сообщение.
-
-    Args:
-        error_number: Индекс шаблона сообщения в ERROR_TEXT
-        p: Путь файла/директории, фигурирующий в сообщении
-        e: Первопричина (если есть)
-
-    Returns:
-        None
-    """
-
-    print(ERROR_TEXT[error_number].format(p=p, e=str(e) if e else ""))
-
-
 def load_set_json(path: str | Path = "marked elements.json") -> set[str]:
     """Загружает множество путей из JSON.
 
@@ -123,7 +108,7 @@ def load_set_json(path: str | Path = "marked elements.json") -> set[str]:
     try:
         return get_set_marked_files(p)
     except FileNotFoundError:
-        error_message(0, p)
+        error_message(0, p, confirm=True)
         return set()
     except (
         OSError,
@@ -131,11 +116,66 @@ def load_set_json(path: str | Path = "marked elements.json") -> set[str]:
         json.JSONDecodeError,
         ValueError,
     ) as e:
-        error_message(1, p, e)
+        error_message(1, p, e, confirm=True)
         return set()
     except PermissionError as e:
-        error_message(2, p, e)
+        error_message(2, p, e, confirm=True)
         return set()
+
+
+from PyQt6.QtWidgets import QMessageBox
+from pathlib import Path
+
+
+class UserAbort(Exception):
+    """Пользователь отказался продолжать выполнение операции."""
+
+
+def _format_error_msg(
+    template: str, p: Path | str, e: Exception | None, *, full: bool
+) -> str:
+    """Форматирует текст: с деталями при full=True, без них при full=False."""
+    return template.format(p=p, e=str(e) if (e and full) else "")
+
+
+def _ask_confirm(msg: str, *, parent=None) -> bool:
+    """Yes/No. True — продолжить."""
+    btn = QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+    r = QMessageBox.question(
+        parent, "Подтверждение", msg, btn, QMessageBox.StandardButton.No
+    )
+    return r == QMessageBox.StandardButton.Yes
+
+
+def error_message(
+    error_number: int,
+    p: Path,
+    e: Exception | None = None,
+    *,
+    confirm: bool = False,
+    parent=None,
+) -> None:
+    """Лог пишет подробно, пользователю показывает кратко. По запросу — подтверждение.
+
+    Raises:
+        UserAbort: Если confirm=True и пользователь выбрал No.
+    """
+    template = ERROR_TEXT[error_number]
+
+    # 1) Подробный лог (с e)
+    print(_format_error_msg(template, p, e, full=True))
+
+    # 2) Краткое сообщение пользователю (без e)
+    msg = _format_error_msg(template, p, e, full=False)
+
+    if confirm:
+        if not _ask_confirm(msg, parent=parent):
+            print("Пользователь отказался и прекратил работу.")
+            raise UserAbort
+        else:
+            print("Пользователь согласился и продолжил работу")
+    else:
+        QMessageBox.warning(parent, "Предупреждение", msg)
 
 
 # ----- 2. ПРОКСИ-МОДЕЛЬ: визуализация Checked / PartiallyChecked без изменения self.checks
@@ -519,9 +559,12 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    w = MainWindow()
-    w.show()
-    return_code = app.exec()
+    try:
+        app = QApplication(sys.argv)
+        w = MainWindow()
+        w.show()
+        return_code = app.exec()
 
-    sys.exit(return_code)
+        sys.exit(return_code)
+    except UserAbort:
+        sys.exit(130)
