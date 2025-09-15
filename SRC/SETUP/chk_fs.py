@@ -13,6 +13,7 @@ from __future__ import annotations
 import sys
 import json
 from pathlib import Path
+from typing import Sequence
 
 from PyQt6 import uic
 from PyQt6.QtCore import Qt, QDir, QModelIndex, QIdentityProxyModel, QTimer
@@ -32,6 +33,8 @@ ERROR_TEXT = (
     "{e}\n",
     "Не могу сохранить информацию об отмеченных файлах/каталогах. Ошибка вывода {p}\n"  # 4
     "{e}\n",
+    "На диске удалены следующие файлы/каталоги, ранее отмеченные как сохраняемые:\n{p}\n\n"  # 5
+    "Навсегда забываем, что про пометки удалённых файлов/каталогов?",
 )
 INIT_DELAY_MS = 100
 COL0_WIDTH = 320
@@ -72,26 +75,7 @@ def save_set_json(items: set[str], path: str | Path = "marked elements.json") ->
         error_message(4, p, e)
 
 
-def get_set_marked_files(p: Path) -> set[str]:
-    """Читает JSON и возвращает множество путей.
-
-    Args:
-        p: Путь к JSON-файлу.
-
-    Returns:
-        Множество строковых путей.
-
-    Raises:
-        FileNotFoundError: Файл отсутствует.
-        UnicodeDecodeError | json.JSONDecodeError | ValueError: Повреждён или не-JSON.
-        PermissionError | OSError: Проблемы доступа/ввода-вывода.
-    """
-    with p.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-    return {str(x) for x in data}
-
-
-def load_set_json(path: str | Path = "marked elements.json") -> set[str]:
+def load_set_json(path: str | Path = "marked elements.json") -> list[str]:
     """Загружает множество путей из JSON.
 
     Отсутствие файла и ошибки парсинга трактуются как «нет данных»,
@@ -101,15 +85,20 @@ def load_set_json(path: str | Path = "marked elements.json") -> set[str]:
         path: Путь к JSON-файлу.
 
     Returns:
-        Множество путей (возможно пустое).
+        Список путей (возможно пустой).
     """
     p = Path(path)
 
     try:
-        return get_set_marked_files(p)
+        with p.open("r", encoding="utf-8") as f:
+            existing, deleted = filter_existing(json.load(f))
+            if deleted:
+                template = "\n".join(deleted)
+                error_message(5, template, confirm=True)
+            return existing
     except FileNotFoundError:
         error_message(0, p, confirm=True)
-        return set()
+        return list()
     except (
         OSError,
         UnicodeDecodeError,
@@ -117,14 +106,34 @@ def load_set_json(path: str | Path = "marked elements.json") -> set[str]:
         ValueError,
     ) as e:
         error_message(1, p, e, confirm=True)
-        return set()
+        return list()
     except PermissionError as e:
         error_message(2, p, e, confirm=True)
-        return set()
+        return list()
 
 
-from PyQt6.QtWidgets import QMessageBox
-from pathlib import Path
+def filter_existing(nodes: Sequence[str]) -> tuple[list[str], list[str]]:
+    """
+    Фильтрует список путей.
+
+    Args:
+        nodes: последовательность путей (str).
+
+    Returns:
+        (existing, deleted):
+            existing — список существующих путей,
+            deleted — список несуществующих путей.
+    """
+    existing: list[str] = []
+    deleted: list[str] = []
+
+    for node in nodes:  # проверка существования
+        if Path(node).exists():
+            existing.append(node)
+        else:
+            deleted.append(node)
+
+    return existing, deleted
 
 
 class UserAbort(Exception):
@@ -132,10 +141,10 @@ class UserAbort(Exception):
 
 
 def _format_error_msg(
-    template: str, p: Path | str, e: Exception | None, *, full: bool
+    template: str, p: Path | str | None, e: Exception | None, *, full: bool
 ) -> str:
     """Форматирует текст: с деталями при full=True, без них при full=False."""
-    return template.format(p=p, e=str(e) if (e and full) else "")
+    return template.format(p=p or "", e=str(e) if (e and full) else "")
 
 
 def _ask_confirm(msg: str, *, parent=None) -> bool:
@@ -149,7 +158,7 @@ def _ask_confirm(msg: str, *, parent=None) -> bool:
 
 def error_message(
     error_number: int,
-    p: Path,
+    p: Path | str| None = None,
     e: Exception | None = None,
     *,
     confirm: bool = False,
