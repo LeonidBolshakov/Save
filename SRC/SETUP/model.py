@@ -42,7 +42,7 @@ class CheckableFSModel(QIdentityProxyModel):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        # Загружаем отмеченные пути файлов/директорий из файла и нормализуем до единого вида
+        # Загружаем ранее отмеченные пути файлов/директорий из файла и нормализуем до единого вида
         self.checks: set[str] = self.get_checks()
 
     def get_checks(self) -> set[str]:
@@ -164,40 +164,6 @@ class CheckableFSModel(QIdentityProxyModel):
             it = it.parent()
         return False
 
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
-        """Возвращает данные для делегата.
-
-        Roles:
-            CheckStateRole (колонка 0):
-                • Checked — явная отметка или наследование от отмеченного предка.
-                • PartiallyChecked — директория с отмеченными потомками.
-                • Unchecked — иначе.
-            ForegroundRole:
-                • darkBlue — явная отметка.
-                • gray — наследование от предка.
-
-        Прочие роли делегируются базовой реализации.
-        """
-
-        # Обрабатываем только валидные индексы
-        if not index.isValid():
-            return None
-
-        if role == Qt.ItemDataRole.CheckStateRole and index.column() == 0:
-            return self._check_state(index)
-
-        if role == Qt.ItemDataRole.ForegroundRole:
-            fg = self._foreground(index)
-            if fg is not None:
-                return fg
-
-        if role == Qt.ItemDataRole.FontRole:
-            f = self._font(index)
-            if f is not None:
-                return f
-
-        return super().data(index, role)
-
     # --- помощники для data ---
 
     def _check_state(self, index: QModelIndex) -> Qt.CheckState:
@@ -247,6 +213,15 @@ class CheckableFSModel(QIdentityProxyModel):
             return f
         return None
 
+    # ----- Помощник для setData
+
+    def _apply_check(self, path: str, state: Qt.CheckState) -> None:
+        """Обновляет self.checks: добавляет путь в множество отмеченных элементов при Checked, иначе удаляет."""
+        if state == Qt.CheckState.Checked:
+            self.checks.add(path)
+        else:
+            self.checks.discard(path)
+
     # ----- Обработка флагов
 
     def flags(self, index) -> Qt.ItemFlag:
@@ -267,23 +242,53 @@ class CheckableFSModel(QIdentityProxyModel):
         else:
             # Разрешаем выбор и работу с флажками
             fl |= (
-                    Qt.ItemFlag.ItemIsEnabled
-                    | Qt.ItemFlag.ItemIsUserCheckable
-                    | Qt.ItemFlag.ItemIsSelectable
+                Qt.ItemFlag.ItemIsEnabled
+                | Qt.ItemFlag.ItemIsUserCheckable
+                | Qt.ItemFlag.ItemIsSelectable
             )
         return fl
 
-    def _apply_check(self, path: str, state: Qt.CheckState) -> None:
-        """Обновляет self.checks: добавляет путь в множество отмеченных элементов при Checked, иначе удаляет."""
-        if state == Qt.CheckState.Checked:
-            self.checks.add(path)
-        else:
-            self.checks.discard(path)
+    # ----- возвращает данные по индексу и роли
+
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
+        """Возвращает данные для делегата.
+
+        Roles:
+            CheckStateRole (колонка 0):
+                • Checked — явная отметка или наследование от отмеченного предка.
+                • PartiallyChecked — директория с отмеченными потомками.
+                • Unchecked — иначе.
+            ForegroundRole:
+                • darkBlue — явная отметка.
+                • gray — наследование от предка.
+
+        Прочие роли делегируются базовой реализации.
+        """
+
+        # Обрабатываем только валидные индексы
+        if not index.isValid():
+            return None
+
+        if role == Qt.ItemDataRole.CheckStateRole and index.column() == 0:
+            return self._check_state(index)
+
+        if role == Qt.ItemDataRole.ForegroundRole:
+            fg = self._foreground(index)
+            if fg is not None:
+                return fg
+
+        if role == Qt.ItemDataRole.FontRole:
+            f = self._font(index)
+            if f is not None:
+                return f
+
+        return super().data(index, role)
+
+    # ----- записывает данные по индексу и роли
 
     def setData(
-            self, index: QModelIndex, value, role: int = Qt.ItemDataRole.EditRole
+        self, index: QModelIndex, value, role: int = Qt.ItemDataRole.EditRole
     ) -> bool:
-        # noinspection GrazieInspection
         """Обрабатывает изменение состояния флажка в первой колонке.
 
         Args:
@@ -295,13 +300,13 @@ class CheckableFSModel(QIdentityProxyModel):
             True, если состояние изменено и сигналы разосланы.
         """
         if (
-                role != Qt.ItemDataRole.CheckStateRole
-                or index.column() != 0
-                or not index.isValid()
+            role != Qt.ItemDataRole.CheckStateRole
+            or index.column() != 0
+            or not index.isValid()
         ):
             return super().setData(index, value, role)
 
-        # Запрещаем клик по унаследованным (серым) элементам
+        # Игнорируем клик по унаследованным (серым) элементам
         if self._has_checked_dir_ancestor(index):
             return False
 

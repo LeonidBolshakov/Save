@@ -20,10 +20,15 @@ from __future__ import annotations
 
 import sys
 
-from PyQt6 import uic
-from PyQt6.QtCore import QDir, QModelIndex, QTimer, Qt
+from PyQt6 import uic, QtCore
+from PyQt6.QtCore import (
+    QDir,
+    QModelIndex,
+    QTimer,
+    Qt,
+)
 from PyQt6.QtGui import QFileSystemModel
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView, QCheckBox
 
 from model import CheckableFSModel
 import utils
@@ -46,16 +51,36 @@ class MainWindow(QMainWindow):
 
     # Аннотации для атрибутов, создаваемых через loadUi
     treeView: QTreeView
+    checkBox_no_select: QCheckBox
+    checkBox_partially_select: QCheckBox
+    checkBox_select: QCheckBox
+    checkBox_auto_select: QCheckBox
 
     def __init__(self):
         super().__init__()
         uic.loadUi("save_setup.ui", self)
+        self._init_legend()
 
         fs = self.create_source_model()  # Исходная модель
         self.model = self.create_proxy_model(
             fs
         )  # Оборачиваем в прокси с флажками и наследование отметок и окраска текста
         self.init_view(fs)
+
+    def _init_legend(self):
+        # Устанавливаем чекбоксу неопределенное состояние
+        self.checkBox_partially_select.setCheckState(
+            QtCore.Qt.CheckState.PartiallyChecked
+        )
+        # Блокируем нажатия по клику флажков легенды
+        self.checkBox_partially_select.stateChanged.connect(self.ignore_state_change)
+        self.checkBox_select.stateChanged.connect(self.ignore_state_change)
+
+    def ignore_state_change(self):
+        self.checkBox_partially_select.setCheckState(
+            QtCore.Qt.CheckState.PartiallyChecked
+        )
+        self.checkBox_select.setCheckState(QtCore.Qt.CheckState.Checked)
 
     def create_source_model(self) -> QFileSystemModel:
         """Создаёт и настраивает исходную модель файловой системы."""
@@ -95,7 +120,7 @@ class MainWindow(QMainWindow):
         e.accept()
 
     def save_checks(self) -> None:
-        """Сохраняет self.model.checks в 'marked elements.json'."""
+        """Сохраняет self.model.checks"""
 
         utils.save_set_json(self.model.checks, "marked elements.json")
 

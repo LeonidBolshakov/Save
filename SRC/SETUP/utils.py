@@ -1,11 +1,5 @@
 """
-Прокси-модель файловой системы с флажками поверх QFileSystemModel.
-
-Возможности:
-  • Хранение и загрузка отмеченных путей в JSON.
-  • Визуальные состояния флажков: Checked / PartiallyChecked / Unchecked.
-  • Корректная рассылка dataChanged вверх/вниз по ветке.
-  • Автоматическое раскрытие корневых узлов, если внутри есть отмеченные элементы.
+Служебные программы для других модулей
 """
 
 from __future__ import annotations
@@ -42,17 +36,21 @@ class UserAbort(Exception):
     """Пользователь отказался продолжать выполнение операции."""
 
 
-class FlagMessageError(IntFlag):
-    CONFIRM = auto()
-    NOT_RAISE = auto()
-    UNCONFIRM = auto()
+class FlagMessageError(IntFlag):  # Флаги для программы обработки ошибок
+    CONFIRM = auto()  # Требует ответа пользователя
+    NOT_RAISE = auto()  # При отказе пользователя работать, не выбрасывать исключение
+    UNCONFIRM = auto()  # Не требует ответа пользователя
 
 
-class ResultErrorMessage(Enum):
-    SKIP_DELETION_CHECK = auto()
-    DELETION_CHECK = auto()
-    YES = auto()
-    NO = auto()
+class ResultErrorMessage(Enum):  # Флаги return code программы обработки ошибок
+    SKIP_DELETION_CHECK = (
+        auto()
+    )  # Пользователь: Не удалять отметки о ранее отмеченных, но впоследствии удалённых файлов/папок
+    DELETION_CHECK = (
+        auto()
+    )  # Пользователь: Удалять отметки о ранее отмеченных, но впоследствии удалённых файлов/папок
+    YES = auto()  # Пользователь ответил "Да"
+    NO = auto()  # Пользователь ответил "Нет"
 
 
 def save_set_json(items: set[str], path: str | Path = "marked elements.json") -> None:
@@ -94,6 +92,7 @@ def load_set_json(
 
     Returns:
         (existing, deleted): два списка строк.
+
     """
     p = Path(path)
     try:
@@ -102,7 +101,8 @@ def load_set_json(
         if not isinstance(nodes, (list, tuple)) or not all(
             isinstance(x, str) for x in nodes
         ):
-            raise ValueError("Ожидался список путей")
+            handle_error_message(1, p, flags=FlagMessageError.CONFIRM)
+            return [], []
         existing, deleted = filter_existing(nodes)
     except PermissionError as e:
         handle_error_message(2, p, e, flags=FlagMessageError.CONFIRM)
@@ -177,12 +177,16 @@ def handle_error_message(
     *,
     flags: FlagMessageError = FlagMessageError.UNCONFIRM,
 ) -> ResultErrorMessage:
-    """Форматирует сообщение, показывает пользователю (по flags),
-    возвращает решение или выбрасывает UserAbort.
-    Лог пишет подробно, пользователю показывает кратко. По запросу — подтверждение.
+    """
+    Формирует текст сообщения Пользователю, выводит лог,
+    Передаёт управление для дальнейшей обработки ошибки.
 
-    Raises:
-        UserAbort: Если confirm=True и пользователь выбрал No.
+    :param error_number: Номер ошибки.
+    :param p: Уточняющая информация к сообщению об ошибке
+    :param e: Exception, если ошибка вызвана прерыванием
+    :param flags: Флаги определяющие возможности Пользователя при запросе.
+
+    :return: Указание Пользователя программе по обработке ошибок.
     """
     template = ERROR_TEXT[error_number]
 
@@ -196,12 +200,23 @@ def handle_error_message(
 
 
 def handle_error(msg: str, flags: FlagMessageError) -> ResultErrorMessage:
+    """Форматирует сообщение, показывает пользователю,
+        возвращает решение пользователя или выбрасывает UserAbort.
+    :param msg: Текст сообщения об ошибке.
+    :param flags: Флаги определяющие действия пользователя при запросе.
+    :return: Указание Пользователя программе по обработке ошибок.
+
+    Raises:
+    UserAbort: Если confirm=True и пользователь выбрал No.
+    ValueError: Если вызывающая программа задала конфликтующий набор флагов.
+    """
+
     # взаимоисключающие флаги
     if (flags & FlagMessageError.CONFIRM) and (flags & FlagMessageError.UNCONFIRM):
         raise ValueError(f"Ошибка в программе. Несовместимые флаги: {flags}")
 
     if flags & FlagMessageError.CONFIRM:
-        ok = _ask_confirm(msg)  # спрашиваем один раз
+        ok = _ask_confirm(msg)
         if flags & FlagMessageError.NOT_RAISE:
             if ok:
                 print("Пользователь выбрал первый вариант")
