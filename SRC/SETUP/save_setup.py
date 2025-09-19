@@ -20,18 +20,18 @@ from __future__ import annotations
 
 import sys
 
-from PyQt6 import uic, QtCore
+from PyQt6 import uic
 from PyQt6.QtCore import (
     QDir,
-    QModelIndex,
     QTimer,
-    Qt,
 )
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView, QCheckBox
 
-from model import CheckableFSModel
-import utils
+from SRC.SETUP.model import CheckableFSModel
+from SRC.SETUP.schedulepanel import SchedulePanel
+from SRC.SETUP.legendwidwets import Legend
+import SRC.SETUP.utils as utils
 
 
 class MainWindow(QMainWindow):
@@ -59,28 +59,15 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi("save_setup.ui", self)
-        self._init_legend()
+        self.legend = Legend(self)
+        self.legend.init_legend()
+        self.schedule = SchedulePanel(self)
 
         fs = self.create_source_model()  # Исходная модель
         self.model = self.create_proxy_model(
             fs
-        )  # Оборачиваем в прокси с флажками и наследование отметок и окраска текста
+        )  # Оборачиваем в прокси с флажками и наследованием отметок и окраски текста
         self.init_view(fs)
-
-    def _init_legend(self):
-        # Устанавливаем чекбоксу неопределенное состояние
-        self.checkBox_partially_select.setCheckState(
-            QtCore.Qt.CheckState.PartiallyChecked
-        )
-        # Блокируем нажатия по клику флажков легенды
-        self.checkBox_partially_select.stateChanged.connect(self.ignore_state_change)
-        self.checkBox_select.stateChanged.connect(self.ignore_state_change)
-
-    def ignore_state_change(self):
-        self.checkBox_partially_select.setCheckState(
-            QtCore.Qt.CheckState.PartiallyChecked
-        )
-        self.checkBox_select.setCheckState(QtCore.Qt.CheckState.Checked)
 
     def create_source_model(self) -> QFileSystemModel:
         """Создаёт и настраивает исходную модель файловой системы."""
@@ -91,7 +78,7 @@ class MainWindow(QMainWindow):
 
     def create_proxy_model(self, fs: QFileSystemModel) -> CheckableFSModel:
         """Создаёт прокси-модель с флажками и наследованием отметок."""
-        model = CheckableFSModel(self)
+        model = CheckableFSModel()
         model.setSourceModel(fs)
         return model
 
@@ -107,7 +94,7 @@ class MainWindow(QMainWindow):
         """
 
         self.treeView.setModel(self.model)
-        self.treeView.setRootIndex(self.model.mapFromSource(fs.index("")))
+        self.treeView.setRootIndex(self.model.root_for_all_drives(fs))
         self.treeView.setColumnWidth(0, utils.COL0_WIDTH)
         self.treeView.setSortingEnabled(True)
         QTimer.singleShot(
@@ -125,20 +112,15 @@ class MainWindow(QMainWindow):
         utils.save_set_json(self.model.checks, "marked elements.json")
 
     def _expand_marked_disks(self) -> None:
-        """Раскрывает корневые узлы, помеченные Checked/PartiallyChecked.
-
-        Использует пустой QModelIndex как безопасный корень, так как rootIndex()
-        может быть ещё не инициализирован на момент вызова.
         """
-        root = QModelIndex()
-        rows = self.model.rowCount(root)
-        for r in range(rows):
-            idx = self.model.index(r, 0, root)
-            if not idx.isValid():
-                continue
-            state = self.model.data(idx, Qt.ItemDataRole.CheckStateRole)
-            if state in (Qt.CheckState.PartiallyChecked, Qt.CheckState.Checked):
-                self.treeView.setExpanded(idx, True)
+        Раскрывает в дереве отмеченные диски.
+
+        Действия:
+            • Получает список индексов корневых элементов с установленным чекбоксом.
+            • Для каждого индекса вызывает setExpanded(True) в treeView.
+        """
+        for idx in self.model.iter_marked_top():
+            self.treeView.setExpanded(idx, True)
 
 
 if __name__ == "__main__":

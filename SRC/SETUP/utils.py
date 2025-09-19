@@ -117,7 +117,8 @@ def load_set_json(
     if deleted:
         deleted_out = deleted
         if MAX_OUTPUT_DELETED < len(deleted):
-            deleted_out = deleted[: MAX_OUTPUT_DELETED - 1] + "..."
+            deleted_out = deleted[: MAX_OUTPUT_DELETED - 1]
+            deleted_out.append("...")
 
         ret_code = handle_error_message(
             5,

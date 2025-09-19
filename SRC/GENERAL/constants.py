@@ -105,6 +105,7 @@ class Constants(frozenset):
     PAR_LOCAL_ARCHIVE_NAME = "local_archive_name"
     PAR_PASSWORD = "password"
     PAR_STANDARD_PROGRAM_PATHS = "standard_program_paths"
+    PROGRAM_PATH = "PROGRAM_PATH"
     PROGRAM_WRITE_VARS = "write_vars"
     REMOTE_ARCHIVE_PREFIX_DEF = "archive"
     ROOT_REMOTE_ARCHIVE_DIR = "/Архивы"
@@ -121,6 +122,8 @@ class Constants(frozenset):
         f"{ARCHIVING_END_TRIGGER}"
         f"{LINK_REMOTE_ARCHIVE}"
     )
+    TASK_LOCATION = "TASK_LOCATION"
+    TASK_NAME = "TASK_NAME"
     VARIABLES_DOTENV_NAME_DEF = "env"
     VARS_KEYRING = [  # секретные переменные окружения
         f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента

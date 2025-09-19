@@ -3,3 +3,6 @@ FILE_LOG_LEVEL=INFO
 SENDER_EMAIL=API.Bolshakov@yandex.ru
 RECIPIENT_EMAIL=bolleoa@gmail.com
 ARCHIVE_SUFFIX=.7z
+TASK_LOCATION=\
+TASK_NAME=save
+PROGRAM_PATH=C:\Program Files\Bolshakov\save_to_cload\main.exe 

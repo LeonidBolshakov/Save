@@ -13,7 +13,7 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt, QDir, QModelIndex, QIdentityProxyModel
 from PyQt6.QtGui import QBrush, QFileSystemModel, QFont
 
-import utils
+import SRC.SETUP.utils as utils
 
 
 class CheckableFSModel(QIdentityProxyModel):
@@ -48,6 +48,38 @@ class CheckableFSModel(QIdentityProxyModel):
     def get_checks(self) -> set[str]:
         existing, deleted = utils.load_set_json()
         return {self._norm(p) for p in existing}
+
+    def root_for_all_drives(self, fs) -> QModelIndex:
+        """
+        Возвращает корневой индекс модели для всех дисков.
+
+        Аргументы:
+            fs (QFileSystemModel): исходная файловая модель, от которой берётся индекс "".
+
+        Возврат:
+            QModelIndex: индекс корневого узла, отображающий весь список дисков.
+        """
+
+        return self.mapFromSource(fs.index(""))
+
+    def iter_marked_top(self):
+        """
+        Генератор для обхода отмеченных корневых элементов.
+
+        Логика:
+            • Просматривает верхний уровень модели (список дисков).
+            • Проверяет состояние чекбокса каждого элемента.
+            • Возвращает индексы с состоянием Checked или PartiallyChecked.
+
+        Возврат:
+            Iterator[QModelIndex]: индексы отмеченных корневых элементов.
+        """
+        root = QModelIndex()
+        for r in range(self.rowCount(root)):
+            idx = self.index(r, 0, root)
+            state = self.data(idx, Qt.ItemDataRole.CheckStateRole)
+            if state in (Qt.CheckState.Checked, Qt.CheckState.PartiallyChecked):
+                yield idx
 
     def _emit_branch_changed(self, index: QModelIndex) -> None:
         """Обновляет предков узла для перерасчёта Partial.
