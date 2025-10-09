@@ -5,4 +5,8 @@ RECIPIENT_EMAIL=bolleoa@gmail.com
 ARCHIVE_SUFFIX=.7z
 TASK_LOCATION=\
 TASK_NAME=save
-PROGRAM_PATH=C:\Program Files\Bolshakov\save_to_cload\main.exe 
+TASK_DESCRIPTION=ежедневное сохранение данных
+TASK_REPEAT=
+TASK_START_IN=13:05
+PROGRAM_PATH=C:\Program Files\Bolshakov\save_to_cload\main.exe
+ 

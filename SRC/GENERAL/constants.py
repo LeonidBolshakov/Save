@@ -122,8 +122,12 @@ class Constants(frozenset):
         f"{ARCHIVING_END_TRIGGER}"
         f"{LINK_REMOTE_ARCHIVE}"
     )
+    TASK_DESCRIPTION = "TASK_DESCRIPTION"
     TASK_LOCATION = "TASK_LOCATION"
     TASK_NAME = "TASK_NAME"
+    TASK_REPEAT = "TASK_REPEAT"
+    TASK_START_IN = "TASK_START_IN"
+    TEXT_EMPTY = "???????"
     VARIABLES_DOTENV_NAME_DEF = "env"
     VARS_KEYRING = [  # секретные переменные окружения
         f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента

@@ -39,7 +39,7 @@ class EnvironmentVariables:
         """
 
         # Загрузка переменных окружения
-        if not dotenv.load_dotenv(dotenv_path=self.dotenv_path):
+        if not dotenv.load_dotenv(dotenv_path=self.dotenv_path, encoding="utf-8"):
             logger.info(T.env_not_found.format(env=self.dotenv_path, dir=Path.cwd()))
 
     def get_var(self, var_name: str, default: str = "") -> str:

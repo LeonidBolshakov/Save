@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Sequence
 from enum import Enum, IntFlag, auto
 
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox, QWidget, QLabel, QSpinBox, QTimeEdit
+from PyQt6.QtCore import Qt, QTime
 
 ERROR_TEXT = (
     "Файл '{p}' с пометками сохраняемых файлов/каталогов не обнаружен.\n"  # 0
@@ -239,3 +240,39 @@ def handle_error(msg: str, flags: FlagMessageError) -> ResultErrorMessage:
 
     else:
         raise ValueError(f"Ошибка в программе. Непредусмотренный набор флагов: {flags}")
+
+
+def set_widget_texts(widget: QWidget, text: str, *, empty: str = "") -> str | None:
+    """
+    Устанавливает для виджета текст, tooltip и whatsThis.
+
+    Args:
+        widget (QWidget): Виджет, которому назначаются значения.
+        text (str): Основной текст. Если пустой, берётся `empty`.
+        empty (str, optional): Заглушка, если `text` пустой. По умолчанию "".
+    """
+    value = text or empty
+    if hasattr(widget, "setText"):
+        widget.setText(str(value))
+    elif hasattr(widget, "setPlainText"):
+        widget.setPlainText(str(value))
+    elif isinstance(widget, QSpinBox):
+        try:
+            widget.setValue(int(value))
+        except ValueError:
+            return f"Задано не целое число {value}"
+    elif isinstance(widget, QTimeEdit):
+        # ожидается "HH:mm"
+        q_time = QTime.fromString(value, "HH:mm")
+        if not q_time.isValid():
+            return f"Время задаётся в формате 'HH:MM', а задано {value}"
+        widget.setTime(q_time)
+
+    widget.setToolTip(value)
+    widget.setWhatsThis(value)
+
+    if isinstance(widget, QLabel):
+        widget.setMouseTracking(True)
+        widget.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+
+    return None

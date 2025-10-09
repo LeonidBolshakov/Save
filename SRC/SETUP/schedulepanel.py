@@ -1,5 +1,5 @@
-from os import environ
 from typing import Protocol
+
 from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
@@ -7,11 +7,11 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QTimeEdit,
     QPushButton,
+    QWidget,
 )
-from mypy.checkpattern import self_match_type_names
-
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
+import SRC.SETUP.utils as utils
 
 
 class HasSchedulePanelUI(Protocol):
@@ -19,8 +19,8 @@ class HasSchedulePanelUI(Protocol):
     label_program_path: QLabel
     lineEdit_task_name: QLineEdit
     textEdit_task_description: QPlainTextEdit
-    spinBox_repeat: QSpinBox
-    timeEdit_start_in: QTimeEdit
+    spinBox_task_repeat: QSpinBox
+    timeEdit_task_start_in: QTimeEdit
     btn_apply: QPushButton
     btn_undo: QPushButton
     btn_freeze: QPushButton
@@ -33,8 +33,8 @@ class SchedulePanel:
         self.program_path = ui.label_program_path
         self.task_name = ui.lineEdit_task_name
         self.task_description = ui.textEdit_task_description
-        self.repeat = ui.spinBox_repeat
-        self.start_in = ui.timeEdit_start_in
+        self.task_repeat = ui.spinBox_task_repeat
+        self.task_start_in = ui.timeEdit_task_start_in
         self.btn_freeze = ui.btn_freeze
         self.btn_delete = ui.btn_delete
         self.btn_apply = ui.btn_apply
@@ -43,14 +43,23 @@ class SchedulePanel:
         self.show_task_information()
 
     def show_task_information(self) -> None:
-        self.find_task()
+        self.show_task()
 
-    def find_task(self) -> None:
-        task_location = self.env.get_var(C.TASK_LOCATION)
-        self.task_location.setText(task_location)
-        task_name = self.env.get_var(C.TASK_NAME)
-        self.task_name.setText(task_name)
+    def show_task(self) -> None:
+        self.set_widget_env_texts(self.task_location, C.TASK_LOCATION)
+        self.set_widget_env_texts(self.task_name, C.TASK_NAME)
+        self.set_widget_env_texts(self.program_path, C.PROGRAM_PATH)
+        self.set_widget_env_texts(self.task_description, C.TASK_DESCRIPTION)
+        self.set_widget_env_texts(self.task_repeat, C.TASK_REPEAT)
+        self.set_widget_env_texts(self.task_start_in, C.TASK_START_IN)
 
-        program_path = self.env.get_var(C.PROGRAM_PATH)
-        self.program_path.setText(program_path)
-        print(f"{task_location=}  {task_name=} {program_path=}")
+    def set_widget_env_texts(
+        self,
+        widget: QWidget,
+        var_name: str,
+    ) -> None:
+        value = self.env.get_var(var_name)
+        if value is None:
+            ret_code = utils.set_widget_texts(widget, value, empty=C.TEXT_EMPTY)
+            if ret_code:
+                print(f"Ошибка в переменной окружения {var_name}\n{ret_code}")
