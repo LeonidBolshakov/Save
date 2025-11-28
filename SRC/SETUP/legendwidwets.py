@@ -1,17 +1,56 @@
+"""
+Модуль legend
+=============
+
+Содержит вспомогательный тип и класс для инициализации легенды чекбоксов —
+элементов интерфейса, которые должны отображать фиксированное состояние
+(Checked / PartiallyChecked), но не должны изменяться пользователем.
+
+Почему это делается кодом
+-------------------------
+
+Qt Designer НЕ умеет создавать QCheckBox, который:
+    отображает состояние (checked / partiallyChecked)
+    и НЕ позволяет пользователю его изменить.
+
+Проблемы возможных подходов в Designer:
+    • setCheckable(False) — галка не отображается;
+    • setEnabled(False) — виджет становится серым, что некорректно для легенды.
+
+Правильный способ — установить состояние программно и
+заблокировать любые события от пользователя:
+
+    • WA_TransparentForMouseEvents — игнорирование кликов мыши;
+    • NoFocus — невозможность получить фокус клавиатурой.
+
+Протокол HasLegendUi включает только два чекбокса:
+    • частично выбран
+    • выбран
+
+Именно эти элементы должны быть фиксированными. Остальная часть легенды
+формируется QtDesigner.
+"""
+
 from typing import Protocol
+
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QCheckBox
-from PyQt6 import QtCore
 
 
 class HasLegendUi(Protocol):
     """
-    Интерфейс (протокол) для объектов, содержащих виджеты легенды.
+    Интерфейс для объектов, содержащих чекбоксы легенды.
 
-    Требуемые атрибуты:
-        checkBox_no_select       : QCheckBox
-        checkBox_partially_select: QCheckBox
-        checkBox_select          : QCheckBox
-        checkBox_auto_select     : QCheckBox
+    Атрибуты:
+        checkBox_partially_select : QCheckBox
+            Состояние "частично выбран".
+        checkBox_select           : QCheckBox
+            Состояние "выбран".
+
+    Примечание:
+        Легенда использует только эти два чекбокса, так как они должны
+        находиться в фиксированном состоянии. Остальные элементы легенды
+        (если есть) не нуждаются в программной обработке.
     """
 
     checkBox_partially_select: QCheckBox
@@ -20,38 +59,50 @@ class HasLegendUi(Protocol):
 
 class Legend:
     """
-    Управляет логикой легенды флажков.
+    Управляет логикой чекбоксов легенды: задаёт им состояния и блокирует
+    возможность их изменения пользователем.
 
-    Принимает объект, удовлетворяющий протоколу HasLegendUi
-    (например, экземпляр MainWindow после загрузки UI).
+    Использование:
+
+        legend = Legend(self.ui)
+        legend.init_legend()
     """
 
     def __init__(self, ui: HasLegendUi) -> None:
         """
-        Инициализирует ссылки на флажки легенды.
+        Сохраняет ссылки на чекбоксы легенды.
 
         Args:
-            ui: объект, содержащий нужные QCheckBox,
-                например self в MainWindow после uic.loadUi().
+            ui : объект, содержащий требуемые чекбоксы:
+                 checkBox_partially_select и checkBox_select.
         """
-        self.part = ui.checkBox_partially_select
-        self.all = ui.checkBox_select
+        self.partially = ui.checkBox_partially_select
+        self.selected = ui.checkBox_select
 
     def init_legend(self) -> None:
         """
-        Выполняет базовую настройку легенды.
+        Настраивает чекбоксы легенды:
 
-        Действия:
-            • включает поддержку трёх состояний у частичного чекбокса;
-            • здесь же подключается обработчик изменения флажков,
-              который блокирует все изменения.
+            • включает tristate у частично выбранного;
+            • задаёт нужные состояния;
+            • блокирует взаимодействие пользователя с чекбоксами.
         """
-        # Устанавливаем флажку неопределенное состояние
-        self.part.setCheckState(QtCore.Qt.CheckState.PartiallyChecked)
-        # Блокируем изменение флажков легенды
-        self.part.stateChanged.connect(self._ignore_state_change)
-        self.all.stateChanged.connect(self._ignore_state_change)
+        # Чекбокс "частично выбран"
+        self.partially.setTristate(True)
+        self.partially.setCheckState(Qt.CheckState.PartiallyChecked)
+        self._make_readonly(self.partially)
 
-    def _ignore_state_change(self):
-        self.part.setCheckState(QtCore.Qt.CheckState.PartiallyChecked)
-        self.all.setCheckState(QtCore.Qt.CheckState.Checked)
+        # Чекбокс "выбран"
+        self.selected.setCheckState(Qt.CheckState.Checked)
+        self._make_readonly(self.selected)
+
+    @staticmethod
+    def _make_readonly(widget: QCheckBox) -> None:
+        """
+        Делает чекбокс полностью «только для отображения».
+
+        Виджет остаётся визуально включённым и сохраняет состояние,
+        но НЕ реагирует на мышь и клавиатуру.
+        """
+        widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)

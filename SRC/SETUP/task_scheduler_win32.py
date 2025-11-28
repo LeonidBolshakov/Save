@@ -1,0 +1,318 @@
+"""
+Task Scheduler Win32/COM API wrapper.
+
+Этот модуль обеспечивает минималистичную, надёжную и предсказуемую обёртку
+над Windows Task Scheduler через win32com.client (Schedule.Service).
+
+Возможности:
+- создание и обновление WEEKLY-задач;
+- чтение существующих задач;
+- преобразование внутренних битовых масок дней недели в DaysOfWeek API;
+- корректное извлечение HRESULT (включая внутренний COM HRESULT);
+- функции-помощники для настройки триггеров и действий.
+
+Использует только Win32 COM API. Не зависит от XML или schtasks.exe.
+Подходит для GUI-приложений, где требуется строгий контроль ошибок.
+
+Автор задачи: Большаков Л.А. # noqa
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any, TypeAlias
+
+import pywintypes
+import win32com.client
+
+ComError: TypeAlias = pywintypes.com_error  # type: ignore[attr-defined]
+
+# 7-битная маска дней: bit0 = MON, ..., bit6 = SUN
+MASK_ALL_DAYS = 0b1111111
+
+# Task Scheduler constants
+TASK_TRIGGER_WEEKLY = 3
+TASK_CREATE_OR_UPDATE = 6
+TASK_LOGON_INTERACTIVE_TOKEN = 3
+
+# Metadata
+TASK_AUTHOR = "Большаков Л.А."  # noqa
+
+
+def mask_to_scheduler_days(mask: int) -> int:
+    """Внутренняя маска (bit0=MON - bit6=SUN) -> DaysOfWeek (bit0=SUN - bit6=SAT)."""
+    m = mask & MASK_ALL_DAYS
+    return ((m << 1) & MASK_ALL_DAYS) | ((m >> 6) & 1)
+
+
+def scheduler_days_to_mask(days_of_week: int) -> int:
+    """DaysOfWeek (bit0=SUN - bit6=SAT) -> внутренняя маска (bit0=MON - bit6=SUN)."""
+    v = days_of_week & MASK_ALL_DAYS
+    return (v >> 1) | ((v & 1) << 6)
+
+
+def split_task_path(task_path: str) -> tuple[str, str]:
+    """
+    Делит путь задачи на (folder_path, task_name).
+
+    Примеры:
+        "MyTask"          -> ("\\", "MyTask")
+        "\\Folder\\Task"  -> ("\\Folder", "Task")
+    """
+    path = task_path.replace("/", "\\").strip()
+    if not path.startswith("\\"):
+        path = "\\" + path
+
+    parts = [p for p in path.split("\\") if p]
+    if not parts:
+        raise ValueError(f"Некорректный путь задачи: {task_path!r}")
+
+    folder_path = "\\" + "\\".join(parts[:-1]) if len(parts) > 1 else "\\"
+    task_name = parts[-1]
+    return folder_path, task_name
+
+
+def ensure_folder(root, folder_path: str):
+    """
+    Возвращает папку планировщика, создавая недостающие уровни.
+    """
+    if folder_path == "\\":
+        return root
+
+    current = root
+    for part in folder_path.strip("\\").split("\\"):
+        if not part:
+            continue
+        try:
+            current = current.GetFolder(part)
+        except Exception:
+            current = current.CreateFolder(part, "")
+    return current
+
+
+def set_weekly_trigger(task_def, days_mask: int, start_time: str) -> None:
+    """
+    Добавляет WEEKLY-триггер на указанные дни в заданное время.
+    start_time: "HH:MM"
+    """
+    trigger = task_def.Triggers.Create(TASK_TRIGGER_WEEKLY)
+
+    today = datetime.now().date().strftime("%Y-%m-%d")  # ISO формат
+    trigger.StartBoundary = f"{today}T{start_time}:00"
+    trigger.WeeksInterval = 1
+    trigger.DaysOfWeek = mask_to_scheduler_days(days_mask)
+    trigger.Enabled = True
+
+
+def set_exec_action(task_def, executable_path: str) -> None:
+    """
+    Добавляет EXEC-действие: запуск executable_path без аргументов.
+    """
+    action = task_def.Actions.Create(0)  # TASK_ACTION_EXEC = 0
+    action.Path = executable_path
+
+
+def create_replace_task_scheduler(
+        *,
+        mask_days: int,
+        task_path: str,
+        executable_path: str,
+        start_time: str,
+        description: str,
+) -> ComError | None:
+    """
+    Создаёт или заменяет WEEKLY-задачу в Windows Task Scheduler (Win32 COM API).
+
+    Параметры передаются только по имени (keyword-only), что исключает ошибки.
+    Возвращает:
+        None — при успехе,
+        pywintypes.com_error — при COM-ошибке (пользователь должен увидеть описание),
+        другие исключения — пробрасываются (это ошибки программиста).
+
+    Важно:
+        - mask_days — внутренняя 7-битная маска (bit0=MON .. bit6=SUN);
+        - start_time — строка "HH:MM", затем будет преобразована в "YYYY-MM-DDTHH:MM:SS";
+        - description — человеко-читаемое описание задачи, выводится в планировщике.
+    """
+    try:
+        scheduler = win32com.client.Dispatch("Schedule.Service")
+        scheduler.Connect()
+
+        root = scheduler.GetFolder("\\")
+        folder_path, task_name = split_task_path(task_path)
+        target_folder = ensure_folder(root, folder_path)
+
+        task_def = scheduler.NewTask(0)
+
+        task_def.RegistrationInfo.Description = description
+        task_def.RegistrationInfo.Author = TASK_AUTHOR
+
+        settings = task_def.Settings
+        settings.Enabled = True
+        settings.StartWhenAvailable = True
+        settings.DisallowStartIfOnBatteries = False
+
+        set_weekly_trigger(task_def, mask_days, start_time)
+        set_exec_action(task_def, executable_path)
+
+        target_folder.RegisterTaskDefinition(
+            task_name,
+            task_def,
+            TASK_CREATE_OR_UPDATE,
+            "",
+            "",
+            TASK_LOGON_INTERACTIVE_TOKEN,
+        )
+
+        return None
+
+    except pywintypes.com_error as e:  # type: ignore[attr-defined]
+        return e
+
+
+def delete_task_scheduler(task_path: str) -> ComError | None:
+    """
+    Удаляет задачу из Windows Task Scheduler (Win32 COM API).
+
+    Поведение:
+        - task_path может быть как "MyTask", так и "\\Folder\\MyTask";
+        - если задача не найдена или возникает COM-ошибка — возвращается pywintypes.com_error;
+        - другие исключения (ValueError из split_task_path и т.п.) пробрасываются.
+
+    Возвращает:
+        None — при успешном удалении;
+        pywintypes.com_error — при ошибке COM.
+    """
+    try:
+        scheduler = win32com.client.Dispatch("Schedule.Service")
+        scheduler.Connect()
+
+        root = scheduler.GetFolder("\\")
+        folder_path, task_name = split_task_path(task_path)
+        folder = root.GetFolder(folder_path)
+
+        # DeleteTask(Name, flags). flags = 0
+        folder.DeleteTask(task_name, 0)
+
+        return None
+
+    except pywintypes.com_error as e:  # type: ignore[attr-defined]
+        return e
+
+
+def read_weekly_task(task_path: str) -> dict[str, Any]:
+    """
+    Читает WEEKLY-задачу планировщика и возвращает её параметры.
+
+    Возвращаемый dict:
+      - task_path   : исходный путь задачи;
+      - mask_days   : внутренняя маска дней (bit0=MON — bit6=SUN);
+      - start_time  : строка "HH:MM" или None;
+      - executable  : путь к EXE или None;
+      - description : описание задачи.
+
+    Требования:
+      — у задачи должен быть ровно один триггер;
+      — этот триггер обязан быть WEEKLY;
+      — у задачи должно быть ровно одно действие;
+      — это действие должно быть EXEC.
+
+    В противном случае выбрасывается ValueError.
+    """
+    scheduler = win32com.client.Dispatch("Schedule.Service")
+    scheduler.Connect()
+    root = scheduler.GetFolder("\\")
+
+    folder_path, task_name = split_task_path(task_path)
+    folder = root.GetFolder(folder_path)
+    task = folder.GetTask(task_name)
+    definition = task.Definition
+
+    trigger = _get_single_weekly_trigger(definition, task_path)
+    action = _get_single_exec_action(definition, task_path)
+
+    # WEEKLY-триггер
+    mask_days = scheduler_days_to_mask(trigger.DaysOfWeek)
+    start_time: str | None = None
+
+    sb = trigger.StartBoundary  # ожидаем формат "YYYY-MM-DDTHH:MM:SS..."
+    if isinstance(sb, str) and len(sb) >= 16:
+        start_time = sb[11:16]  # "HH:MM"
+
+    executable = getattr(action, "Path", None)
+
+    return {
+        "task_path": task_path,
+        "mask_days": mask_days,
+        "start_time": start_time,
+        "executable": executable,
+        "description": definition.RegistrationInfo.Description,
+    }
+
+
+def _get_single_weekly_trigger(definition, task_path: str):
+    """Возвращает единственный WEEKLY-триггер или бросает ValueError."""
+    triggers = list(definition.Triggers)
+    if len(triggers) != 1:
+        raise ValueError(
+            f"Задача {task_path!r} должна содержать ровно один триггер, "
+            f"найдено: {len(triggers)}."
+        )
+
+    trigger = triggers[0]
+    if trigger.Type != TASK_TRIGGER_WEEKLY:
+        raise ValueError(
+            f"Задача {task_path!r} должна иметь WEEKLY-триггер, "
+            f"но найден Type={trigger.Type}."
+        )
+
+    return trigger
+
+
+def _get_single_exec_action(definition, task_path: str):
+    """Возвращает единственное EXEC-действие или бросает ValueError."""
+    actions = list(definition.Actions)
+    if len(actions) != 1:
+        raise ValueError(
+            f"Задача {task_path!r} должна содержать ровно одно действие, "
+            f"найдено: {len(actions)}."
+        )
+
+    action = actions[0]
+
+    # TASK_ACTION_EXEC = 0
+    if action.Type != 0:
+        raise ValueError(
+            f"Ожидалось EXEC-действие (TASK_ACTION_EXEC), "
+            f"но найдено Type={action.Type}."
+        )
+
+    return action
+
+
+def extract_hresult(error: pywintypes.com_error) -> int:  # type: ignore[attr-defined]
+    """Возвращает корректный HRESULT (учитывая вложенный COM HRESULT)."""
+    outer = error.args[0] if error.args else 0
+    inner = None
+    if (
+            len(error.args) > 2
+            and isinstance(error.args[2], tuple)
+            and len(error.args[2]) >= 6
+    ):
+        raw = error.args[2][5]
+        if isinstance(raw, int):
+            inner = raw
+    return (inner if inner is not None else outer) & 0xFFFFFFFF
+
+
+def extract_com_error_info(error: pywintypes.com_error) -> tuple[int, str, str]:  # type: ignore[attr-defined]
+    """
+    Возвращает:
+      (hresult, message, details)
+    """
+    hr = extract_hresult(error)
+
+    msg = error.args[1] if len(error.args) > 1 else ""
+    details = error.args[2] if len(error.args) > 2 else ""
+
+    return hr, msg, details

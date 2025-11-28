@@ -117,17 +117,35 @@ class Constants(frozenset):
         "C:\\Program Files\\7-Zip\\7z.exe",
         "C:\\Program Files (x86)\\7-Zip\\7z.exe",
     ]
+    SCHEDULED_DAYS_MASK = "SCHEDULED_DAYS_MASK"
     STOP_SERVICE_MESSAGE = (
         f"***** Не менять! Информация для отправки служебного сообщения "
         f"{ARCHIVING_END_TRIGGER}"
         f"{LINK_REMOTE_ARCHIVE}"
     )
+    TASK_CREATED_SUCSESSFULL = "Задача создана успешно"
+    TASK_CREATED_ERROR = "Ошибка создания задачи"
+    TASK_DAYS = "TASK_DAYS"
+    TASK_DELETED_ERROR = "Ошибка удаления задачи"
+    TASK_DELETED_SUCSESSFULL = "Задача удалена успешно"
     TASK_DESCRIPTION = "TASK_DESCRIPTION"
-    TASK_LOCATION = "TASK_LOCATION"
+    TASK_FOLDER = "TASK_FOLDER"
     TASK_NAME = "TASK_NAME"
-    TASK_REPEAT = "TASK_REPEAT"
     TASK_START_IN = "TASK_START_IN"
+    TASK_NOT_CREATED = (
+        "Задача пока не создана."
+        "\nДля создания задачи нажмите кнопку:"
+        "\n'Создать задачу'"
+    )
     TEXT_EMPTY = "???????"
+    TEXT_NO_DAY = "Выберите хотя бы один день недели."
+    TEXT_NOT_TASK = (
+        "Папка задачи планировщика не задана. Проверьте настройки по умолчанию"
+    )
+    TEXT_TASK_MANUAL_EDIT = (
+        "Задача планировщика {task} корректировалась вручную"
+        "\nОтмените ручные правки или удалите задачу"
+    )
     VARIABLES_DOTENV_NAME_DEF = "env"
     VARS_KEYRING = [  # секретные переменные окружения
         f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента

@@ -314,12 +314,6 @@ class OAuthFlow:
             "client_id": self.yandex_client_id,
             "client_secret": self.variables.get_var(YC.ENV_YANDEX_CLIENT_SECRET),
         }
-        print(
-            f"{self.variables.get_var(YC.YANDEX_REFRESH_TOKEN)=}\n"
-            f"{self.yandex_client_id=}\n"
-            f"{self.variables.get_var(YC.ENV_YANDEX_CLIENT_SECRET)=}"
-        )
-        input("*****")
 
         response = requests.post(
             YC.YANDEX_TOKEN_URL,

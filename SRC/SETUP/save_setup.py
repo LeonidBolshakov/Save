@@ -21,7 +21,7 @@ from __future__ import annotations
 import sys
 
 from PyQt6 import uic
-from PyQt6.QtCore import QDir, QTimer, Qt
+from PyQt6.QtCore import QDir, QTimer
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView, QCheckBox, QWhatsThis
 

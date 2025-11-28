@@ -6,11 +6,26 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, Callable, Any
 from enum import Enum, IntFlag, auto
+from logging import getLogger
 
-from PyQt6.QtWidgets import QMessageBox, QWidget, QLabel, QSpinBox, QTimeEdit
+from PyQt6.QtWidgets import (
+    QMessageBox,
+    QWidget,
+    QLabel,
+    QHBoxLayout,
+    QPlainTextEdit,
+    QTextEdit,
+    QTimeEdit,
+    QSpinBox,
+    QCheckBox,
+    QLayout,
+)
+
 from PyQt6.QtCore import Qt, QTime
+
+logger = getLogger(__name__)
 
 ERROR_TEXT = (
     "Файл '{p}' с пометками сохраняемых файлов/каталогов не обнаружен.\n"  # 0
@@ -31,6 +46,9 @@ ERROR_TEXT = (
 INIT_DELAY_MS = 100
 COL0_WIDTH = 320
 MAX_OUTPUT_DELETED = 10
+HTML_TEG = "[html]"
+DAYS_IN_WEEK = 7
+WEEKDAY_MAX_INDEX = DAYS_IN_WEEK - 1
 
 
 class UserAbort(Exception):
@@ -83,7 +101,7 @@ def save_set_json(items: set[str], path: str | Path = "marked elements.json") ->
 
 
 def load_set_json(
-    path: str | Path = "marked elements.json",
+        path: str | Path = "marked elements.json",
 ) -> tuple[list[str], list[str]]:
     """
     Читает JSON со списком путей и делит их на существующие и отсутствующие.
@@ -100,7 +118,7 @@ def load_set_json(
         with p.open("r", encoding="utf-8") as f:
             nodes = json.load(f)
         if not isinstance(nodes, (list, tuple)) or not all(
-            isinstance(x, str) for x in nodes
+                isinstance(x, str) for x in nodes
         ):
             handle_error_message(1, p, flags=FlagMessageError.CONFIRM)
             return [], []
@@ -157,7 +175,7 @@ def filter_existing(nodes: Sequence[str]) -> tuple[list[str], list[str]]:
 
 
 def _format_error_msg(
-    template: str, p: Path | str | None, e: Exception | None, *, full: bool
+        template: str, p: Path | str | None, e: Exception | None, *, full: bool
 ) -> str:
     """Форматирует текст: с деталями при full=True, без них при full=False."""
     return template.format(p=p or "", e=str(e) if (e and full) else "")
@@ -173,11 +191,11 @@ def _ask_confirm(msg: str) -> bool:
 
 
 def handle_error_message(
-    error_number: int,
-    p: Path | str | None = None,
-    e: Exception | None = None,
-    *,
-    flags: FlagMessageError = FlagMessageError.UNCONFIRM,
+        error_number: int,
+        p: Path | str | None = None,
+        e: Exception | None = None,
+        *,
+        flags: FlagMessageError = FlagMessageError.UNCONFIRM,
 ) -> ResultErrorMessage:
     """
     Формирует текст сообщения Пользователю, выводит лог,
@@ -193,7 +211,7 @@ def handle_error_message(
     template = ERROR_TEXT[error_number]
 
     # 1) Подробный лог (с e)
-    print(_format_error_msg(template, p, e, full=True))
+    logger.error(_format_error_msg(template, p, e, full=True))
 
     # 2) Краткое сообщение пользователю (без e)
     msg = _format_error_msg(template, p, e, full=False)
@@ -206,7 +224,7 @@ def handle_error(msg: str, flags: FlagMessageError) -> ResultErrorMessage:
         возвращает решение пользователя или выбрасывает UserAbort.
     :param msg: Текст сообщения об ошибке.
     :param flags: Флаги определяющие действия пользователя при запросе.
-    :return: Указание Пользователя программе по обработке ошибок.
+    :return: При ошибке — текст ошибки. Без ошибок — None.
 
     Raises:
     UserAbort: Если confirm=True и пользователь выбрал No.
@@ -221,17 +239,17 @@ def handle_error(msg: str, flags: FlagMessageError) -> ResultErrorMessage:
         ok = _ask_confirm(msg)
         if flags & FlagMessageError.NOT_RAISE:
             if ok:
-                print("Пользователь выбрал первый вариант")
+                logger.error("Пользователь выбрал первый вариант")
                 return ResultErrorMessage.DELETION_CHECK
             else:
-                print("Пользователь выбрал второй вариант")
+                logger.error("Пользователь выбрал второй вариант")
                 return ResultErrorMessage.SKIP_DELETION_CHECK
         # режим с возможным исключением
         if ok:
-            print("Пользователь согласился и продолжил работу")
+            logger.error("Пользователь согласился и продолжил работу")
             return ResultErrorMessage.YES
         else:
-            print("Пользователь отказался и прекратил работу.")
+            logger.error("Пользователь отказался и прекратил работу.")
             raise UserAbort
 
     elif flags & FlagMessageError.UNCONFIRM:
@@ -242,37 +260,144 @@ def handle_error(msg: str, flags: FlagMessageError) -> ResultErrorMessage:
         raise ValueError(f"Ошибка в программе. Непредусмотренный набор флагов: {flags}")
 
 
-def set_widget_texts(widget: QWidget, text: str, *, empty: str = "") -> str | None:
-    """
-    Устанавливает для виджета текст, tooltip и whatsThis.
+def parse_int(value: str) -> int | None:
+    try:
+        return int(value)
+    except ValueError:
+        return None
 
-    Args:
-        widget (QWidget): Виджет, которому назначаются значения.
-        text (str): Основной текст. Если пустой, берётся `empty`.
-        empty (str, optional): Заглушка, если `text` пустой. По умолчанию "".
+
+def parse_time_hhmm(value: str) -> QTime | None:
+    q_time = QTime.fromString(value, "HH:mm")
+    if q_time.isValid():
+        return q_time
+    return None
+
+
+def process_weekdays_layout(
+        layout: QLayout,
+        text: str,
+        *,
+        empty: str = "",
+) -> str | None:
     """
-    value = text or empty
-    if hasattr(widget, "setText"):
-        widget.setText(str(value))
-    elif hasattr(widget, "setPlainText"):
-        widget.setPlainText(str(value))
-    elif isinstance(widget, QSpinBox):
+    Устанавливает состояние чекбоксов внутри QHBoxLayout по битовой маске
+
+    text:
+      - '1111100'
+      - или '0b1111100'
+      - пустая строка или `empty` → маска 0
+
+    0-й бит → первый виджет в layout
+    1-й бит → второй и т.д.
+    """
+    text = (text or empty or "").strip()
+
+    if not text:
+        mask = 0
+    else:
         try:
-            widget.setValue(int(value))
+            # '0b1111100' или '1111100'
+            mask = int(text, 2)
         except ValueError:
-            return f"Задано не целое число {value}"
-    elif isinstance(widget, QTimeEdit):
-        # ожидается "HH:mm"
-        q_time = QTime.fromString(value, "HH:mm")
-        if not q_time.isValid():
-            return f"Время задаётся в формате 'HH:MM', а задано {value}"
-        widget.setTime(q_time)
+            return f"Некорректная битовая маска дней: {text!r}"
 
-    widget.setToolTip(value)
-    widget.setWhatsThis(value)
+    for bit_index in range(layout.count()):
+        item = layout.itemAt(bit_index)
+        if item is None:
+            continue
 
-    if isinstance(widget, QLabel):
-        widget.setMouseTracking(True)
-        widget.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+        w = item.widget()
+        if w is None:
+            continue
+
+        if hasattr(w, "setChecked"):
+            checked = bool(mask & 1 << (WEEKDAY_MAX_INDEX - bit_index))
+            w.setChecked(checked)
 
     return None
+
+
+def handle_label(widget: QLabel, value: str) -> str | None:
+    widget.setMouseTracking(True)
+    widget.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+    widget.setText(value)
+    return None
+
+
+def handle_text_edit(widget: QTextEdit, value: str) -> None:
+    lower = value.lower()
+
+    if lower.startswith(HTML_TEG):
+        value = value[len(HTML_TEG):].lstrip()
+        widget.setHtml(value)
+        return
+
+    # Если не содержит тегов
+    widget.setText(value)
+
+
+def handle_plain_text(widget: QPlainTextEdit, value: str) -> str | None:
+    widget.setPlainText(value)
+    return None
+
+
+def handle_spinbox(widget: QSpinBox, value: str) -> str | None:
+    ivalue = parse_int(value)
+    if ivalue is None:
+        return f"Ожидалось целое число, а получено: {value!r}"
+    widget.setValue(ivalue)
+    return None
+
+
+def handle_time_edit(widget: QTimeEdit, value: str) -> str | None:
+    q_time = parse_time_hhmm(value)
+    if q_time is None:
+        return f"Время должно быть в формате HH:MM, а задано: {value!r}"
+    widget.setTime(q_time)
+    return None
+
+
+WidgetHandler = Callable[[Any, str], str | None]
+
+WIDGET_HANDLERS: list[tuple[type, WidgetHandler]] = [
+    (QLabel, handle_label),
+    (QTextEdit, handle_text_edit),
+    (QPlainTextEdit, handle_plain_text),
+    (QSpinBox, handle_spinbox),
+    (QTimeEdit, handle_time_edit),
+]
+
+
+def set_widget_value(
+        widget: QWidget | QLayout, text: str, *, empty: str = ""
+) -> str | None:
+    """
+    Универсальная установка значения для разных типов виджетов.
+
+    Возвращает:
+      — None при успехе
+      — строку с текстом ошибки при проблеме
+    """
+    value = text or empty
+
+    # 1. Специальный случай — layout с днями недели (битовая маска)
+    if isinstance(widget, QLayout):
+        return process_weekdays_layout(widget, value, empty=empty)
+
+    # 2. Диспетчеризация по типу виджета
+    for cls, handler in WIDGET_HANDLERS:
+        if isinstance(widget, cls):
+            return handler(widget, value)
+
+    # 3. Тип нами не поддерживается
+    return f"Тип widget {type(widget)} программой не поддерживается"
+
+
+def connect_checkboxes_in_layout(layout: QHBoxLayout, slot):
+    for i in range(layout.count()):
+        item = layout.itemAt(i)
+        if item is not None:
+            w = item.widget()
+            if isinstance(w, QCheckBox):
+                w.stateChanged.connect(slot)
