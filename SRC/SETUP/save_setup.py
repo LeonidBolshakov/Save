@@ -56,7 +56,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        uic.loadUi("save_setup.ui", self)
+        ui_file = paths_win.resource_path("save_setup.ui")
+        uic.loadUi(ui_file, self)
         self.legend = Legend(self)
         self.legend.init_legend()
         self.addAction(QWhatsThis.createAction(self))
