@@ -2,7 +2,7 @@
 Прокси-модель файловой системы с флажками поверх QFileSystemModel.
 
 Возможности:
-  • Хранение и загрузка отмеченных путей в JSON.
+  • Хранение и загрузка отмеченных путей в файл.
   • Визуальные состояния флажков: Checked / PartiallyChecked / Unchecked.
   • Корректная рассылка dataChanged вверх/вниз по ветке.
   • Автоматическое раскрытие корневых узлов, если внутри есть отмеченные элементы.
@@ -14,6 +14,7 @@ from PyQt6.QtCore import Qt, QDir, QModelIndex, QIdentityProxyModel
 from PyQt6.QtGui import QBrush, QFileSystemModel, QFont
 
 import SRC.SETUP.utils as utils
+import SRC.GENERAL.paths_win as paths_win
 
 
 class CheckableFSModel(QIdentityProxyModel):
@@ -46,7 +47,8 @@ class CheckableFSModel(QIdentityProxyModel):
         self.checks: set[str] = self.get_checks()
 
     def get_checks(self) -> set[str]:
-        existing, deleted = utils.load_set_json()
+        list_archive_file_paths = paths_win.get_list_archive_file_paths()
+        existing, deleted = utils.load_from_file(list_archive_file_paths)
         return {self._norm(p) for p in existing}
 
     def root_for_all_drives(self, fs) -> QModelIndex:
@@ -274,9 +276,9 @@ class CheckableFSModel(QIdentityProxyModel):
         else:
             # Разрешаем выбор и работу с флажками
             fl |= (
-                Qt.ItemFlag.ItemIsEnabled
-                | Qt.ItemFlag.ItemIsUserCheckable
-                | Qt.ItemFlag.ItemIsSelectable
+                    Qt.ItemFlag.ItemIsEnabled
+                    | Qt.ItemFlag.ItemIsUserCheckable
+                    | Qt.ItemFlag.ItemIsSelectable
             )
         return fl
 
@@ -319,7 +321,7 @@ class CheckableFSModel(QIdentityProxyModel):
     # ----- записывает данные по индексу и роли
 
     def setData(
-        self, index: QModelIndex, value, role: int = Qt.ItemDataRole.EditRole
+            self, index: QModelIndex, value, role: int = Qt.ItemDataRole.EditRole
     ) -> bool:
         """Обрабатывает изменение состояния флажка в первой колонке.
 
@@ -332,9 +334,9 @@ class CheckableFSModel(QIdentityProxyModel):
             True, если состояние изменено и сигналы разосланы.
         """
         if (
-            role != Qt.ItemDataRole.CheckStateRole
-            or index.column() != 0
-            or not index.isValid()
+                role != Qt.ItemDataRole.CheckStateRole
+                or index.column() != 0
+                or not index.isValid()
         ):
             return super().setData(index, value, role)
 

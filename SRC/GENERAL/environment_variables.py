@@ -3,6 +3,7 @@ from pathlib import Path
 import os
 import logging
 
+import SRC.GENERAL.paths_win as utils
 from SRC.GENERAL.constants import Constants as C
 from SRC.GENERAL.textmessage import TextMessage as T
 
@@ -27,10 +28,7 @@ class EnvironmentVariables:
         Загружает имя приложения из констант и читает переменные из .env файла.
         """
         self.app_name = C.KEYRING_APP_NAME
-        self.dotenv_path = (
-            Path(os.environ.get(C.ENVIRON_SETTINGS_DIRECTORY, C.SETTINGS_DIRECTORY_DEF))
-            / C.VARIABLES_DOTENV_NAME_DEF
-        )
+        self.dotenv_path = utils.get_env()
         self._custom_dot_env()
 
     def _custom_dot_env(self):

@@ -1,9 +1,8 @@
 from typing import Any
-from pathlib import Path
-import os
 
 from SRC.ARCHIVES.archiver7z import Archiver7z
 from SRC.ARCHIVES.search_programme_7z import SearchProgramme7Z
+from SRC.GENERAL import paths_win
 from SRC.GENERAL.backup_manager_abc import BackupManager
 from SRC.GENERAL.constants import Constants as C
 
@@ -14,22 +13,13 @@ class BackupManager7z(BackupManager):
     def get_parameters_dict(self) -> dict[str, Any]:
         """
         Замена метода get_parameters_dict в базовом классе.
-        Функция формирует и возвращает словарь параметров
-        Значения для словаря берутся из переменных окружения, а если их там нет, то берутся значения по умолчанию
-
-        :parameter: ---
-
-        :returns: словарь параметров
-        :rtype: dict[str, Any]
+        Формирует словарь параметров для BackupManager.
         """
+
+        list_archive_file_paths = paths_win.get_list_archive_file_paths()
 
         archiver_name = self.variables.get_var(
             C.ENV_FULL_ARCHIVER_NAME, C.FULL_NAME_SEVEN_Z
-        )
-
-        list_archive_file_paths = (
-            Path(os.environ.get(C.ENVIRON_SETTINGS_DIRECTORY, C.SETTINGS_DIRECTORY_DEF))
-            / C.LIST_NAMS_OF_ARCHIVABLE_FILES
         )
 
         config_file_path = self.variables.get_var(
@@ -54,8 +44,8 @@ class BackupManager7z(BackupManager):
         )
 
         return {
-            C.PAR___ARCHIVER: Archiver7z,  # Ссылка на дочерний класс архиватора
-            C.PAR___SEARCH_PROGRAMME: SearchProgramme7Z,  # Ссылка на класс поиска программы архиватора
+            C.PAR___ARCHIVER: Archiver7z,
+            C.PAR___SEARCH_PROGRAMME: SearchProgramme7Z,
             C.PAR_ARCHIVE_EXTENSION: archive_extension,
             C.PAR_ARCHIVER_NAME: archiver_name,
             C.PAR_STANDARD_PROGRAM_PATHS: archiver_standard_program_paths,

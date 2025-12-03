@@ -4,7 +4,7 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
 class Constants(frozenset):
-    SETTINGS_DIRECTORY_DEF = "_internal"
+    SETTINGS_DIRECTORY = "Bolshkov\_internal"
 
     ARCHIVING_END_TRIGGER = "*Stop"
     CONFIG_FILE_WITH_PROGRAM_NAME_DEF = r"C:\TEMP\config_file_path.txt"
@@ -58,7 +58,6 @@ class Constants(frozenset):
     ENV_SENDER_EMAIL = "SENDER_EMAIL"
     ENV_SENDER_PASSWORD = "SENDER_PASSWORD"
     ENV_SEVEN_Z_COMPRESSION_LEVEL = "SEVEN_Z_COMPRESSION_LEVEL"
-    ENVIRON_SETTINGS_DIRECTORY = "INTERNAL_DIR"
     FILE_LOG_LEVEL_DEF = "INFO"
     FULL_NAME_SEVEN_Z = "7z.exe"
     GENERAL_REMOTE_ARCHIVE_FORMAT = "{archive}_{year}_{month}_{day}_{file_num}"

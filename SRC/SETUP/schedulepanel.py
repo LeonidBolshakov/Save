@@ -1,11 +1,28 @@
-from __future__ import annotations
+"""
+Левая панель  — настройка задачи Windows Task Scheduler (GUI-обёртка).
+
+Модуль связывает элементы пользовательского интерфейса (PyQt6) с логикой
+работы планировщика задач Windows. Основные задачи:
+- загрузка существующей WEEKLY-задачи (если она есть) и отражение её
+  параметров в UI;
+- создание/обновление задачи на основе заполненных полей;
+- удаление задачи из планировщика;
+- работа с переменными окружения и значениями «по умолчанию»;
+- обработка COM-ошибок (HRESULT) и вывод человекочитаемых сообщений.
+
+Структура:
+- TaskConfig          — dataclass с параметрами задачи;
+- TaskSchedulerService — тонкая обёртка над task_scheduler_win32;
+- HasSchedulePanelUI  — протокол ожидаемых полей UI;
+- ErrorFormater       — форматирование COM-ошибки в текст;
+- SchedulePanel       — основной класс, управляющий левой панелью.
+"""
 
 from typing import Protocol, Any, Literal
 from dataclasses import dataclass
-import pywintypes
 import logging
-import html
 import os
+import pywintypes
 
 from PyQt6.QtWidgets import (
     QLabel,
@@ -46,6 +63,16 @@ _HRESULT_MAP = {
 # fmt: off
 @dataclass
 class TaskConfig:
+    """
+    Конфигурация задачи планировщика, собранная из UI.
+
+    Атрибуты:
+        task_path      : Полный путь к задаче в планировщике (\\Folder\\TaskName).
+        mask_days      : 7-битная маска дней недели (bit0=Пн .. bit6=Вс).
+        start_time     : Время запуска в формате "HH:MM".
+        executable_path: Путь к исполняемому файлу.
+        description    : Описание задачи (отображается в планировщике).
+    """
     task_path                   : str
     mask_days                   : int
     start_time                  : str
@@ -54,9 +81,18 @@ class TaskConfig:
 
 
 class TaskSchedulerService:
-    """Тонкая обёртка над task_scheduler для работы через TaskConfig."""
+    """Тонкая обёртка над task_scheduler для работы через TaskConfig.
+
+    Позволяет SchedulePanel не зависеть напрямую от деталей реализации
+    task_scheduler_win32 и облегчает модульное тестирование.
+    """
 
     def create_or_replace(self, config: TaskConfig):
+        """Создаёт или обновляет задачу по переданной конфигурации.
+
+        Возвращает:
+            None при успехе или pywintypes.com_error при COM-ошибке.
+        """
         return task_scheduler.create_replace_task_scheduler(
             mask_days=config.mask_days,
             task_path=config.task_path,
@@ -66,9 +102,16 @@ class TaskSchedulerService:
         )
 
     def delete(self, task_path: str):
+        """Удаляет задачу по пути task_path, возвращая None или com_error."""
         return task_scheduler.delete_task_scheduler(task_path)
 
 class HasSchedulePanelUI(Protocol):
+    """
+    Протокол минимального набора атрибутов UI, необходимых SchedulePanel.
+
+    Используется для статической проверки типов: любой объект, реализующий
+    эти атрибуты, может быть передан в SchedulePanel.
+    """
     label_task_location         : QLabel
     label_program_path          : QLabel
     label_task_name             : QLabel
@@ -86,6 +129,13 @@ class HasSchedulePanelUI(Protocol):
 
 
 class ErrorFormater:
+    """
+    Форматирование COM-ошибок в человекочитаемый текст.
+
+    Использует карту HRESULT → описания и функцию extract_hresult из
+    task_scheduler_win32 для корректного извлечения кода ошибки.
+    """
+
     def __init__(self, hresult_map: dict[int, str]) -> None:
         self._map = hresult_map
 
@@ -93,9 +143,16 @@ class ErrorFormater:
         """
         Анализирует объект pywintypes.com_error и возвращает человекочитаемое сообщение.
 
-        - Корректно извлекает настоящий HRESULT (внешний или внутренний).
-        - Использует карту _HRESULT_MAP.
-        - Возвращает описание или сообщение по умолчанию.
+        Поведение:
+            - корректно извлекает настоящий HRESULT (внешний или внутренний);
+            - при наличии описания в карте _HRESULT_MAP возвращает его;
+            - иначе формирует общее сообщение с указанием кода ошибки.
+
+        Args:
+            error: Исключение COM.
+
+        Returns:
+            Строка с описанием ошибки для вывода пользователю.
         """
         hr = task_scheduler.extract_hresult(error)
 
@@ -105,9 +162,33 @@ class ErrorFormater:
 
 
 class SchedulePanel:
+    """
+    Панель управления настройками задачи планировщика.
+
+    Этот класс «склеивает»:
+      - PyQt-виджеты левой панели;
+      - переменные окружения (значения по умолчанию);
+      - низкоуровневую работу с Windows Task Scheduler.
+
+    Основные сценарии:
+      * при инициализации — попытка прочитать существующую задачу, при неудаче ввести параметры задачи по умолчанию;
+      * пользователь меняет описание, время и дни недели и создаёт/обновляет задачу;
+      * пользователь удаляет задачу;
+      * при ошибках COM пользователь получает понятное сообщение.
+    """
+
     def __init__(self, ui: HasSchedulePanelUI) -> None:
         """
         Инициализирует панель работы с задачей планировщика.
+
+        Args:
+            ui: Объект с необходимыми виджетами (см. HasSchedulePanelUI).
+
+        В процессе инициализации:
+          - привязывает виджеты к полям класса;
+          - настраивает стили кнопок;
+          - читает задачу из планировщика (если есть);
+          - подключает сигналы кнопок и полей ввода.
         """
         self._bind_ui(ui)
         init_button_styles(self)
@@ -116,8 +197,8 @@ class SchedulePanel:
         self._default_button_text = self.btn_create_task.text()
         self._default_button_slot = self.create_or_replace_task
 
-        self._ui_default: bool = True
-        self._ui_dirty: bool = False
+        self._ui_default: bool = True  # UI сформировано из значений «по умолчанию»
+        self._ui_dirty: bool = False  # пользователем были внесены изменения
         self.error_formatter = ErrorFormater(_HRESULT_MAP)
         self.scheduler = TaskSchedulerService()
         self.env = EnvironmentVariables()
@@ -147,7 +228,12 @@ class SchedulePanel:
     def _init_ui_from_task(self) -> None:
         """
         Загружает задачу планировщика (если есть) и обновляет UI.
-        Если задача отсутствует или недоступна — загружает значения по умолчанию.
+
+        Алгоритм:
+          1. Получаем папку и имя задачи из переменных окружения (C.TASK_FOLDER, C.TASK_NAME).
+          2. Если они не заданы — блокируем левую панель и выводим сообщение.
+          3. Пытаемся прочитать WEEKLY-задачу через task_scheduler.read_weekly_task().
+          4. При успехе — отражаем параметры задачи в UI.
         """
         # Папка и имя задачи — сначала выводим в UI из переменных окружения
         task_folder = self._apply_value_to_widget(self.lbl_task_folder, C.TASK_FOLDER)
@@ -172,20 +258,25 @@ class SchedulePanel:
             logger.warning(f"Задача {self.task_path} не найдена или недоступна")
             self._update_ui_from_defaults()
         except ValueError:
+            # Некорректная структура задачи (например, не WEEKLY-триггер).
             msg = C.TEXT_TASK_MANUAL_EDIT.format(task=self.task_path)
             logger.error(msg)
             self.put_to_info(msg)
             self._lock_left_panel_widgets(enable=False)
             self._set_task_button_mode("delete")
+
+        # Если задача не считана или недостоверная задача, предлагаем создать или удалить задачу
         self.set_button_create_active(self.btn_create_task, True)
 
     def _btn_signal_connect(self) -> None:
+        """Подключает сигналы кнопок и полей ввода к слотам SchedulePanel."""
         self.btn_select_all_day.clicked.connect(self.select_all_day)
         self.btn_clean_all_day.clicked.connect(self.clean_all_day)
         self.btn_create_task.clicked.connect(self._default_button_slot)
         self.btn_reject_changes.clicked.connect(self.reject_all_changes)
         self.btn_delete_task.clicked.connect(self.on_delete_task_clicked)
 
+        # Изменения текста / времени / чекбоксов → активировать кнопки «создать»/«отменить»
         self.txt_task_description.textChanged.connect(self.update_buttons_state_enable)
         self.time_task_start.timeChanged.connect(self.update_buttons_state_enable)
         utils.connect_checkboxes_in_layout(
@@ -230,6 +321,14 @@ class SchedulePanel:
         self.update_buttons_state(enabled=False)
 
     def _update_ui_from_defaults(self) -> None:
+        """
+        Заполняет UI значениями по умолчанию (из constants / окружения).
+
+        Используется, когда:
+          - задача ещё не была создана;
+          - задача была удалена;
+        """
+
         self._ui_default = True
         self._ui_dirty = False
 
@@ -240,16 +339,22 @@ class SchedulePanel:
         self.put_to_info(C.TASK_NOT_CREATED)
 
     def _apply_value_to_widget(
-            self,
-            widget: QWidget | QLayout,
-            value: str,
-            *,
-            from_env: bool = True,
+        self,
+        widget: QWidget | QLayout,
+        value: str,
+        *,
+        from_env: bool = True,
     ) -> Any | None:
         """
-        Применяет значение к виджету и возвращает его.
-        Если from_env=True — var_name трактуется как имя переменной окружения.
+        Применяет значение к виджету.
+
+        Если from_env=True — value трактуется как имя переменной окружения,
+        в противном случае — как готовое значение.
+
+        Возвращает:
+            Значение, которое было фактически установлено или None при ошибке.
         """
+
         if from_env:
             env_value = self.env.get_var(value)
             if env_value is None:
@@ -268,45 +373,27 @@ class SchedulePanel:
 
         return env_value
 
-    @staticmethod
-    def make_html(text: str, color: str) -> str:
-        """
-        Формирует небольшой HTML-фрагмент для вывода в QTextEdit:
-        - color управляет цветом текста
-        - font-weight подбирается автоматически по цвету
-        """
-        # Экранируем спецсимволы и переводим \n в <br>
-        safe_text = html.escape(text).replace("\n", "<br>")
-
-        # Подбираем цвет и насыщенность шрифта
-        if color == "green":  # успех
-            css_color = "#2e7d32"
-            font_weight = "500"
-        elif color == "red":  # ошибка
-            css_color = "#c62828"
-            font_weight = "600"
-        else:  # информационные сообщения
-            css_color = color  # можно "black" или другой цвет
-            font_weight = "400"
-
-        return (
-            f"{utils.HTML_TEG}"
-            f'<div style="text-align:center;">'
-            f'<span style="color:{css_color}; font-weight:{font_weight};">'
-            f"{safe_text}"
-            f"</span>"
-            f"</div>"
-        )
-
     def select_all_day(self) -> None:
+        """Отмечает все дни недели (маска 1111111) и помечает UI как «изменённый»."""
         self._ui_dirty = True
         self.all_day(checked=True)
 
     def clean_all_day(self) -> None:
+        """Снимает выделение со всех дней недели и помечает UI как «изменённый»."""
         self._ui_dirty = True
         self.all_day(checked=False)
 
     def create_or_replace_task(self) -> None:
+        """
+        Создаёт или обновляет WEEKLY-задачу в планировщике по текущим данным UI.
+
+        Последовательность:
+          1. Собирает TaskConfig (_get_current_task_config).
+          2. Проверяет, что выбраны хотя бы один день недели.
+          3. Вызывает TaskSchedulerService.create_or_replace().
+          4. В случае ошибки — логирует подробности и выводит сообщение пользователю.
+          5. В случае успеха — сбрасывает флаг «грязности» и отключает кнопки.
+        """
 
         # 1. Собираем конфигурацию задачи из UI
         config = self._get_current_task_config()
@@ -321,35 +408,32 @@ class SchedulePanel:
 
         # 4. Обрабатываем результат
         if error:
-            hr, msg, details = task_scheduler.extract_com_error_info(error)
-
-            logger.exception(
-                "Ошибка при создании задачи в планировщике. "
-                "HRESULT=0x%08X, message=%s, details=%s",
-                hr,
-                msg,
-                details,
-            )
-
-            message = self.error_formatter.format_com_error(error)
-            self.put_to_info(C.TASK_CREATED_ERROR + "\n" + message)
+            self.report_com_error(error, C.TASK_CREATED_ERROR)
             return
 
         # 5. Успешное сохранение — чистим состояние и UI
-        self.set_button_create_active(self.btn_create_task, active=False)
-        self._ui_dirty = False
-        self.update_buttons_state(enabled=False)
-        self.put_to_info(C.TASK_CREATED_SUCSESSFULL, color="green")
-        logger.info(C.TASK_CREATED_SUCSESSFULL)
-        self.btn_delete_task.setEnabled(True)
+        self.finalize_task_save_ui()
 
     def reject_all_changes(self):
+        """
+        Откатывает все не сохранённые изменения.
+
+        Если UI содержит значения по умолчанию — просто перезаполняет их,
+        иначе — заново подгружает данные из считанной задачи.
+        """
         if self._ui_default:
             self._update_ui_from_defaults()
         else:
             self._update_ui_from_task()
 
     def all_day(self, checked: bool) -> None:
+        """
+        Отмечает/снимает все чекбоксы дней недели в layout hbox_week_days.
+
+        Args:
+            checked: True — выделить все дни, False — снять выделение.
+        """
+
         for i in range(self.hbox_week_days.count()):
             item = self.hbox_week_days.itemAt(i)
             w = item.widget() if item is not None else None
@@ -388,8 +472,7 @@ class SchedulePanel:
 
     def on_delete_task_clicked(self) -> None:
         """Слот для кнопки 'Удалить задачу'."""
-        # Флаг "грязности" здесь лучше не трогать, он обнуляется
-        # внутри _update_ui_from_defaults после успешного удаления.
+
         if not self.confirm_delete_task():
             return
 
@@ -405,18 +488,7 @@ class SchedulePanel:
         """
         error = self.scheduler.delete(self.task_path)
         if error is not None:
-            hr, msg, details = task_scheduler.extract_com_error_info(error)
-
-            logger.exception(
-                "Ошибка при удалении задачи в планировщике. "
-                "HRESULT=0x%08X, message=%s, details=%s",
-                hr,
-                msg,
-                details,
-            )
-
-            message = self.error_formatter.format_com_error(error)
-            self.put_to_info(C.TASK_DELETED_ERROR + "\n" + message)
+            self.report_com_error(error, C.TASK_DELETED_ERROR)
             return False
 
         # Успешное удаление: разблокируем левую панель,
@@ -430,6 +502,7 @@ class SchedulePanel:
     def _lock_left_panel_widgets(self, enable: bool) -> None:
         """
         Включает / отключает все виджеты в левой панели, кроме кнопки создания задачи.
+        Используется при ошибках конфигурации задачи или при её удалении.
         """
         for child in self.group_box_left.findChildren(QWidget):
             if child is self.btn_create_task:
@@ -437,7 +510,15 @@ class SchedulePanel:
             child.setEnabled(enable)
 
     def _set_task_button_mode(self, mode: Literal["create", "delete"]) -> None:
-        """Переключает кнопку между режимами создания и удаления задачи."""
+        """
+        Переключает кнопку между режимами создания и удаления задачи.
+
+        Режимы:
+            "create" — стандартный режим: кнопка создаёт/обновляет задачу;
+            "delete" — альтернативный режим: кнопка удаляет некорректную задачу
+                       и создаёт настройки по умолчанию.
+        """
+
         try:
             self.btn_create_task.clicked.disconnect()
         except TypeError:
@@ -445,7 +526,7 @@ class SchedulePanel:
             pass
 
         if mode == "create":
-            # Для кнопки восстанавливаем исходный текст и обработчик
+            # Для кнопки восстанавливаем исходные текст и обработчик
             self.btn_create_task.setText(self._default_button_text)
             self.btn_create_task.clicked.connect(self._default_button_slot)
         elif mode == "delete":
@@ -463,10 +544,19 @@ class SchedulePanel:
         Выводит сообщение в поле text_info с нужным цветом и насыщенностью шрифта.
         Цвет влияет и на font-weight (успех/ошибка/инфо).
         """
-        html_text = self.make_html(message, color)
+        html_text = utils.make_html(message, color)
         self._apply_value_to_widget(self.text_info, html_text, from_env=False)
 
     def set_button_create_active(self, button: QPushButton, active: bool) -> None:
+        """
+        Делает кнопку «создать» активной/пассивной с точки зрения фокуса и default-состояния.
+
+        active=True:
+            - кнопка становится default и получает фокус;
+        active=False:
+            - фокус возвращается на group_box_left (панель).
+        """
+
         if active:
             button.setDefault(True)
             button.setFocus()
@@ -475,14 +565,28 @@ class SchedulePanel:
                 self.group_box_left.setFocus()
 
     def update_buttons_state_enable(self):
+        """
+        Помечает UI как «изменённый» и включает кнопки «создать» и «отменить изменения».
+
+        Вызывается при любых изменениях в текстовых полях, времени или чекбоксах.
+        """
+
         self._ui_dirty = True
         self.update_buttons_state(enabled=True)
 
     def update_buttons_state(self, *, enabled: bool) -> None:
+        """Включает/выключает кнопки 'Создать задачу' и 'Отказаться от изменен.'."""
         self.btn_create_task.setEnabled(enabled)
         self.btn_reject_changes.setEnabled(enabled)
 
     def confirm_delete_task(self) -> bool:
+        """
+        Показывает диалог подтверждения удаления задачи.
+
+        Returns:
+            True, если пользователь подтвердил удаление, иначе False.
+        """
+
         msg = QMessageBox(self._msg_parent())
         msg.setIcon(QMessageBox.Icon.Warning)
         msg.setWindowTitle("Подтверждение удаления")
@@ -501,9 +605,17 @@ class SchedulePanel:
         return msg.clickedButton() is delete_btn
 
     def _msg_parent(self) -> QWidget | None:
+        """Возвращает окно-владелец для диалоговых окон сообщений."""
         return self.group_box_left.window()
 
     def _get_current_task_config(self) -> TaskConfig:
+        """
+        Собирает текущие значения из UI и возвращает TaskConfig.
+
+        Внутренний вспомогательный метод: сюда стягивается вся логика
+        извлечения параметров из виджетов.
+        """
+
         return TaskConfig(
             task_path=self.task_path,
             mask_days=self.get_week_mask(),
@@ -511,3 +623,37 @@ class SchedulePanel:
             start_time=self.time_task_start.time().toString("HH:mm"),
             description=self.txt_task_description.toPlainText(),
         )
+
+    def report_com_error(self, error, user_message_prefix: str) -> None:
+        """
+        Логирует подробную COM-ошибку и выводит человекочитаемое сообщение в UI.
+
+        Args:
+            error: pywintypes.com_error
+            user_message_prefix: текст, который выводится перед сообщением
+                                 (например: C.TASK_CREATED_ERROR).
+        """
+        hr, msg, details = task_scheduler.extract_com_error_info(error)
+
+        logger.exception(
+            "%s HRESULT=0x%08X, message=%s, details=%s",
+            user_message_prefix.strip(),
+            hr,
+            msg,
+            details,
+        )
+
+        readable = self.error_formatter.format_com_error(error)
+        self.put_to_info(f"{user_message_prefix}\n{readable}")
+
+    def finalize_task_save_ui(self) -> None:
+        """
+        Приводит интерфейс в состояние после успешного создания/обновления задачи.
+        Сбрасывает флаги изменений, выводит сообщение, включает/отключает нужные кнопки.
+        """
+        self.set_button_create_active(self.btn_create_task, active=False)
+        self._ui_dirty = False
+        self.update_buttons_state(enabled=False)
+        self.put_to_info(C.TASK_CREATED_SUCSESSFULL, color="green")
+        logger.info(C.TASK_CREATED_SUCSESSFULL)
+        self.btn_delete_task.setEnabled(True)

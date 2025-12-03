@@ -22,8 +22,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, TypeAlias
 
-import pywintypes
 import win32com.client
+import pywintypes
 
 ComError: TypeAlias = pywintypes.com_error  # type: ignore[attr-defined]
 
@@ -113,12 +113,12 @@ def set_exec_action(task_def, executable_path: str) -> None:
 
 
 def create_replace_task_scheduler(
-        *,
-        mask_days: int,
-        task_path: str,
-        executable_path: str,
-        start_time: str,
-        description: str,
+    *,
+    mask_days: int,
+    task_path: str,
+    executable_path: str,
+    start_time: str,
+    description: str,
 ) -> ComError | None:
     """
     Создаёт или заменяет WEEKLY-задачу в Windows Task Scheduler (Win32 COM API).
@@ -295,9 +295,9 @@ def extract_hresult(error: pywintypes.com_error) -> int:  # type: ignore[attr-de
     outer = error.args[0] if error.args else 0
     inner = None
     if (
-            len(error.args) > 2
-            and isinstance(error.args[2], tuple)
-            and len(error.args[2]) >= 6
+        len(error.args) > 2
+        and isinstance(error.args[2], tuple)
+        and len(error.args[2]) >= 6
     ):
         raw = error.args[2][5]
         if isinstance(raw, int):

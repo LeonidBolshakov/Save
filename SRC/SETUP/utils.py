@@ -1,10 +1,15 @@
 """
-Служебные программы для других модулей
+Служебные программы для других модулей.
+
+Содержит:
+- функции сохранения/загрузки множества путей в файлы с обработкой ошибок;
+- утилиты для отображения сообщений об ошибках пользователю (QMessageBox);
+- вспомогательные парсеры и обработчики виджетов PyQt6;
+- универсальную функцию set_widget_value для установки значений в разные типы виджетов;
+- генератор небольшого HTML-фрагмента для вывода цветного текста в QTextEdit.
 """
 
-from __future__ import annotations
-
-import json
+import html
 from pathlib import Path
 from typing import Sequence, Callable, Any
 from enum import Enum, IntFlag, auto
@@ -72,65 +77,62 @@ class ResultErrorMessage(Enum):  # Флаги return code программы о�
     NO = auto()  # Пользователь ответил "Нет"
 
 
-def save_set_json(items: set[str], path: str | Path = "marked elements.json") -> None:
-    """Сохраняет множество путей в JSON-файл.
+def save_set_to_file(items: set[str], list_archive_file_paths: str | Path) -> None:
+    """Сохраняет множество путей в файл.
 
     Порядок в файле детерминирован (предварительная сортировка).
 
     Args:
         items: Множество полных путей отмеченных элементов
-        path: Путь к JSON-файлу.
+        list_archive_file_paths: Путь к файлу со списом архивируемых файлов.
     """
-    p = Path(path)
-
+    p = Path(list_archive_file_paths)
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
     except PermissionError as e:
         handle_error_message(3, p, e)
+        return
     except OSError as e:
         handle_error_message(4, p, e)
+        return
 
     try:
-        # ensure_ascii=False — кириллица пишется «как есть» в UTF‑8.
-        with p.open("w", encoding="utf-8") as f:
-            json.dump(sorted(items), f, ensure_ascii=False, indent=2)
+        p.write_text("\n".join(sorted(items)), encoding="utf-8")
     except PermissionError as e:
         handle_error_message(3, p, e)
     except OSError as e:
         handle_error_message(4, p, e)
 
 
-def load_set_json(
-        path: str | Path = "marked elements.json",
+def load_from_file(
+    list_archive_file_paths: str | Path,
 ) -> tuple[list[str], list[str]]:
     """
-    Читает JSON со списком путей и делит их на существующие и отсутствующие.
+    Читает файл со списком архивируемых файлов и делит их на существующие и отсутствующие.
 
     Args:
-        path: путь к JSON-файлу.
+        list_archive_file_paths: путь к файлу со списком архивируемых файлов.
 
     Returns:
         (existing, deleted): два списка строк.
 
     """
-    p = Path(path)
     try:
-        with p.open("r", encoding="utf-8") as f:
-            nodes = json.load(f)
-        if not isinstance(nodes, (list, tuple)) or not all(
-                isinstance(x, str) for x in nodes
-        ):
-            handle_error_message(1, p, flags=FlagMessageError.CONFIRM)
-            return [], []
+        p = Path(list_archive_file_paths)
+        nodes = p.read_text(encoding="utf-8").splitlines()
         existing, deleted = filter_existing(nodes)
     except PermissionError as e:
-        handle_error_message(2, p, e, flags=FlagMessageError.CONFIRM)
+        handle_error_message(
+            2, list_archive_file_paths, e, flags=FlagMessageError.CONFIRM
+        )
         return [], []
     except FileNotFoundError:
-        handle_error_message(0, p, flags=FlagMessageError.CONFIRM)
+        handle_error_message(0, list_archive_file_paths, flags=FlagMessageError.CONFIRM)
         return [], []
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as e:
-        handle_error_message(1, p, e, flags=FlagMessageError.CONFIRM)
+    except (OSError, UnicodeDecodeError, ValueError) as e:
+        handle_error_message(
+            1, list_archive_file_paths, e, flags=FlagMessageError.CONFIRM
+        )
         return [], []
 
     if deleted:
@@ -175,7 +177,7 @@ def filter_existing(nodes: Sequence[str]) -> tuple[list[str], list[str]]:
 
 
 def _format_error_msg(
-        template: str, p: Path | str | None, e: Exception | None, *, full: bool
+    template: str, p: Path | str | None, e: Exception | None, *, full: bool
 ) -> str:
     """Форматирует текст: с деталями при full=True, без них при full=False."""
     return template.format(p=p or "", e=str(e) if (e and full) else "")
@@ -191,11 +193,11 @@ def _ask_confirm(msg: str) -> bool:
 
 
 def handle_error_message(
-        error_number: int,
-        p: Path | str | None = None,
-        e: Exception | None = None,
-        *,
-        flags: FlagMessageError = FlagMessageError.UNCONFIRM,
+    error_number: int,
+    p: Path | str | None = None,
+    e: Exception | None = None,
+    *,
+    flags: FlagMessageError = FlagMessageError.UNCONFIRM,
 ) -> ResultErrorMessage:
     """
     Формирует текст сообщения Пользователю, выводит лог,
@@ -268,6 +270,12 @@ def parse_int(value: str) -> int | None:
 
 
 def parse_time_hhmm(value: str) -> QTime | None:
+    """
+    Преобразует строку "HH:MM" в QTime.
+
+    Returns:
+        Объект QTime при корректной строке или None при ошибке формата.
+    """
     q_time = QTime.fromString(value, "HH:mm")
     if q_time.isValid():
         return q_time
@@ -275,10 +283,10 @@ def parse_time_hhmm(value: str) -> QTime | None:
 
 
 def process_weekdays_layout(
-        layout: QLayout,
-        text: str,
-        *,
-        empty: str = "",
+    layout: QLayout,
+    text: str,
+    *,
+    empty: str = "",
 ) -> str | None:
     """
     Устанавливает состояние чекбоксов внутри QHBoxLayout по битовой маске
@@ -290,6 +298,11 @@ def process_weekdays_layout(
 
     0-й бит → первый виджет в layout
     1-й бит → второй и т.д.
+
+    Важно: внутри layout должны находиться виджеты с методом setChecked (обычно QCheckBox).
+
+    Returns:
+        None при успехе или строку с описанием ошибки.
     """
     text = (text or empty or "").strip()
 
@@ -329,7 +342,7 @@ def handle_text_edit(widget: QTextEdit, value: str) -> None:
     lower = value.lower()
 
     if lower.startswith(HTML_TEG):
-        value = value[len(HTML_TEG):].lstrip()
+        value = value[len(HTML_TEG) :].lstrip()
         widget.setHtml(value)
         return
 
@@ -370,14 +383,21 @@ WIDGET_HANDLERS: list[tuple[type, WidgetHandler]] = [
 
 
 def set_widget_value(
-        widget: QWidget | QLayout, text: str, *, empty: str = ""
+    widget: QWidget | QLayout, text: str, *, empty: str = ""
 ) -> str | None:
     """
     Универсальная установка значения для разных типов виджетов.
 
-    Возвращает:
-      — None при успехе
-      — строку с текстом ошибки при проблеме
+    Поддерживаются:
+      - QLabel (текст метки);
+      - QTextEdit (plain/html в зависимости от префикса [html]);
+      - QPlainTextEdit;
+      - QSpinBox (целые числа);
+      - QTimeEdit (время формата HH:MM);
+      - QLayout с чекбоксами дней недели (битовая маска).
+
+    Returns:
+      None при успехе или строку с текстом ошибки при проблеме.
     """
     value = text or empty
 
@@ -394,10 +414,61 @@ def set_widget_value(
     return f"Тип widget {type(widget)} программой не поддерживается"
 
 
-def connect_checkboxes_in_layout(layout: QHBoxLayout, slot):
+def connect_checkboxes_in_layout(
+    layout: QHBoxLayout, slot: Callable[[int], None]
+) -> None:
+    """
+    Подключает один слот ко всем чекбоксам внутри QHBoxLayout.
+
+    Args:
+        layout: Layout, содержащий QCheckBox-виджеты.
+        slot:   Функция/метод, вызываемый при изменении состояния чекбокса.
+
+    Используется, например, чтобы при любом изменении дня недели
+    «подсветить» кнопки «создать»/«отменить изменения».
+    """
     for i in range(layout.count()):
         item = layout.itemAt(i)
         if item is not None:
             w = item.widget()
             if isinstance(w, QCheckBox):
                 w.stateChanged.connect(slot)
+
+
+def make_html(text: str, color: str) -> str:
+    """
+    Формирует небольшой HTML-фрагмент для вывода в QTextEdit.
+
+    Особенности:
+      - text экранируется (html.escape) и переводы строк '\n' заменяются на <br>;
+      - параметр color задаёт цвет текста (например, 'green'/'red' или любой CSS-цвет);
+      - насыщенность шрифта подбирается автоматически:
+          * "green" — успешное сообщение (слегка жирный);
+          * "red"   — ошибка (ещё более жирный);
+          * прочее  — нейтральное информационное сообщение.
+
+    Возвращаемая строка дополнительно помечается префиксом [html], чтобы
+    её можно было корректно обработать в handle_text_edit().
+    """
+    # Экранируем спецсимволы и переводим \n в <br>
+    safe_text = html.escape(text).replace("\n", "<br>")
+
+    # Подбираем цвет и насыщенность шрифта
+    if color == "green":  # успех
+        css_color = "#2e7d32"
+        font_weight = "500"
+    elif color == "red":  # ошибка
+        css_color = "#c62828"
+        font_weight = "600"
+    else:  # информационные сообщения
+        css_color = color  # можно "black" или другой цвет
+        font_weight = "400"
+
+    return (
+        f"{HTML_TEG}"
+        f'<div style="text-align:center;">'
+        f'<span style="color:{css_color}; font-weight:{font_weight};">'
+        f"{safe_text}"
+        f"</span>"
+        f"</div>"
+    )

@@ -11,7 +11,7 @@
   • class MainWindow.
   • Точка входа: if __name__ == "__main__".
 
-Зависимости: PyQt6, model.CheckableFSModel, utils (COL0_WIDTH, INIT_DELAY_MS, save_set_json, UserAbort).
+Зависимости: PyQt6, model.CheckableFSModel, utils (COL0_WIDTH, INIT_DELAY_MS, save_set_to_file, UserAbort).
 
 Запуск: python save_setup.py
 """
@@ -28,6 +28,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView, QCheckBox, QWh
 from SRC.SETUP.model import CheckableFSModel
 from SRC.SETUP.schedulepanel import SchedulePanel
 from SRC.SETUP.legendwidwets import Legend
+from SRC.GENERAL import paths_win
 import SRC.SETUP.utils as utils
 
 
@@ -106,8 +107,10 @@ class MainWindow(QMainWindow):
 
     def save_checks(self) -> None:
         """Сохраняет self.model.checks"""
+        list_archive_file_paths = paths_win.get_list_archive_file_paths()
+        print(list_archive_file_paths)
 
-        utils.save_set_json(self.model.checks, "marked elements.json")
+        utils.save_set_to_file(self.model.checks, list_archive_file_paths)
 
     def _expand_marked_disks(self) -> None:
         """

@@ -1,15 +1,29 @@
+"""
+Инициализация стилей кнопок левой панели (панель планировщика задач).
+
+Модуль содержит вспомогательную функцию, которая применяется к экземпляру
+панели (SchedulePanel) и настраивает внешний вид основных кнопок:
+
+- кнопка создания задачи;
+- кнопка отмены изменений;
+- кнопка удаления задачи.
+"""
+
+
 def init_button_styles(self) -> None:
     """
     Настраивает внешний вид основных кнопок.
     """
 
-    # Кнопка "Создать задачу" – основное действие (primary)
+    # Базовый стиль для всех QPushButton внутри group_box_left
     base = """
         QPushButton {
             padding: 4px 10px;
         }
     """
     self.group_box_left.setStyleSheet(base)
+
+    # Кнопка "Создать задачу" – основное действие (primary)
     self.btn_create_task.setStyleSheet(
         """
         QPushButton {
@@ -25,7 +39,7 @@ def init_button_styles(self) -> None:
     """
     )
 
-    # Кнопка "Отказаться от изменен."
+    # Кнопка "Отказаться от изменения"
     self.btn_reject_changes.setStyleSheet(
         """
         QPushButton {
@@ -35,6 +49,7 @@ def init_button_styles(self) -> None:
     """
     )
 
+    # Кнопка "Удалить задачу" – «опасное» действие:
     self.btn_delete_task.setStyleSheet(
         """
         QPushButton {
