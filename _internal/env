@@ -10,4 +10,5 @@ TASK_REPEAT=
 TASK_START_IN=13:05
 PROGRAM_PATH=C:\Program Files\Bolshakov\save_to_cload\main.exe
 SCHEDULED_DAYS_MASK=0b1111100
- 
+LOG_SETUP_FILE_PATH=C:\temp\save_setup.log
+LOG_SETUP_LEVEL=INFO 

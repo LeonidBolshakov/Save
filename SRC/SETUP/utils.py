@@ -13,7 +13,7 @@ import html
 from pathlib import Path
 from typing import Sequence, Callable, Any
 from enum import Enum, IntFlag, auto
-from logging import getLogger
+from loguru import logger
 
 from PyQt6.QtWidgets import (
     QMessageBox,
@@ -27,10 +27,10 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QLayout,
 )
-
 from PyQt6.QtCore import Qt, QTime
 
-logger = getLogger(__name__)
+from SRC.GENERAL.environment_variables import EnvironmentVariables
+from SRC.GENERAL.constants import Constants as C
 
 ERROR_TEXT = (
     "Файл '{p}' с пометками сохраняемых файлов/каталогов не обнаружен.\n"  # 0
@@ -471,4 +471,25 @@ def make_html(text: str, color: str) -> str:
         f"{safe_text}"
         f"</span>"
         f"</div>"
+    )
+
+
+def setup_logging() -> None:
+    # добываем параметры
+    variables = EnvironmentVariables()
+    log_file_path = variables.get_var(C.ENV_LOG_SETUP_FILE_PATH, C.LOG_SETUP_FILE_PATH_DEF)
+    level=variables.get_var(C.ENV_LOG_SETUP_LEVEL, C.LOG_SETUP_LEVEL_DEF)
+
+    # Удаляем прежние логгеры, в т.ч по умолчанию
+    logger.remove()
+
+    # файл с ротацией
+    logs_dir = Path(log_file_path).parent
+    logs_dir.mkdir(exist_ok=True)
+    logger.add(
+        log_file_path,
+        level=level,
+        rotation="5 MB",
+        retention="5 days",
+        compression="zip",
     )

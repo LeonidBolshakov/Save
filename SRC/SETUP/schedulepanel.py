@@ -20,7 +20,7 @@
 
 from typing import Protocol, Any, Literal
 from dataclasses import dataclass
-import logging
+from loguru import logger
 import os
 import pywintypes
 
@@ -42,8 +42,6 @@ from SRC.GENERAL.constants import Constants as C
 import SRC.SETUP.utils as utils
 import SRC.SETUP.task_scheduler_win32 as task_scheduler
 from SRC.SETUP.initbuttonstyle import init_button_styles
-
-logger = logging.getLogger(__name__)
 
 _HRESULT_MAP = {
     # Общие COM-ошибки

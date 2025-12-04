@@ -23,7 +23,7 @@ import sys
 from PyQt6 import uic
 from PyQt6.QtCore import QDir, QTimer
 from PyQt6.QtGui import QFileSystemModel
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView, QCheckBox, QWhatsThis
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView, QCheckBox
 
 from SRC.SETUP.model import CheckableFSModel
 from SRC.SETUP.schedulepanel import SchedulePanel
@@ -58,9 +58,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         ui_file = paths_win.resource_path("save_setup.ui")
         uic.loadUi(ui_file, self)
+        utils.setup_logging()
         self.legend = Legend(self)
         self.legend.init_legend()
-        self.addAction(QWhatsThis.createAction(self))
         self.schedule = SchedulePanel(self)
 
         fs = self.create_source_model()  # Исходная модель

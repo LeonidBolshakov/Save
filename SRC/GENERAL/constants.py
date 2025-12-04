@@ -50,6 +50,8 @@ class Constants(frozenset):
     ENV_LOCAL_ARCHIVE_FILE_NAME = "LOCAL_ARCHIVE_FILE_NAME"
     ENV_LOCAL_ARCHIVE_SUFFIX = "LOCAL_ARCHIVE_SUFFIX"
     ENV_LOG_FILE_PATH = "LOG_FILE_NAME"
+    ENV_LOG_SETUP_FILE_PATH = 'LOG_SETUP_FILE_PATH'
+    ENV_LOG_SETUP_LEVEL = 'LOG_SETUP_LEVEL'
     ENV_PASSWORD_ARCHIVE = "PASSWORD_ARCHIVE"
     ENV_PROGRAMME_WRITE_FILE = "PROGRAMME_WRITE_FILE"
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
@@ -73,6 +75,9 @@ class Constants(frozenset):
     LOG_FILE_PATH_DEF = r"C:\TEMP\save.log"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVEL_FOR_LIBRARIES = logging.WARNING
+    LOG_SETUP_FILE_PATH_DEF = 'C:\\TEMP\\save_setup.log'
+    LOG_SETUP_LEVEL_DEF = 'DEBUG'
+
     MONTHS_RU = [
         "",  # Заглушка для нулевого месяца. Нумерация месяцев начинается с 1.
         "января",
