@@ -2,7 +2,7 @@ import sys
 import logging
 
 from SRC.GENERAL.backup_manager_7z import BackupManager7z
-from SRC.GENERAL.paths_win import prepare_files
+from SRC.GENERAL.paths_win import ensure_env_exists
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ def main() -> int:
     """Точка входа в приложение резервного копирования."""
 
     # подготовка env
-    env_path = prepare_files()
+    env_path = ensure_env_exists()
 
     try:
         manager = BackupManager7z()

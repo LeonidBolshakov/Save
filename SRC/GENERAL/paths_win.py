@@ -1,7 +1,10 @@
 from __future__ import annotations
 from pathlib import Path
 import sys
+import os
 import shutil
+
+from SRC.GENERAL.constants import Constants as C
 
 
 def get_user_dir() -> Path:
@@ -47,7 +50,7 @@ def get_internal_dir() -> Path:
     return base_dir / "_Internal"
 
 
-def prepare_files() -> Path:
+def ensure_env_exists() -> Path:
     """
     Гарантирует наличие рабочей копии env в пользовательской папке.
 
@@ -60,16 +63,11 @@ def prepare_files() -> Path:
     env_src = internal_dir / "env"
     env_dst = user_dir / "env"
 
-    # копируем только при первом запуске
+    # копируем только при необходимости
     if not env_dst.exists() and env_src.exists():
         shutil.copy2(env_src, env_dst)
 
     return env_dst
-
-
-from pathlib import Path
-import os
-from SRC.GENERAL.constants import Constants as C
 
 
 def get_list_archive_file_paths() -> Path:

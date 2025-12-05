@@ -220,6 +220,16 @@
         </widget>
        </item>
        <item>
+        <widget class="QPlainTextEdit" name="textEdit_program_path">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>50</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="label_program_path">
          <property name="maximumSize">
           <size>
@@ -295,7 +305,7 @@
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>75</height>
+             <height>50</height>
             </size>
            </property>
            <property name="palette">
@@ -570,6 +580,17 @@
            </property>
           </widget>
          </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btn_create_task">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string>Создать/Заменить
+задачу</string>
+           </property>
+          </widget>
+         </item>
          <item row="0" column="1">
           <widget class="QPushButton" name="btn_clean_all_day">
            <property name="enabled">
@@ -590,28 +611,6 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="2">
-          <widget class="QPushButton" name="btn_delete_task">
-           <property name="enabled">
-            <bool>true</bool>
-           </property>
-           <property name="text">
-            <string>Удалить
-задачу</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="btn_create_task">
-           <property name="enabled">
-            <bool>true</bool>
-           </property>
-           <property name="text">
-            <string>Создать/Заменить
-задачу</string>
-           </property>
-          </widget>
-         </item>
          <item row="1" column="1">
           <widget class="QPushButton" name="btn_reject_changes">
            <property name="enabled">
@@ -620,6 +619,17 @@
            <property name="text">
             <string>Отказаться
 от изменений</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QPushButton" name="btn_delete_task">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string>Удалить
+задачу</string>
            </property>
           </widget>
          </item>

@@ -37,6 +37,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QLayout,
 )
+
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 import SRC.SETUP.utils as utils
@@ -111,7 +112,7 @@ class HasSchedulePanelUI(Protocol):
     эти атрибуты, может быть передан в SchedulePanel.
     """
     label_task_location         : QLabel
-    label_program_path          : QLabel
+    textEdit_program_path       : QPlainTextEdit
     label_task_name             : QLabel
     textEdit_task_description   : QPlainTextEdit
     timeEdit_task_start_in      : QTimeEdit
@@ -208,7 +209,7 @@ class SchedulePanel:
         Связывает элементы пользовательского интерфейса (UI) с атрибутами класса.
         """
         self.lbl_task_folder = ui.label_task_location
-        self.lbl_program_path = ui.label_program_path
+        self.txt_program_path = ui.textEdit_program_path
         self.lbl_task_name = ui.label_task_name
         self.txt_task_description = ui.textEdit_task_description
         self.time_task_start = ui.timeEdit_task_start_in
@@ -268,13 +269,14 @@ class SchedulePanel:
 
     def _btn_signal_connect(self) -> None:
         """Подключает сигналы кнопок и полей ввода к слотам SchedulePanel."""
-        self.btn_select_all_day.clicked.connect(self.select_all_day)
-        self.btn_clean_all_day.clicked.connect(self.clean_all_day)
+        self.btn_select_all_day.clicked.connect(self.on_select_all_day)
+        self.btn_clean_all_day.clicked.connect(self.on_clean_all_day)
         self.btn_create_task.clicked.connect(self._default_button_slot)
-        self.btn_reject_changes.clicked.connect(self.reject_all_changes)
+        self.btn_reject_changes.clicked.connect(self.on_reject_all_changes)
         self.btn_delete_task.clicked.connect(self.on_delete_task_clicked)
 
         # Изменения текста / времени / чекбоксов → активировать кнопки «создать»/«отменить»
+        self.txt_program_path.textChanged.connect(self.update_buttons_state_enable)
         self.txt_task_description.textChanged.connect(self.update_buttons_state_enable)
         self.time_task_start.timeChanged.connect(self.update_buttons_state_enable)
         utils.connect_checkboxes_in_layout(
@@ -302,7 +304,7 @@ class SchedulePanel:
         executable = self.task_info.get("executable")
         if executable is not None:
             self._apply_value_to_widget(
-                self.lbl_program_path, executable, from_env=False
+                self.txt_program_path, executable, from_env=False
             )
 
         # Маска дней недели
@@ -331,7 +333,7 @@ class SchedulePanel:
         self._ui_dirty = False
 
         self._apply_value_to_widget(self.txt_task_description, C.TASK_DESCRIPTION)
-        self._apply_value_to_widget(self.lbl_program_path, C.PROGRAM_PATH)
+        self._apply_value_to_widget(self.txt_program_path, C.PROGRAM_PATH)
         self._apply_value_to_widget(self.hbox_week_days, C.SCHEDULED_DAYS_MASK)
         self._apply_value_to_widget(self.time_task_start, C.TASK_START_IN)
         self.put_to_info(C.TASK_NOT_CREATED)
@@ -371,12 +373,12 @@ class SchedulePanel:
 
         return env_value
 
-    def select_all_day(self) -> None:
+    def on_select_all_day(self) -> None:
         """Отмечает все дни недели (маска 1111111) и помечает UI как «изменённый»."""
         self._ui_dirty = True
         self.all_day(checked=True)
 
-    def clean_all_day(self) -> None:
+    def on_clean_all_day(self) -> None:
         """Снимает выделение со всех дней недели и помечает UI как «изменённый»."""
         self._ui_dirty = True
         self.all_day(checked=False)
@@ -412,7 +414,7 @@ class SchedulePanel:
         # 5. Успешное сохранение — чистим состояние и UI
         self.finalize_task_save_ui()
 
-    def reject_all_changes(self):
+    def on_reject_all_changes(self):
         """
         Откатывает все не сохранённые изменения.
 
@@ -617,7 +619,7 @@ class SchedulePanel:
         return TaskConfig(
             task_path=self.task_path,
             mask_days=self.get_week_mask(),
-            executable_path=self.lbl_program_path.text(),
+            executable_path=self.txt_program_path.toPlainText(),
             start_time=self.time_task_start.time().toString("HH:mm"),
             description=self.txt_task_description.toPlainText(),
         )

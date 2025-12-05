@@ -1,1 +1,0 @@
-C:\PycharmProjects\Save\.venv\Scripts\python.exe C:\PycharmProjects\Save\SRC\main.py

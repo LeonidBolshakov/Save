@@ -493,3 +493,14 @@ def setup_logging() -> None:
         retention="5 days",
         compression="zip",
     )
+
+
+def create_env_from_template():
+    pass
+
+def ensure_env_exists():
+    pass
+
+def reset_env_from_template():
+    pass
+

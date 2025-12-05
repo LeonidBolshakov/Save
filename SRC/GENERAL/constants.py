@@ -4,7 +4,7 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
 class Constants(frozenset):
-    SETTINGS_DIRECTORY = "Bolshkov\_internal"
+    SETTINGS_DIRECTORY = r"Bolshkov\save\_internal"
 
     ARCHIVING_END_TRIGGER = "*Stop"
     CONFIG_FILE_WITH_PROGRAM_NAME_DEF = r"C:\TEMP\config_file_path.txt"
@@ -144,7 +144,7 @@ class Constants(frozenset):
     TEXT_EMPTY = "???????"
     TEXT_NO_DAY = "Выберите хотя бы один день недели."
     TEXT_NOT_TASK = (
-        "Папка задачи планировщика не задана. Проверьте настройки по умолчанию"
+        "Папка или задача планировщика не заданы. Проверьте настройки по умолчанию"
     )
     TEXT_TASK_MANUAL_EDIT = (
         "Задача планировщика {task} корректировалась вручную"

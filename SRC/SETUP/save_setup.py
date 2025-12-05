@@ -56,11 +56,14 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
         ui_file = paths_win.resource_path("save_setup.ui")
         uic.loadUi(ui_file, self)
         utils.setup_logging()
+
         self.legend = Legend(self)
         self.legend.init_legend()
+        paths_win.ensure_env_exists()
         self.schedule = SchedulePanel(self)
 
         fs = self.create_source_model()  # Исходная модель
@@ -72,7 +75,7 @@ class MainWindow(QMainWindow):
     def create_source_model(self) -> QFileSystemModel:
         """Создаёт и настраивает исходную модель файловой системы."""
         fs = QFileSystemModel(self)
-        fs.setRootPath("")  # Windows: список дисков; Unix: '/'
+        fs.setRootPath("")  # Windows: список дисков
         fs.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
         return fs
 
@@ -109,7 +112,6 @@ class MainWindow(QMainWindow):
     def save_checks(self) -> None:
         """Сохраняет self.model.checks"""
         list_archive_file_paths = paths_win.get_list_archive_file_paths()
-        print(list_archive_file_paths)
 
         utils.save_set_to_file(self.model.checks, list_archive_file_paths)
 
