@@ -50,8 +50,8 @@ class Constants(frozenset):
     ENV_LOCAL_ARCHIVE_FILE_NAME = "LOCAL_ARCHIVE_FILE_NAME"
     ENV_LOCAL_ARCHIVE_SUFFIX = "LOCAL_ARCHIVE_SUFFIX"
     ENV_LOG_FILE_PATH = "LOG_FILE_NAME"
-    ENV_LOG_SETUP_FILE_PATH = 'LOG_SETUP_FILE_PATH'
-    ENV_LOG_SETUP_LEVEL = 'LOG_SETUP_LEVEL'
+    ENV_LOG_SETUP_FILE_PATH = "LOG_SETUP_FILE_PATH"
+    ENV_LOG_SETUP_LEVEL = "LOG_SETUP_LEVEL"
     ENV_PASSWORD_ARCHIVE = "PASSWORD_ARCHIVE"
     ENV_PROGRAMME_WRITE_FILE = "PROGRAMME_WRITE_FILE"
     ENV_RECIPIENT_EMAIL = "RECIPIENT_EMAIL"
@@ -75,8 +75,10 @@ class Constants(frozenset):
     LOG_FILE_PATH_DEF = r"C:\TEMP\save.log"
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s"
     LOG_LEVEL_FOR_LIBRARIES = logging.WARNING
-    LOG_SETUP_FILE_PATH_DEF = 'C:\\TEMP\\save_setup.log'
-    LOG_SETUP_LEVEL_DEF = 'DEBUG'
+    LOG_SETUP_FILE_PATH_DEF = "C:\\TEMP\\save_setup.log"
+    LOG_SETUP_LEVEL_DEF = "DEBUG"
+    MASK_DEFAULT = "1111111"
+    MASK_ERROR = "Ошибка при задании маски дней недели"
 
     MONTHS_RU = [
         "",  # Заглушка для нулевого месяца. Нумерация месяцев начинается с 1.
@@ -93,6 +95,7 @@ class Constants(frozenset):
         "ноября",
         "декабря",
     ]
+    NULL = "\x00"
     PAR___ARCHIVER = (
         "Archiver"  # Параметр формируется дочерним классом buckup_manager.abc
     )
@@ -110,6 +113,8 @@ class Constants(frozenset):
     PAR_PASSWORD = "password"
     PAR_STANDARD_PROGRAM_PATHS = "standard_program_paths"
     PROGRAM_PATH = "PROGRAM_PATH"
+    PROGRAM_PATH_DEFAULT = r"C:\Program Files\Bolshakov\save_to_cload\main.exe"
+    PROGRAM_PATH_ERROR = "Ошибка в пути выполняемой прграммы"
     PROGRAM_WRITE_VARS = "write_vars"
     REMOTE_ARCHIVE_PREFIX_DEF = "archive"
     ROOT_REMOTE_ARCHIVE_DIR = "/Архивы"
@@ -122,6 +127,8 @@ class Constants(frozenset):
         "C:\\Program Files (x86)\\7-Zip\\7z.exe",
     ]
     SCHEDULED_DAYS_MASK = "SCHEDULED_DAYS_MASK"
+    START_TASK_DEFAULT = "12:30"
+    START_TASK_ERROR = "Ошибка в задании времени старта программы"
     STOP_SERVICE_MESSAGE = (
         f"***** Не менять! Информация для отправки служебного сообщения "
         f"{ARCHIVING_END_TRIGGER}"
@@ -133,15 +140,27 @@ class Constants(frozenset):
     TASK_DELETED_ERROR = "Ошибка удаления задачи"
     TASK_DELETED_SUCSESSFULL = "Задача удалена успешно"
     TASK_DESCRIPTION = "TASK_DESCRIPTION"
+    TASK_DESCRIPTION_DEFAULT = "Ежедневное сохранение данных"
+    TASK_DESCRIPTION_ERROR = "Описание задачи планировщика содержит символ '\x00'"
     TASK_FOLDER = "TASK_FOLDER"
+    TASK_FOLDER_ERROR = "Ошибка в директории задачи планировщика"
+    TASK_FOLDER_DEFAULT = r"\Bolshakov"
     TASK_NAME = "TASK_NAME"
+    TASK_NAME_DEFAULT = "save"
+    TASK_NAME_ERROR = "Ошибка в имени задачи планировщика"
+    TASK_NOT_READY_TO_CREATED = (
+        "Задача не может быть создана."
+        "\nИсправьте ошибочные параметры в env файле."
+        "\nПодробности записаны в LOG файл."
+    )
     TASK_START_IN = "TASK_START_IN"
-    TASK_NOT_CREATED = (
+    TASK_READY_TO_CREATED = (
         "Задача пока не создана."
         "\nДля создания задачи нажмите кнопку:"
         "\n'Создать задачу'"
     )
     TEXT_EMPTY = "???????"
+    TEXT_ERROR = "Текст содержит символ '\x00'. Символ удалён из текста"
     TEXT_NO_DAY = "Выберите хотя бы один день недели."
     TEXT_NOT_TASK = (
         "Папка или задача планировщика не заданы. Проверьте настройки по умолчанию"
@@ -169,3 +188,5 @@ class Constants(frozenset):
         f"{YC.ENV_YANDEX_CLIENT_SECRET}",  # Секретный ключ клиента
         f"{YC.YANDEX_REDIRECT_URI}",
     ]
+    WORK_DIRECTORY_PATH = "WORK_DIRECTORY_PATH"
+    WORK_DIRECTORY_ERROR = "Ошибка в пути рабочей директории"

@@ -18,11 +18,14 @@
 - SchedulePanel       — основной класс, управляющий левой панелью.
 """
 
-from typing import Protocol, Any, Literal
+from enum import Enum, auto
+from typing import Protocol, Any, Literal, Callable
 from dataclasses import dataclass
+
 from loguru import logger
 import os
 import pywintypes
+from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QLabel,
@@ -36,7 +39,10 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QMessageBox,
     QLayout,
+    QLineEdit,
+    QToolButton,
 )
+from PyQt6.QtCore import QTime
 
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
@@ -58,6 +64,20 @@ _HRESULT_MAP = {
     0x8004131E: "Не указано время начала задачи (SCHED_E_MISSING_START_TIME).",
 }
 
+INVALID_CHARS_PATH = r'\/:*?"<>|'
+# Windows запрещает имена устройств (CON, PRN, AUX, NUL...)
+INVALID_NAMES = frozenset(
+    {
+        ".",
+        "..",
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        *(f"COM{i}" for i in range(1, 10)),
+        *(f"LPT{i}" for i in range(1, 10)),
+    }
+)
 
 # fmt: off
 @dataclass
@@ -66,16 +86,18 @@ class TaskConfig:
     Конфигурация задачи планировщика, собранная из UI.
 
     Атрибуты:
-        task_path      : Полный путь к задаче в планировщике (\\Folder\\TaskName).
-        mask_days      : 7-битная маска дней недели (bit0=Пн .. bit6=Вс).
-        start_time     : Время запуска в формате "HH:MM".
-        executable_path: Путь к исполняемому файлу.
-        description    : Описание задачи (отображается в планировщике).
+        task_path           : Полный путь к задаче в планировщике (\\Folder\\TaskName).
+        mask_days           : 7-битная маска дней недели (bit0=Пн .. bit6=Вс).
+        start_time          : Время запуска в формате "HH:MM".
+        executable_path     : Путь к исполняемому файлу.
+        work_directory_path : Путь к рабочей директории
+        description         : Описание задачи (отображается в планировщике).
     """
     task_path                   : str
     mask_days                   : int
     start_time                  : str
     executable_path             : str
+    work_directory_path         : str
     description                 : str
 
 
@@ -96,6 +118,7 @@ class TaskSchedulerService:
             mask_days=config.mask_days,
             task_path=config.task_path,
             executable_path=config.executable_path,
+            work_directory_path=config.work_directory_path,
             start_time=config.start_time,
             description=config.description,
         )
@@ -111,19 +134,22 @@ class HasSchedulePanelUI(Protocol):
     Используется для статической проверки типов: любой объект, реализующий
     эти атрибуты, может быть передан в SchedulePanel.
     """
-    label_task_location         : QLabel
-    textEdit_program_path       : QPlainTextEdit
-    label_task_name             : QLabel
-    textEdit_task_description   : QPlainTextEdit
-    timeEdit_task_start_in      : QTimeEdit
-    btn_clean_all_day           : QPushButton
-    btn_reject_changes          : QPushButton
-    btn_select_all_day          : QPushButton
-    btn_create_task             : QPushButton
-    btn_delete_task             : QPushButton
-    hbox_week_days              : QHBoxLayout
-    textEdit_Error              : QTextEdit
-    groupBoxLeft                : QGroupBox
+    label_task_location             : QLabel
+    label_task_name                 : QLabel
+    lineEdit_path_programm          : QLineEdit
+    toolButton_path_programm        : QToolButton
+    lineEdit_path_work_directory    : QLineEdit
+    toolButton_work_directory       : QToolButton
+    textEdit_task_description       : QPlainTextEdit
+    timeEdit_task_start_in          : QTimeEdit
+    btn_clean_all_day               : QPushButton
+    btn_reject_changes              : QPushButton
+    btn_select_all_day              : QPushButton
+    btn_create_task                 : QPushButton
+    btn_delete_task                 : QPushButton
+    hbox_week_days                  : QHBoxLayout
+    textEdit_Error                  : QTextEdit
+    groupBoxLeft                    : QGroupBox
 # fmt: on
 
 
@@ -160,6 +186,30 @@ class ErrorFormater:
         )
 
 
+# fmt: off
+class ControlType(Enum):
+    TEXT            = auto()
+    START_TIME      = auto()
+    FILE_PATH       = auto()
+    FOLDER_PATH     = auto()
+    TASK_NAME       = auto()
+    TASK_FOLDER     = auto()
+    MASK_DAYS       = auto()
+# fmt: on
+
+
+@dataclass
+class DescrTaskFields:
+    widget: QWidget | QLayout
+    name_env: str
+    control_type: ControlType
+    error_text: str
+    value_default: str | None = None
+
+
+HandlerType = Callable[[str], bool]
+
+
 class SchedulePanel:
     """
     Панель управления настройками задачи планировщика.
@@ -190,6 +240,7 @@ class SchedulePanel:
           - подключает сигналы кнопок и полей ввода.
         """
         self._bind_ui(ui)
+        self._init_descr_task_fields()
         init_button_styles(self)
 
         # Сохраняем исходное состояние кнопки создания задачи
@@ -203,21 +254,25 @@ class SchedulePanel:
         self.env = EnvironmentVariables()
         self._init_ui_from_task()
         self._btn_signal_connect()
+        self.parameter_error = False
 
     def _bind_ui(self, ui: HasSchedulePanelUI) -> None:
         """
         Связывает элементы пользовательского интерфейса (UI) с атрибутами класса.
         """
         self.lbl_task_folder = ui.label_task_location
-        self.txt_program_path = ui.textEdit_program_path
+        self.txt_program_path = ui.lineEdit_path_programm
+        self.txt_work_directory_path = ui.lineEdit_path_work_directory
         self.lbl_task_name = ui.label_task_name
         self.txt_task_description = ui.textEdit_task_description
-        self.time_task_start = ui.timeEdit_task_start_in
+        self.start_time_task = ui.timeEdit_task_start_in
         self.btn_select_all_day = ui.btn_select_all_day
         self.btn_create_task = ui.btn_create_task
         self.btn_delete_task = ui.btn_delete_task
         self.btn_clean_all_day = ui.btn_clean_all_day
         self.btn_reject_changes = ui.btn_reject_changes
+        self.btn_path_programm = ui.toolButton_path_programm
+        self.btn_work_directory = ui.toolButton_work_directory
         self.text_info = ui.textEdit_Error
         self.group_box_left = ui.groupBoxLeft
 
@@ -234,38 +289,56 @@ class SchedulePanel:
           3. Пытаемся прочитать WEEKLY-задачу через task_scheduler.read_weekly_task().
           4. При успехе — отражаем параметры задачи в UI.
         """
-        # Папка и имя задачи — сначала выводим в UI из переменных окружения
-        task_folder = self._apply_value_to_widget(self.lbl_task_folder, C.TASK_FOLDER)
-        task_name = self._apply_value_to_widget(self.lbl_task_name, C.TASK_NAME)
-
-        if not task_folder or not task_name:
-            msg = C.TEXT_NOT_TASK
-            logger.error(msg)
-            self._lock_left_panel_widgets(enable=False)
-            self.btn_create_task.setEnabled(False)
-            self.put_to_info(msg)
-            return
 
         # Собираем путь к задаче
-        self.task_path = os.path.join(task_folder, task_name)
+        if (task_path := self._create_task_path()) is None:
+            return
+        self.task_path = task_path
 
+        if not self._try_load_task_and_update_ui():
+            # Если задача не считана или недостоверная задача, предлагаем создать или удалить задачу
+            self.set_button_create_active(self.btn_create_task, True)
+
+    def _create_task_path(self) -> str | None:
+        # Папка и имя задачи — сначала выводим в UI из переменных окружения
+        task_folder = self._apply_value_to_widget("task_folder")
+        task_name = self._apply_value_to_widget("task_name")
+
+        if not task_folder or not task_name:
+            self._set_error_ui_state(C.TEXT_NOT_TASK, btn_create_task_enable=False)
+            return None
+
+        # Собираем путь к задаче
+        return os.path.join(task_folder, task_name)
+
+    def _try_load_task_and_update_ui(self) -> bool:
         try:
             self.task_info = task_scheduler.read_weekly_task(self.task_path)
-            self._update_ui_from_task()
-            return
-        except pywintypes.com_error:  # type: ignore[attr-defined]
-            logger.warning(f"Задача {self.task_path} не найдена или недоступна")
-            self._update_ui_from_defaults()
         except ValueError:
-            # Некорректная структура задачи (например, не WEEKLY-триггер).
-            msg = C.TEXT_TASK_MANUAL_EDIT.format(task=self.task_path)
-            logger.error(msg)
-            self.put_to_info(msg)
-            self._lock_left_panel_widgets(enable=False)
-            self._set_task_button_mode("delete")
+            self._handle_invalid_task_definition()
+            return False
+        except pywintypes.com_error:
+            self._handle_task_not_found()
+            return False
 
-        # Если задача не считана или недостоверная задача, предлагаем создать или удалить задачу
-        self.set_button_create_active(self.btn_create_task, True)
+        self._update_ui_from_task()
+        return True
+
+    def _handle_task_not_found(self) -> None:
+        logger.warning(f"Задача {self.task_path} не найдена или недоступна")
+        self._update_ui_from_defaults()
+
+    def _handle_invalid_task_definition(self) -> None:
+        msg = C.TEXT_TASK_MANUAL_EDIT.format(task=self.task_path)
+        logger.error(msg)
+        self._set_error_ui_state(msg, btn_create_task_enable=True)
+        self._set_task_button_mode("delete")
+
+    def _set_error_ui_state(self, msg: str, btn_create_task_enable: bool) -> None:
+        logger.error(msg)
+        self._lock_left_panel_widgets(enable=False)
+        self.btn_create_task.setEnabled(btn_create_task_enable)
+        self.put_to_info(msg)
 
     def _btn_signal_connect(self) -> None:
         """Подключает сигналы кнопок и полей ввода к слотам SchedulePanel."""
@@ -278,7 +351,7 @@ class SchedulePanel:
         # Изменения текста / времени / чекбоксов → активировать кнопки «создать»/«отменить»
         self.txt_program_path.textChanged.connect(self.update_buttons_state_enable)
         self.txt_task_description.textChanged.connect(self.update_buttons_state_enable)
-        self.time_task_start.timeChanged.connect(self.update_buttons_state_enable)
+        self.start_time_task.timeChanged.connect(self.update_buttons_state_enable)
         utils.connect_checkboxes_in_layout(
             self.hbox_week_days, self.update_buttons_state_enable
         )
@@ -290,22 +363,25 @@ class SchedulePanel:
           - mask_days
           - start_time
           - executable
+          - work_directory
           - description
         """
         self._ui_default = False
+
         # Описание задачи
         description = self.task_info.get("description")
         if description is not None:
-            self._apply_value_to_widget(
-                self.txt_task_description, description, from_env=False
-            )
+            self._apply_value_to_widget("description", description)
 
         # Путь к программе
         executable = self.task_info.get("executable")
         if executable is not None:
-            self._apply_value_to_widget(
-                self.txt_program_path, executable, from_env=False
-            )
+            self._apply_value_to_widget("program_path", executable)
+
+        # Рабочая папка
+        work_directory_path = self.task_info.get("work_directory")
+        if work_directory_path is not None:
+            self._apply_value_to_widget("work_directory", work_directory_path)
 
         # Маска дней недели
         self._set_week_mask(self.task_info.get("mask_days"))
@@ -313,9 +389,7 @@ class SchedulePanel:
         # Время запуска
         start_time = self.task_info.get("start_time")
         if start_time is not None:
-            self._apply_value_to_widget(
-                self.time_task_start, start_time, from_env=False
-            )
+            self._apply_value_to_widget("start_time", start_time)
 
         self._ui_dirty = False
         self.update_buttons_state(enabled=False)
@@ -332,46 +406,66 @@ class SchedulePanel:
         self._ui_default = True
         self._ui_dirty = False
 
-        self._apply_value_to_widget(self.txt_task_description, C.TASK_DESCRIPTION)
-        self._apply_value_to_widget(self.txt_program_path, C.PROGRAM_PATH)
-        self._apply_value_to_widget(self.hbox_week_days, C.SCHEDULED_DAYS_MASK)
-        self._apply_value_to_widget(self.time_task_start, C.TASK_START_IN)
-        self.put_to_info(C.TASK_NOT_CREATED)
+        # Установка значений виджетов
+        self.parameter_error = False
+        self._apply_value_to_widget("description")
+        self._apply_value_to_widget("program_path")
+        self._apply_value_to_widget_if_present("work_directory")
+        self._apply_value_to_widget("mask_of_days")
+        self._apply_value_to_widget("start_time")
+        self._update_task_creation_ui_state()
+
+    def _update_task_creation_ui_state(self):
+        if self.parameter_error:
+            self.put_to_info(C.TASK_NOT_READY_TO_CREATED)
+            self._lock_left_panel_widgets(enable=False)
+        else:
+            self.put_to_info(C.TASK_READY_TO_CREATED)
 
     def _apply_value_to_widget(
         self,
-        widget: QWidget | QLayout,
-        value: str,
-        *,
-        from_env: bool = True,
+        key_task_fields: str,
+        value: str | None = None,
     ) -> Any | None:
         """
-        Применяет значение к виджету.
+        Контролирует принимаемое значение и, если значение валидно,
+        применяет значение к виджету.
 
-        Если from_env=True — value трактуется как имя переменной окружения,
-        в противном случае — как готовое значение.
+        Если value задано, то оно трактуется как готовое значение,
+        в противном случае — как имя переменной окружения.
 
         Возвращает:
             Значение, которое было фактически установлено или None при ошибке.
         """
 
-        if from_env:
-            env_value = self.env.get_var(value)
-            if env_value is None:
-                logger.error(f"Переменная {value} не задана в окружении.")
-                return None
-        else:
-            # var_name уже является самим значением, а не именем переменной
-            env_value = value
-
-        return_text = utils.set_widget_value(widget, env_value, empty=C.TEXT_EMPTY)
-        if return_text:
-            logger.error(
-                f"Ошибка при установке значения для {env_value}\n{return_text}"
-            )
+        field_descr = self.descr_task_fields[key_task_fields]
+        final_value = (
+            self.env.get_var(field_descr.name_env, field_descr.value_default)
+            if value is None
+            else value
+        )
+        if final_value is None:
             return None
 
-        return env_value
+        return (
+            final_value
+            if self._apply_if_valid(field_descr, final_value, value)
+            else None
+        )
+
+    def _apply_if_valid(
+        self, field_descr: DescrTaskFields, final_value: str, value: str
+    ) -> bool:
+        if self.is_valid_value(
+            final_value, field_descr.control_type, field_descr.error_text
+        ):
+            return_text = utils.set_widget_value(
+                field_descr.widget, final_value, empty=C.TEXT_EMPTY
+            )
+            if not return_text:
+                return True
+            logger.error(f"Ошибка при установке значения для {value}\n{return_text}")
+        return False
 
     def on_select_all_day(self) -> None:
         """Отмечает все дни недели (маска 1111111) и помечает UI как «изменённый»."""
@@ -491,22 +585,25 @@ class SchedulePanel:
             self.report_com_error(error, C.TASK_DELETED_ERROR)
             return False
 
-        # Успешное удаление: разблокируем левую панель,
+        # Успешное удаление: Приводим UI к состоянию "Готов к созданию новой задачи"
+        self._prepare_ui_for_task_creation()
+        return True
+
+    def _prepare_ui_for_task_creation(self):
+        # Разблокируем левую панель,
         # возвращаем режим "создания", сбрасываем UI в значения по умолчанию
         self._lock_left_panel_widgets(enable=True)
+        self.btn_create_task.setEnabled(True)
         self._set_task_button_mode("create")
         self._update_ui_from_defaults()
         self._ui_dirty = False
-        return True
 
     def _lock_left_panel_widgets(self, enable: bool) -> None:
         """
-        Включает / отключает все виджеты в левой панели, кроме кнопки создания задачи.
+        Включает / отключает все виджеты в левой панели.
         Используется при ошибках конфигурации задачи или при её удалении.
         """
         for child in self.group_box_left.findChildren(QWidget):
-            if child is self.btn_create_task:
-                continue
             child.setEnabled(enable)
 
     def _set_task_button_mode(self, mode: Literal["create", "delete"]) -> None:
@@ -545,7 +642,9 @@ class SchedulePanel:
         Цвет влияет и на font-weight (успех/ошибка/инфо).
         """
         html_text = utils.make_html(message, color)
-        self._apply_value_to_widget(self.text_info, html_text, from_env=False)
+        html_text = self.text_to_save_text(html_text)
+
+        self._apply_value_to_widget("info", html_text)
 
     def set_button_create_active(self, button: QPushButton, active: bool) -> None:
         """
@@ -616,13 +715,17 @@ class SchedulePanel:
         извлечения параметров из виджетов.
         """
 
+        # fmt: off
         return TaskConfig(
-            task_path=self.task_path,
-            mask_days=self.get_week_mask(),
-            executable_path=self.txt_program_path.toPlainText(),
-            start_time=self.time_task_start.time().toString("HH:mm"),
-            description=self.txt_task_description.toPlainText(),
+            task_path           = self.task_path,
+            mask_days           = self.get_week_mask(),
+            executable_path     = self.txt_program_path.text(),
+            work_directory_path = self.txt_work_directory_path.text(),
+            start_time          = self.start_time_task.time().toString("HH:mm"),
+            description         = self.txt_task_description.toPlainText(),
         )
+
+    # fmt: on
 
     def report_com_error(self, error, user_message_prefix: str) -> None:
         """
@@ -657,3 +760,248 @@ class SchedulePanel:
         self.put_to_info(C.TASK_CREATED_SUCSESSFULL, color="green")
         logger.info(C.TASK_CREATED_SUCSESSFULL)
         self.btn_delete_task.setEnabled(True)
+
+    def text_to_save_text(self, text: str) -> str:
+        """Убирает из текста опасный для Qt6 символ"""
+        return text.replace("\x00", "")
+
+    def text_handler(self, text: str) -> bool:
+        """
+        Проверяет текст на отсутствие служебной подстроки C.NULL.
+
+        Возвращает:
+            True, если текст не содержит C.NULL, иначе False.
+        """
+        return C.NULL not in text
+
+    def start_time_handler(self, text: str) -> bool:
+        """
+        Валидирует время запуска задачи.
+
+        Ожидаемый формат: 'HH:MM'.
+
+        Возвращает:
+            True, если строка корректно парсится в QTime, иначе False.
+        """
+        time = QTime.fromString(text, "HH:mm")
+        return time.isValid()
+
+    def task_name_handler(self, name: str) -> bool:
+        """
+        Проверяет корректность имени задачи планировщика.
+
+        Условия:
+            - непустая строка;
+            - не начинается и не заканчивается пробелом;
+            - не содержит недопустимых символов для имени файла/задачи;
+            - длина не более 256 символов.
+        """
+
+        # 1. Не пустая строка
+        if not isinstance(name, str) or name.strip() == "":
+            return False
+
+        # 2. Не начинается и не заканчивается пробелом
+        if name[0] == " " or name[-1] == " ":
+            return False
+
+        # 3. Проверка недопустимых символов
+        if any(ch in INVALID_CHARS_PATH for ch in name):
+            return False
+
+        # 4. Проверка длины
+        if len(name) > 256:
+            return False
+
+        return True
+
+    def task_directory_handler(self, text: str) -> bool:
+        return self.directory_handler(text)
+
+    def file_path_handler(self, text: str):
+        base = text
+        p = Path(text)
+        if p.drive:
+            base = text[len(p.drive) :]
+        # анализуруем путь без драйвера.
+        return self.directory_handler(base)
+
+    def directory_handler(self, text: str) -> bool:
+        """
+        Проверяет корректность (корневого) пути директории в стиле Windows.
+
+        Условия:
+            1. Строка не пуста.
+            2. Путь является "корневым" (начинается с '\\' или '/').
+            3. Каждая часть пути не содержит недопустимых символов/имён.
+            4. Путь не заканчивается пробелом или точкой.
+        """
+        # 1. Проверяем пустое ли имя
+        if self.is_empty_string(text):
+            return False
+
+        # 2. Проверяем абсолютность пути
+        if not self.is_rooted_path(text):
+            return False
+
+        # 3, 4. Проверка недопустимых символов и имён для Windows
+        if not self.check_parts_for_invalid_chars(text):
+            return False
+
+        # 5. Проверка недопустимости завершающих пробела и точки
+        if not self.check_trailing_chars(text):
+            return False
+
+        return True
+
+    def is_empty_string(self, text: str) -> bool:
+        return not isinstance(text, str) or not text
+
+    def is_rooted_path(self, text: str) -> bool:
+        return text.startswith(("\\", "/"))
+
+    def check_parts_for_invalid_chars(self, text: str) -> bool:
+        p = Path(text[1:])
+        for part in p.parts:
+            if len(part) > 250:
+                return False
+            if any(ch in INVALID_CHARS_PATH for ch in part):
+                return False
+            if any(ord(ch) < 32 for ch in part):
+                return False
+            if Path(part).stem in INVALID_NAMES:
+                return False
+        return True
+
+    def check_trailing_chars(self, text: str) -> bool:
+        return not text.endswith((" ", "."))
+
+    def mask_days_handler(self, text: str) -> bool:
+        """
+        Проверяет, что строка является корректной двоичной маской дней недели.
+
+        Ожидается строка из '0' и '1', интерпретируемая как целое число
+        в диапазоне [0, 255].
+        """
+        try:
+            value = int(text, 2)
+        except ValueError, TypeError:
+            return False
+        return 0 <= value < 256
+
+    def is_valid_value(
+        self, value: str, control_type: ControlType, error_text: str
+    ) -> bool:
+        """
+        Универсальная проверка значения по типу контролла.
+
+        Вызывает соответствующий обработчик из get_handlers_map().
+        При ошибке логирует сообщение и показывает диалог пользователю.
+        """
+        handlers = self.get_handlers_map()
+        handler = handlers[control_type]
+        if not handler(value):
+            logger.error(f"{error_text} -> {value}")
+            self.parameter_error = True
+            self.error_message(error_text, value)
+            return False
+
+        return True
+
+    def get_handlers_map(self) -> dict[ControlType, HandlerType]:
+        """
+        Возвращает отображение ControlType → функция-валидатор.
+
+        Упрощает добавление новых типов полей и соответствующих им обработчиков.
+        """
+        # fmt: off
+        return {
+            ControlType.TEXT            : self.text_handler,
+            ControlType.START_TIME      : self.start_time_handler,
+            ControlType.TASK_NAME       : self.task_name_handler,
+            ControlType.TASK_FOLDER     : self.task_directory_handler,
+            ControlType.MASK_DAYS       : self.mask_days_handler,
+            ControlType.FILE_PATH       : self.file_path_handler,
+            ControlType.FOLDER_PATH     : self.file_path_handler,
+        }
+        # fmt: on
+
+    def _init_descr_task_fields(self):
+        self.descr_task_fields: dict[str, DescrTaskFields] = {
+            "task_folder": DescrTaskFields(
+                self.lbl_task_folder,
+                C.TASK_FOLDER,
+                ControlType.TASK_FOLDER,
+                C.TASK_FOLDER_ERROR,
+                C.TASK_FOLDER_DEFAULT,
+            ),
+            "task_name": DescrTaskFields(
+                self.lbl_task_name,
+                C.TASK_NAME,
+                ControlType.TASK_NAME,
+                C.TASK_NAME_ERROR,
+                C.TASK_NAME_DEFAULT,
+            ),
+            "description": DescrTaskFields(
+                self.txt_task_description,
+                C.TASK_DESCRIPTION,
+                ControlType.TEXT,
+                C.TASK_DESCRIPTION_ERROR,
+                C.TASK_DESCRIPTION_DEFAULT,
+            ),
+            "program_path": DescrTaskFields(
+                self.txt_program_path,
+                C.PROGRAM_PATH,
+                ControlType.FILE_PATH,
+                C.PROGRAM_PATH_ERROR,
+                C.PROGRAM_PATH_DEFAULT,
+            ),
+            "work_directory": DescrTaskFields(
+                self.txt_work_directory_path,
+                C.WORK_DIRECTORY_PATH,
+                ControlType.FOLDER_PATH,
+                C.WORK_DIRECTORY_ERROR,
+            ),
+            "start_time": DescrTaskFields(
+                self.start_time_task,
+                C.TASK_START_IN,
+                ControlType.START_TIME,
+                C.START_TASK_ERROR,
+                C.START_TASK_DEFAULT,
+            ),
+            "mask_of_days": DescrTaskFields(
+                self.hbox_week_days,
+                C.SCHEDULED_DAYS_MASK,
+                ControlType.MASK_DAYS,
+                C.MASK_ERROR,
+                C.MASK_DEFAULT,
+            ),
+            "info": DescrTaskFields(self.text_info, "", ControlType.TEXT, ""),
+        }
+
+    @staticmethod
+    def is_absolute_windows_path(p: Path) -> bool:
+        # Полноценный абсолютный путь
+        if p.is_absolute():
+            return True
+
+        # Корневой путь без диска: "\folder"
+        # Если путь начинается со слеша — считаем его абсолютным
+        if str(p).startswith(("\\", "/")):
+            return True
+
+        return False
+
+    def _apply_value_to_widget_if_present(self, widget_name: str):
+        field_descr = self.descr_task_fields[widget_name]
+        value = self.env.get_var(field_descr.name_env)
+        if value:
+            self._apply_value_to_widget(widget_name)
+
+    def error_message(self, text: str, informative_text: str) -> None:
+        msg = QMessageBox(self._msg_parent())
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setWindowTitle("Ошибка")
+        msg.setText(text)
+        msg.setInformativeText(str(informative_text))
+        msg.exec()

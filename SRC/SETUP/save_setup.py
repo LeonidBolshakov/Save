@@ -130,6 +130,7 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
+        app.setStyle("Fusion")
         w = MainWindow()
         w.show()
         return_code = app.exec()

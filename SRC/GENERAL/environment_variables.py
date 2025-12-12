@@ -46,7 +46,7 @@ class EnvironmentVariables:
 
         :param var_name: Название переменной
         :param default: Значение по умолчанию, если переменная не найдена
-        :return: Значение переменной или None
+        :return: Значение переменной
         """
         val = keyring.get_password(self.app_name, var_name)
         if val is not None:

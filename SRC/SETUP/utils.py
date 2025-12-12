@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QCheckBox,
     QLayout,
+    QLineEdit,
 )
 from PyQt6.QtCore import Qt, QTime
 
@@ -155,6 +156,7 @@ def load_from_file(
 def filter_existing(nodes: Sequence[str]) -> tuple[list[str], list[str]]:
     """
     Фильтрует список путей.
+    Делит пути на существующие и не существующие.
 
     Args:
         nodes: последовательность путей (str).
@@ -379,6 +381,7 @@ WIDGET_HANDLERS: list[tuple[type, WidgetHandler]] = [
     (QPlainTextEdit, handle_plain_text),
     (QSpinBox, handle_spinbox),
     (QTimeEdit, handle_time_edit),
+    (QLineEdit, handle_text_edit),
 ]
 
 
@@ -477,8 +480,10 @@ def make_html(text: str, color: str) -> str:
 def setup_logging() -> None:
     # добываем параметры
     variables = EnvironmentVariables()
-    log_file_path = variables.get_var(C.ENV_LOG_SETUP_FILE_PATH, C.LOG_SETUP_FILE_PATH_DEF)
-    level=variables.get_var(C.ENV_LOG_SETUP_LEVEL, C.LOG_SETUP_LEVEL_DEF)
+    log_file_path = variables.get_var(
+        C.ENV_LOG_SETUP_FILE_PATH, C.LOG_SETUP_FILE_PATH_DEF
+    )
+    level = variables.get_var(C.ENV_LOG_SETUP_LEVEL, C.LOG_SETUP_LEVEL_DEF)
 
     # Удаляем прежние логгеры, в т.ч по умолчанию
     logger.remove()
@@ -493,14 +498,3 @@ def setup_logging() -> None:
         retention="5 days",
         compression="zip",
     )
-
-
-def create_env_from_template():
-    pass
-
-def ensure_env_exists():
-    pass
-
-def reset_env_from_template():
-    pass
-

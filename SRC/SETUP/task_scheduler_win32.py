@@ -104,70 +104,27 @@ def set_weekly_trigger(task_def, days_mask: int, start_time: str) -> None:
     trigger.Enabled = True
 
 
-def set_exec_action(task_def, executable_path: str) -> None:
+def set_exec_action(task_def, executable_path: str, work_directory_path: str) -> None:
     """
-    Добавляет EXEC-действие: запуск executable_path без аргументов.
+    Добавляет EXEC-действие: запуск executable_path без аргументов и
+    установку рабочей директории.
+
+    Args:
+        task_def: Объект TaskDefinition.
+        executable_path: Путь к исполняемому файлу.
+        work_directory_path: Рабочая директория для процесса (может быть пустой).
     """
     action = task_def.Actions.Create(0)  # TASK_ACTION_EXEC = 0
+
+    # Установка выполняемого файла
     action.Path = executable_path
 
-
-def create_replace_task_scheduler(
-    *,
-    mask_days: int,
-    task_path: str,
-    executable_path: str,
-    start_time: str,
-    description: str,
-) -> ComError | None:
-    """
-    Создаёт или заменяет WEEKLY-задачу в Windows Task Scheduler (Win32 COM API).
-
-    Параметры передаются только по имени (keyword-only), что исключает ошибки.
-    Возвращает:
-        None — при успехе,
-        pywintypes.com_error — при COM-ошибке (пользователь должен увидеть описание),
-        другие исключения — пробрасываются (это ошибки программиста).
-
-    Важно:
-        - mask_days — внутренняя 7-битная маска (bit0=MON .. bit6=SUN);
-        - start_time — строка "HH:MM", затем будет преобразована в "YYYY-MM-DDTHH:MM:SS";
-        - description — человеко-читаемое описание задачи, выводится в планировщике.
-    """
-    try:
-        scheduler = win32com.client.Dispatch("Schedule.Service")
-        scheduler.Connect()
-
-        root = scheduler.GetFolder("\\")
-        folder_path, task_name = split_task_path(task_path)
-        target_folder = ensure_folder(root, folder_path)
-
-        task_def = scheduler.NewTask(0)
-
-        task_def.RegistrationInfo.Description = description
-        task_def.RegistrationInfo.Author = TASK_AUTHOR
-
-        settings = task_def.Settings
-        settings.Enabled = True
-        settings.StartWhenAvailable = True
-        settings.DisallowStartIfOnBatteries = False
-
-        set_weekly_trigger(task_def, mask_days, start_time)
-        set_exec_action(task_def, executable_path)
-
-        target_folder.RegisterTaskDefinition(
-            task_name,
-            task_def,
-            TASK_CREATE_OR_UPDATE,
-            "",
-            "",
-            TASK_LOGON_INTERACTIVE_TOKEN,
-        )
-
-        return None
-
-    except pywintypes.com_error as e:  # type: ignore[attr-defined]
-        return e
+    # Установка рабочей директории.
+    if work_directory_path:
+        try:
+            action.WorkingDirectory = work_directory_path
+        except (AttributeError, ValueError, pywintypes.com_error) as e:
+            raise pywintypes.com_error
 
 
 def delete_task_scheduler(task_path: str) -> ComError | None:
@@ -205,11 +162,12 @@ def read_weekly_task(task_path: str) -> dict[str, Any]:
     Читает WEEKLY-задачу планировщика и возвращает её параметры.
 
     Возвращаемый dict:
-      - task_path   : исходный путь задачи;
-      - mask_days   : внутренняя маска дней (bit0=MON — bit6=SUN);
-      - start_time  : строка "HH:MM" или None;
-      - executable  : путь к EXE или None;
-      - description : описание задачи.
+      - task_path       : исходный путь задачи;
+      - mask_days       : внутренняя маска дней (bit0=MON — bit6=SUN);
+      - start_time      : строка "HH:MM" или None;
+      - executable      : путь к EXE или None;
+      - work_dictonary  : рабочая директория;
+      - description     : описание задачи.
 
     Требования:
       — у задачи должен быть ровно один триггер;
@@ -219,13 +177,7 @@ def read_weekly_task(task_path: str) -> dict[str, Any]:
 
     В противном случае выбрасывается ValueError.
     """
-    scheduler = win32com.client.Dispatch("Schedule.Service")
-    scheduler.Connect()
-    root = scheduler.GetFolder("\\")
-
-    folder_path, task_name = split_task_path(task_path)
-    folder = root.GetFolder(folder_path)
-    task = folder.GetTask(task_name)
+    task = _get_task_from_scheduler(task_path)
     definition = task.Definition
 
     trigger = _get_single_weekly_trigger(definition, task_path)
@@ -240,14 +192,25 @@ def read_weekly_task(task_path: str) -> dict[str, Any]:
         start_time = sb[11:16]  # "HH:MM"
 
     executable = getattr(action, "Path", None)
-
+    work_directory = getattr(action, "WorkDirectory", None)
     return {
         "task_path": task_path,
         "mask_days": mask_days,
         "start_time": start_time,
         "executable": executable,
+        "work_directory": work_directory,
         "description": definition.RegistrationInfo.Description,
     }
+
+
+def _get_task_from_scheduler(task_path: str) -> Any:
+    scheduler = win32com.client.Dispatch("Schedule.Service")
+    scheduler.Connect()
+    root = scheduler.GetFolder("\\")
+
+    folder_path, task_name = split_task_path(task_path)
+    folder = root.GetFolder(folder_path)
+    return folder.GetTask(task_name)
 
 
 def _get_single_weekly_trigger(definition, task_path: str):
@@ -269,7 +232,9 @@ def _get_single_weekly_trigger(definition, task_path: str):
     return trigger
 
 
-def _get_single_exec_action(definition, task_path: str):
+def _get_single_exec_action(
+    definition: win32com.client.CDispatch, task_path: str
+) -> win32com.client.CDispatch:
     """Возвращает единственное EXEC-действие или бросает ValueError."""
     actions = list(definition.Actions)
     if len(actions) != 1:
@@ -280,7 +245,7 @@ def _get_single_exec_action(definition, task_path: str):
 
     action = actions[0]
 
-    # TASK_ACTION_EXEC = 0
+    # TASK_ACTION_EXEC == 0
     if action.Type != 0:
         raise ValueError(
             f"Ожидалось EXEC-действие (TASK_ACTION_EXEC), "
@@ -316,3 +281,114 @@ def extract_com_error_info(error: pywintypes.com_error) -> tuple[int, str, str]:
     details = error.args[2] if len(error.args) > 2 else ""
 
     return hr, msg, details
+
+
+from typing import Any, Tuple
+
+
+def create_replace_task_scheduler(
+    *,
+    mask_days: int,
+    task_path: str,
+    executable_path: str,
+    work_directory_path: str,
+    start_time: str,
+    description: str,
+) -> ComError | None:
+    """
+    Создаёт или заменяет WEEKLY-задачу в Windows Task Scheduler (Win32 COM API).
+
+    Возвращает:
+        None — при успехе,
+        pywintypes.com_error — при COM-ошибке.
+    """
+    try:
+        scheduler = _create_scheduler()
+        target_folder, task_name = _get_target_folder_and_name(scheduler, task_path)
+        task_def = _build_task_definition(
+            scheduler=scheduler,
+            description=description,
+            mask_days=mask_days,
+            start_time=start_time,
+            executable_path=executable_path,
+            work_directory_path=work_directory_path,
+        )
+        _register_task(target_folder, task_name, task_def)
+        return None
+
+    except pywintypes.com_error as e:  # type: ignore[attr-defined]
+        return e
+
+
+# ----------------- helpers -----------------
+
+
+def _create_scheduler() -> Any:
+    """Создаёт и подключает COM-объект планировщика."""
+    scheduler = win32com.client.Dispatch("Schedule.Service")
+    scheduler.Connect()
+    return scheduler
+
+
+def _get_root_folder(scheduler: Any) -> Any:
+    """Возвращает корневую папку планировщика задач."""
+    return scheduler.GetFolder("\\")
+
+
+def _get_target_folder_and_name(scheduler: Any, task_path: str) -> Tuple[Any, str]:
+    """
+    По полному пути задачи возвращает целевую папку и имя задачи.
+    """
+    root = _get_root_folder(scheduler)
+    folder_path, task_name = split_task_path(task_path)
+    target_folder = ensure_folder(root, folder_path)
+    return target_folder, task_name
+
+
+def _build_task_definition(
+    *,
+    scheduler: Any,
+    description: str,
+    mask_days: int,
+    start_time: str,
+    executable_path: str,
+    work_directory_path: str,
+) -> Any:
+    """
+    Создаёт и настраивает TaskDefinition:
+    регистрационная информация, общие настройки, триггер и действие.
+    """
+    task_def = scheduler.NewTask(0)
+
+    _configure_registration_info(task_def, description)
+    _configure_basic_settings(task_def)
+    set_weekly_trigger(task_def, mask_days, start_time)
+    set_exec_action(task_def, executable_path, work_directory_path)
+
+    return task_def
+
+
+def _configure_registration_info(task_def: Any, description: str) -> None:
+    """Заполняет RegistrationInfo задачи."""
+    task_def.RegistrationInfo.Description = description
+    task_def.RegistrationInfo.Author = TASK_AUTHOR
+
+
+def _configure_basic_settings(task_def: Any) -> None:
+    """Настраивает базовые свойства задачи (включена, поведение при старте, питание)."""
+    settings = task_def.Settings
+    settings.Enabled = True
+    settings.StartWhenAvailable = True
+    settings.DisallowStartIfOnBatteries = False
+
+
+def _register_task(target_folder: Any, task_name: str, task_def: Any) -> None:
+    """Регистрирует (создаёт или обновляет) задачу в указанной папке."""
+    target_folder.RegisterTaskDefinition(
+        task_name,
+        task_def,
+        TASK_CREATE_OR_UPDATE,
+        "",
+        "",
+        TASK_LOGON_INTERACTIVE_TOKEN,
+    )
