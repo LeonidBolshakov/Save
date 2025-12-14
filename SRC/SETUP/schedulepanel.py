@@ -48,6 +48,7 @@ from SRC.GENERAL.constants import Constants as C
 import SRC.SETUP.utils as utils
 import SRC.SETUP.task_scheduler_win32 as task_scheduler
 from SRC.SETUP.initbuttonstyle import init_button_styles
+from SRC.SETUP.path_selector import ProgramSelector, WorkDirSelector
 
 _HRESULT_MAP = {
     # Общие COM-ошибки
@@ -238,23 +239,24 @@ class SchedulePanel:
           - читает задачу из планировщика (если есть);
           - подключает сигналы кнопок и полей ввода.
         """
+        self._ui_default: bool = True  # UI сформировано из значений «по умолчанию»
+        self._ui_dirty: bool = False  # пользователем были внесены изменения
+        self.parameter_error = False
+
         self._bind_ui(ui)
         self._init_descr_task_fields()
         init_button_styles(self)
-
-        # Кнопка создания задачи может менять своё назначение.
-        # Сохраняем исходное состояние кнопки создания задачи
-        self._default_button_text = self.btn_create_task.text()
-        self._default_button_slot = self.create_or_replace_task
-
-        self._ui_default: bool = True  # UI сформировано из значений «по умолчанию»
-        self._ui_dirty: bool = False  # пользователем были внесены изменения
         self.error_formatter = ErrorFormater(_HRESULT_MAP)
         self.scheduler = TaskSchedulerService()
         self.env = EnvironmentVariables()
-        self._init_ui_from_task()
+        self._init_ui_from_task_or_default()
         self._btn_signal_connect()
-        self.parameter_error = False
+        self._init_path_selector()
+
+        # Кнопка создания задачи может менять своё назначение.
+        # Сохраняем исходное состояние кнопки создания задачи
+        self._default_button_create_task_text = self.btn_create_task.text()
+        self._default_button_create_task_slot = self.btn_create_task
 
     def _bind_ui(self, ui: HasSchedulePanelUI) -> None:
         """
@@ -279,7 +281,7 @@ class SchedulePanel:
         # Чекбоксы дней недели (Пн-Вс) внутри hbox_week_days
         self.hbox_week_days = ui.hbox_week_days
 
-    def _init_ui_from_task(self) -> None:
+    def _init_ui_from_task_or_default(self) -> None:
         """
         Загружает задачу планировщика (если есть) и обновляет UI.
 
@@ -298,6 +300,17 @@ class SchedulePanel:
         if not self._try_load_task_and_update_ui():
             # Если задача не считана или недостоверная задача, разрешаем создать или удалить задачу
             self.set_button_create_active(self.btn_create_task, True)
+
+    def _init_path_selector(self):
+        self.path_program = ProgramSelector(
+            self.txt_program_path, self.btn_path_programm
+        )
+        self.working_directory = WorkDirSelector(
+            self.txt_work_directory_path, self.btn_work_directory
+        )
+
+        self.path_program.set_path(self.txt_program_path.text())
+        self.working_directory.set_path(self.txt_work_directory_path.text())
 
     def _create_task_path(self) -> str | None:
         """
@@ -376,7 +389,7 @@ class SchedulePanel:
         """Подключает сигналы кнопок и полей ввода к слотам SchedulePanel."""
         self.btn_select_all_day.clicked.connect(self.on_select_all_day)
         self.btn_clean_all_day.clicked.connect(self.on_clean_all_day)
-        self.btn_create_task.clicked.connect(self._default_button_slot)
+        self.btn_create_task.clicked.connect(self.on_create_or_replace_task)
         self.btn_reject_changes.clicked.connect(self.on_reject_all_changes)
         self.btn_delete_task.clicked.connect(self.on_delete_task_clicked)
 
@@ -510,7 +523,7 @@ class SchedulePanel:
         self._ui_dirty = True
         self.all_day(checked=False)
 
-    def create_or_replace_task(self) -> None:
+    def on_create_or_replace_task(self) -> None:
         """
         Создаёт или обновляет WEEKLY-задачу в планировщике по текущим данным UI.
 
@@ -660,8 +673,8 @@ class SchedulePanel:
 
         if mode == "create":
             # Для кнопки восстанавливаем исходные текст и обработчик
-            self.btn_create_task.setText(self._default_button_text)
-            self.btn_create_task.clicked.connect(self._default_button_slot)
+            self.btn_create_task.setText(self._default_button_create_task_text)
+            self.btn_create_task.clicked.connect(self._default_button_create_task_slot)
         elif mode == "delete":
             self.btn_create_task.setText(
                 "Удалить задачу\nСоздать настройки\nпо умолчанию"
