@@ -9,7 +9,7 @@ from SRC.GENERAL.constants import Constants as C
 
 def get_user_dir() -> Path:
     """
-    Папка, где будут лежать рабочие env и list.txt.
+    Папка, где будут лежать рабочие env и list.txt.mypy
     Для Windows: %APPDATA%\\<C.SETTINGS_DIRECTORY>
     """
     appdata = os.getenv("APPDATA")

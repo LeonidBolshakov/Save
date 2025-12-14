@@ -417,9 +417,7 @@ def set_widget_value(
     return f"Тип widget {type(widget)} программой не поддерживается"
 
 
-def connect_checkboxes_in_layout(
-    layout: QHBoxLayout, slot: Callable[[int], None]
-) -> None:
+def connect_checkboxes_in_layout(layout: QHBoxLayout, slot: Callable) -> None:
     """
     Подключает один слот ко всем чекбоксам внутри QHBoxLayout.
 
@@ -464,7 +462,7 @@ def make_html(text: str, color: str) -> str:
         css_color = "#c62828"
         font_weight = "600"
     else:  # информационные сообщения
-        css_color = color  # можно "black" или другой цвет
+        css_color = color
         font_weight = "400"
 
     return (

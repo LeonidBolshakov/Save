@@ -102,11 +102,8 @@ class PathSelector(QWidget):
 
 class ProgramSelector(PathSelector):
     """
-    Виджет выбора исполняемой программы.
+    Выбор исполняемой программы.
     """
-
-    # алиас для читаемости (необязательно)
-    program_changed = PathSelector.path_changed
 
     def __init__(
         self,
@@ -131,10 +128,8 @@ class ProgramSelector(PathSelector):
 
 class WorkDirSelector(PathSelector):
     """
-    Виджет выбора рабочей папки.
+    Выбор рабочей папки.
     """
-
-    dir_changed = PathSelector.path_changed  # опциональный алиас для читабельности
 
     def __init__(
         self,

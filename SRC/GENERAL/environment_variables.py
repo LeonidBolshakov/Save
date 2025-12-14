@@ -40,7 +40,7 @@ class EnvironmentVariables:
         if not dotenv.load_dotenv(dotenv_path=self.dotenv_path, encoding="utf-8"):
             logger.info(T.env_not_found.format(env=self.dotenv_path, dir=Path.cwd()))
 
-    def get_var(self, var_name: str, default: str = "") -> str:
+    def get_var(self, var_name: str, default: str | None = None) -> str:
         """
         Получает значение переменной из keyring или окружения.
 
@@ -51,6 +51,8 @@ class EnvironmentVariables:
         val = keyring.get_password(self.app_name, var_name)
         if val is not None:
             return val
+        if default is None:
+            default = ""
         return os.getenv(var_name, default)
 
     def put_keyring_var(self, var_name: str, value: str) -> None:

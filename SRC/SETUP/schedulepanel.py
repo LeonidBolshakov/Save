@@ -23,7 +23,6 @@ from typing import Protocol, Any, Literal, Callable
 from dataclasses import dataclass
 
 from loguru import logger
-import os
 import pywintypes
 from pathlib import Path
 
@@ -64,9 +63,13 @@ _HRESULT_MAP = {
     0x8004131E: "Не указано время начала задачи (SCHED_E_MISSING_START_TIME).",
 }
 
-INVALID_CHARS_PATH = r'\/:*?"<>|'
-# Windows запрещает имена устройств (CON, PRN, AUX, NUL...)
-INVALID_NAMES = frozenset(
+HandlerType = Callable[[str], bool]
+
+# Недопустимые символы в именах файлов и директорий Windows
+INVALID_PATH_CHARACTERS = r'\/:*?"<>|'
+# Windows запрещает зарезервированные имена устройств DOS
+# (CON, PRN, AUX, NUL, COM1–COM9, LPT1–LPT9)
+RESERVED_DOS_DEVICE_NAMES = frozenset(
     {
         ".",
         "..",
@@ -88,7 +91,7 @@ class TaskConfig:
     Атрибуты:
         task_path           : Полный путь к задаче в планировщике (\\Folder\\TaskName).
         mask_days           : 7-битная маска дней недели (bit0=Пн .. bit6=Вс).
-        start_time          : Время запуска в формате "HH:MM".
+        start_time          : Время запуска исполняемого файла в формате "HH:MM".
         executable_path     : Путь к исполняемому файлу.
         work_directory_path : Путь к рабочей директории
         description         : Описание задачи (отображается в планировщике).
@@ -195,19 +198,16 @@ class ControlType(Enum):
     TASK_NAME       = auto()
     TASK_FOLDER     = auto()
     MASK_DAYS       = auto()
-# fmt: on
 
 
 @dataclass
 class DescrTaskFields:
-    widget: QWidget | QLayout
-    name_env: str
-    control_type: ControlType
-    error_text: str
-    value_default: str | None = None
-
-
-HandlerType = Callable[[str], bool]
+    widget          : QWidget | QLayout
+    name_env        : str
+    control_type    : ControlType
+    error_text      : str
+    value_default   : str | None = None
+# fmt: on
 
 
 class SchedulePanel:
@@ -221,8 +221,7 @@ class SchedulePanel:
 
     Основные сценарии:
       * при инициализации — попытка прочитать существующую задачу, при неудаче ввести параметры задачи по умолчанию;
-      * пользователь меняет описание, время и дни недели и создаёт/обновляет задачу;
-      * пользователь удаляет задачу;
+      * пользователь может менять описание, время и дни недели и создавать/обновлять или удалять задачу;
       * при ошибках COM пользователь получает понятное сообщение.
     """
 
@@ -243,6 +242,7 @@ class SchedulePanel:
         self._init_descr_task_fields()
         init_button_styles(self)
 
+        # Кнопка создания задачи может менять своё назначение.
         # Сохраняем исходное состояние кнопки создания задачи
         self._default_button_text = self.btn_create_task.text()
         self._default_button_slot = self.create_or_replace_task
@@ -296,11 +296,22 @@ class SchedulePanel:
         self.task_path = task_path
 
         if not self._try_load_task_and_update_ui():
-            # Если задача не считана или недостоверная задача, предлагаем создать или удалить задачу
+            # Если задача не считана или недостоверная задача, разрешаем создать или удалить задачу
             self.set_button_create_active(self.btn_create_task, True)
 
     def _create_task_path(self) -> str | None:
-        # Папка и имя задачи — сначала выводим в UI из переменных окружения
+        """
+        Формирует полный путь к задаче планировщика.
+
+        Применяет значения папки и имени задачи к соответствующим UI-контролам,
+        получает их текущие значения и, при наличии обоих, собирает путь к задаче.
+
+        Если папка или имя задачи отсутствуют, устанавливает состояние ошибки
+        в UI и отключает кнопку создания задачи.
+
+        Returns:
+            str | None: Полный путь к задаче или ``None``, если данные некорректны.
+        """
         task_folder = self._apply_value_to_widget("task_folder")
         task_name = self._apply_value_to_widget("task_name")
 
@@ -309,9 +320,23 @@ class SchedulePanel:
             return None
 
         # Собираем путь к задаче
-        return os.path.join(task_folder, task_name)
+        return str(Path(task_folder) / task_name)
 
     def _try_load_task_and_update_ui(self) -> bool:
+        """
+        Пытается загрузить задачу планировщика и обновить UI на основе её данных.
+
+        Читает описание еженедельной задачи по пути self.task_path и сохраняет
+        результат в self.task_info. В случае ошибки определения задачи
+        обрабатывает некорректную конфигурацию, а если задача не найдена —
+        переводит UI в соответствующее состояние.
+
+        При успешной загрузке обновляет элементы интерфейса данными задачи.
+
+        Returns:
+            True  — если задача успешно загружена и UI обновлён,
+            False — если произошла ошибка загрузки.
+        """
         try:
             self.task_info = task_scheduler.read_weekly_task(self.task_path)
         except ValueError:
@@ -329,12 +354,19 @@ class SchedulePanel:
         self._update_ui_from_defaults()
 
     def _handle_invalid_task_definition(self) -> None:
+        """Обрабатывает некорректное определение задачи и переводит UI в режим удаления."""
         msg = C.TEXT_TASK_MANUAL_EDIT.format(task=self.task_path)
         logger.error(msg)
         self._set_error_ui_state(msg, btn_create_task_enable=True)
         self._set_task_button_mode("delete")
 
     def _set_error_ui_state(self, msg: str, btn_create_task_enable: bool) -> None:
+        """
+        Переводит интерфейс в состояние ошибки.
+
+        Блокирует элементы левой панели, управляет доступностью кнопки
+        создания задачи и выводит сообщение об ошибке.
+        """
         logger.error(msg)
         self._lock_left_panel_widgets(enable=False)
         self.btn_create_task.setEnabled(btn_create_task_enable)
@@ -416,6 +448,7 @@ class SchedulePanel:
         self._update_task_creation_ui_state()
 
     def _update_task_creation_ui_state(self):
+        """Обновляет состояние UI в зависимости от готовности задачи к созданию."""
         if self.parameter_error:
             self.put_to_info(C.TASK_NOT_READY_TO_CREATED)
             self._lock_left_panel_widgets(enable=False)
@@ -454,7 +487,7 @@ class SchedulePanel:
         )
 
     def _apply_if_valid(
-        self, field_descr: DescrTaskFields, final_value: str, value: str
+        self, field_descr: DescrTaskFields, final_value: str, value: str | None
     ) -> bool:
         if self.is_valid_value(
             final_value, field_descr.control_type, field_descr.error_text
@@ -464,7 +497,7 @@ class SchedulePanel:
             )
             if not return_text:
                 return True
-            logger.error(f"Ошибка при установке значения для {value}\n{return_text}")
+            logger.error(f"Ошибка при установке значения {value!r}\n{return_text}")
         return False
 
     def on_select_all_day(self) -> None:
@@ -555,7 +588,7 @@ class SchedulePanel:
         Если mask is None — просто снимаем все галочки.
         """
         if mask is None:
-            self.all_day(False)
+            self.all_day(checked=False)
             return
 
         for i in range(self.hbox_week_days.count()):
@@ -590,6 +623,9 @@ class SchedulePanel:
         return True
 
     def _prepare_ui_for_task_creation(self):
+        """
+        Приводит UI в состояние создания новой задачи после удаления существующей.
+        """
         # Разблокируем левую панель,
         # возвращаем режим "создания", сбрасываем UI в значения по умолчанию
         self._lock_left_panel_widgets(enable=True)
@@ -634,7 +670,7 @@ class SchedulePanel:
         else:
             msg = f"Функция _set_task_button_mode. Неверно задан параметр mode - {mode}"
             logger.error(msg)
-            raise ValueError(msg)
+            raise KeyError(msg)
 
     def put_to_info(self, message: str, color: str = "red") -> None:
         """
@@ -806,7 +842,7 @@ class SchedulePanel:
             return False
 
         # 3. Проверка недопустимых символов
-        if any(ch in INVALID_CHARS_PATH for ch in name):
+        if any(ch in INVALID_PATH_CHARACTERS for ch in name):
             return False
 
         # 4. Проверка длины
@@ -865,11 +901,11 @@ class SchedulePanel:
         for part in p.parts:
             if len(part) > 250:
                 return False
-            if any(ch in INVALID_CHARS_PATH for ch in part):
+            if any(ch in INVALID_PATH_CHARACTERS for ch in part):
                 return False
             if any(ord(ch) < 32 for ch in part):
                 return False
-            if Path(part).stem in INVALID_NAMES:
+            if Path(part).stem in RESERVED_DOS_DEVICE_NAMES:
                 return False
         return True
 
@@ -926,7 +962,18 @@ class SchedulePanel:
         }
         # fmt: on
 
-    def _init_descr_task_fields(self):
+    def _init_descr_task_fields(self) -> None:
+        """
+        Инициализирует описание полей задачи планировщика.
+
+        Создаёт и заполняет словарь ``self.descr_task_fields``, в котором каждому
+        логическому полю задачи сопоставляется объект ``DescrTaskFields``.
+        Каждый объект содержит ссылку на атрибут класса, ключ в env,
+        тип контроля, сообщение об ошибке и значение по умолчанию (если задано).
+
+        Словарь используется для централизованной валидации, инициализации
+        значений и обработки пользовательского ввода.
+        """
         self.descr_task_fields: dict[str, DescrTaskFields] = {
             "task_folder": DescrTaskFields(
                 self.lbl_task_folder,

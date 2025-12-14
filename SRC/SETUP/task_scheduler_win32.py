@@ -32,6 +32,7 @@ MASK_ALL_DAYS = 0b1111111
 
 # Task Scheduler constants
 TASK_TRIGGER_WEEKLY = 3
+TASK_ACTION_EXEC = 0
 TASK_CREATE_OR_UPDATE = 6
 TASK_LOGON_INTERACTIVE_TOKEN = 3
 
@@ -60,8 +61,6 @@ def split_task_path(task_path: str) -> tuple[str, str]:
         "\\Folder\\Task"  -> ("\\Folder", "Task")
     """
     path = task_path.replace("/", "\\").strip()
-    if not path.startswith("\\"):
-        path = "\\" + path
 
     parts = [p for p in path.split("\\") if p]
     if not parts:
@@ -72,11 +71,24 @@ def split_task_path(task_path: str) -> tuple[str, str]:
     return folder_path, task_name
 
 
-def ensure_folder(root, folder_path: str):
+def ensure_folder(root: Any, folder_path: str) -> Any:
     """
     Возвращает папку планировщика, создавая недостающие уровни.
+
+    Проходит по сегментам пути ``folder_path`` относительно папки ``root``.
+    Если очередная подпапка не существует, она создаётся. В результате
+    возвращается объект папки, соответствующий конечному пути.
+
+    Args:
+        root: Объект корневой папки планировщика задач (ITaskFolder),
+            относительно которого создаётся/ищется путь
+        folder_path (str): Абсолютный путь папки в планировщике
+            (например: ``"\\Folder\\SubFolder"``).
+
+    Returns:
+        Объект папки планировщика (ITaskFolder), соответствующий ``folder_path``.
     """
-    if folder_path == "\\":
+    if not folder_path:
         return root
 
     current = root
@@ -85,7 +97,7 @@ def ensure_folder(root, folder_path: str):
             continue
         try:
             current = current.GetFolder(part)
-        except Exception:
+        except pywintypes.com_error:
             current = current.CreateFolder(part, "")
     return current
 
@@ -95,6 +107,9 @@ def set_weekly_trigger(task_def, days_mask: int, start_time: str) -> None:
     Добавляет WEEKLY-триггер на указанные дни в заданное время.
     start_time: "HH:MM"
     """
+    while task_def.Triggers.Count > 0:
+        task_def.Triggers.Remove(1)
+
     trigger = task_def.Triggers.Create(TASK_TRIGGER_WEEKLY)
 
     today = datetime.now().date().strftime("%Y-%m-%d")  # ISO формат
@@ -104,15 +119,24 @@ def set_weekly_trigger(task_def, days_mask: int, start_time: str) -> None:
     trigger.Enabled = True
 
 
-def set_exec_action(task_def, executable_path: str, work_directory_path: str) -> None:
+def set_exec_action(
+    task_def: Any,
+    executable_path: str,
+    work_directory_path: str,
+) -> None:
     """
-    Добавляет EXEC-действие: запуск executable_path без аргументов и
-    установку рабочей директории.
+    Добавляет EXEC-действие в определение задачи планировщика.
+
+    Создаёт действие типа TASK_ACTION_EXEC и настраивает запуск
+    указанного исполняемого файла без аргументов. При необходимости
+    задаёт рабочую директорию процесса.
 
     Args:
-        task_def: Объект TaskDefinition.
-        executable_path: Путь к исполняемому файлу.
-        work_directory_path: Рабочая директория для процесса (может быть пустой).
+        task_def: COM-объект определения задачи планировщика
+            (ITaskDefinition).
+        executable_path: Абсолютный путь к исполняемому файлу.
+        work_directory_path: Рабочая директория процесса
+            (может быть пустой строкой).
     """
     action = task_def.Actions.Create(0)  # TASK_ACTION_EXEC = 0
 
@@ -141,14 +165,12 @@ def delete_task_scheduler(task_path: str) -> ComError | None:
         pywintypes.com_error — при ошибке COM.
     """
     try:
-        scheduler = win32com.client.Dispatch("Schedule.Service")
-        scheduler.Connect()
+        scheduler = _connect_scheduler()
 
         root = scheduler.GetFolder("\\")
         folder_path, task_name = split_task_path(task_path)
         folder = root.GetFolder(folder_path)
 
-        # DeleteTask(Name, flags). flags = 0
         folder.DeleteTask(task_name, 0)
 
         return None
@@ -175,7 +197,8 @@ def read_weekly_task(task_path: str) -> dict[str, Any]:
       — у задачи должно быть ровно одно действие;
       — это действие должно быть EXEC.
 
-    В противном случае выбрасывается ValueError.
+    В противном случае выбрасывается ValueError
+    При отсутствии задачи выбрасывает pywintypes.com_error.
     """
     task = _get_task_from_scheduler(task_path)
     definition = task.Definition
@@ -185,14 +208,12 @@ def read_weekly_task(task_path: str) -> dict[str, Any]:
 
     # WEEKLY-триггер
     mask_days = scheduler_days_to_mask(trigger.DaysOfWeek)
-    start_time: str | None = None
 
     sb = trigger.StartBoundary  # ожидаем формат "YYYY-MM-DDTHH:MM:SS..."
-    if isinstance(sb, str) and len(sb) >= 16:
-        start_time = sb[11:16]  # "HH:MM"
+    start_time = sb[11:16] if isinstance(sb, str) and len(sb) >= 16 else None
 
-    executable = getattr(action, "Path", None)
-    work_directory = getattr(action, "WorkDirectory", None)
+    executable = action["Path"]
+    work_directory = action["WorkDirectory"]
     return {
         "task_path": task_path,
         "mask_days": mask_days,
@@ -204,8 +225,21 @@ def read_weekly_task(task_path: str) -> dict[str, Any]:
 
 
 def _get_task_from_scheduler(task_path: str) -> Any:
-    scheduler = win32com.client.Dispatch("Schedule.Service")
-    scheduler.Connect()
+    """
+    Возвращает задачу планировщика Windows по полному пути.
+
+    Подключается к службе планировщика, извлекает задачу из указанной папки
+    и возвращает её COM-объект.
+
+    Args:
+        task_path (str): Полный путь к задаче.
+
+    Raises:
+        pywintypes.com_error: Если папка или задача не найдены либо произошла
+            ошибка COM.
+        ValueError: Если путь задачи имеет некорректный формат.
+    """
+    scheduler = _connect_scheduler()
     root = scheduler.GetFolder("\\")
 
     folder_path, task_name = split_task_path(task_path)
@@ -213,20 +247,37 @@ def _get_task_from_scheduler(task_path: str) -> Any:
     return folder.GetTask(task_name)
 
 
-def _get_single_weekly_trigger(definition, task_path: str):
-    """Возвращает единственный WEEKLY-триггер или бросает ValueError."""
+def _get_single_weekly_trigger(definition: Any, task_path: str) -> Any:
+    """
+    Возвращает единственный WEEKLY-триггер задачи.
+
+    Проверяет, что определение задачи содержит ровно один триггер и
+    что его тип — WEEKLY. В противном случае выбрасывает ValueError.
+
+    Args:
+        definition: COM-объект определения задачи планировщика
+            (ITaskDefinition).
+        task_path (str): Путь задачи, используется в сообщениях об ошибках.
+
+    Returns:
+        COM-объект триггера планировщика (IWeeklyTrigger).
+
+    Raises:
+        ValueError: Если количество триггеров не равно одному
+            или тип триггера отличается от WEEKLY.
+    """
     triggers = list(definition.Triggers)
     if len(triggers) != 1:
         raise ValueError(
             f"Задача {task_path!r} должна содержать ровно один триггер, "
-            f"найдено: {len(triggers)}."
+            f"найдено: {len(triggers)} тригера."
         )
 
     trigger = triggers[0]
     if trigger.Type != TASK_TRIGGER_WEEKLY:
         raise ValueError(
             f"Задача {task_path!r} должна иметь WEEKLY-триггер, "
-            f"но найден Type={trigger.Type}."
+            f"но найден Type={trigger.Type}-тригер."
         )
 
     return trigger
@@ -240,16 +291,15 @@ def _get_single_exec_action(
     if len(actions) != 1:
         raise ValueError(
             f"Задача {task_path!r} должна содержать ровно одно действие, "
-            f"найдено: {len(actions)}."
+            f"найдено: {len(actions)} действия."
         )
 
     action = actions[0]
 
-    # TASK_ACTION_EXEC == 0
-    if action.Type != 0:
+    if action.Type != TASK_ACTION_EXEC:
         raise ValueError(
             f"Ожидалось EXEC-действие (TASK_ACTION_EXEC), "
-            f"но найдено Type={action.Type}."
+            f"но найдено Type={action.Type}-действие."
         )
 
     return action
@@ -303,7 +353,7 @@ def create_replace_task_scheduler(
         pywintypes.com_error — при COM-ошибке.
     """
     try:
-        scheduler = _create_scheduler()
+        scheduler = _connect_scheduler()
         target_folder, task_name = _get_target_folder_and_name(scheduler, task_path)
         task_def = _build_task_definition(
             scheduler=scheduler,
@@ -323,7 +373,7 @@ def create_replace_task_scheduler(
 # ----------------- helpers -----------------
 
 
-def _create_scheduler() -> Any:
+def _connect_scheduler() -> Any:
     """Создаёт и подключает COM-объект планировщика."""
     scheduler = win32com.client.Dispatch("Schedule.Service")
     scheduler.Connect()
