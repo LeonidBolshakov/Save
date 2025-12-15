@@ -51,7 +51,7 @@ class PathSelector(QObject):
 
         self.path_edit = path_edit
         self.choose_btn = choose_btn
-        self._full_path: str = ""
+        self._full_path: str | None = None
 
         self.choose_btn.clicked.connect(self.on_choose_clicked)
 
@@ -64,7 +64,7 @@ class PathSelector(QObject):
 
     def set_path(self, path: str) -> None:
         """
-        Установить новый путь извне.
+        Установить новый путь, можно извне.
 
         Если путь не изменился, метод ничего не делает.
 
@@ -85,6 +85,7 @@ class PathSelector(QObject):
         self.path_edit.setToolTip(self._full_path)
         # noinspection PyUnresolvedReferences
         self.path_changed.emit(self._full_path)
+        return
 
     def get_path(self) -> str:
         """
@@ -119,7 +120,7 @@ class PathSelector(QObject):
         Обработчик нажатия кнопки выбора пути.
         """
         new_path = self.choose_path()
-        if new_path:
+        if new_path is not None:
             self.set_path(new_path)
 
     # ------------------------------------------------------------------
@@ -188,7 +189,7 @@ class ProgramSelector(PathSelector):
             "",
             "Исполняемые файлы (*.exe *.com *.bat);;Все файлы (*)",
         )
-        return file_name or ""
+        return file_name or None
 
 
 class WorkDirSelector(PathSelector):
@@ -210,4 +211,4 @@ class WorkDirSelector(PathSelector):
             "Выберите рабочую папку",
             "",
         )
-        return dir_name or ""
+        return dir_name or None
