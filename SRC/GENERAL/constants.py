@@ -4,8 +4,6 @@ from SRC.YADISK.yandexconst import YandexConstants as YC
 
 
 class Constants(frozenset):
-    SETTINGS_DIRECTORY = r"Bolshkov\save\_internal"
-
     ARCHIVING_END_TRIGGER = "*Stop"
     CONFIG_FILE_WITH_PROGRAM_NAME_DEF = r"C:\TEMP\config_file_path.txt"
     CONSOLE_LOG_LEVEL_DEF = "WARNING"
@@ -121,6 +119,7 @@ class Constants(frozenset):
     ROTATING_BACKUP_COUNT = 3
     ROTATING_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
     SEND_MAIL_MAX_RETRY_ATTEMPTS = 3  # Максимальное количество попыток отправки email
+    SETTINGS_DIRECTORY = r"Bolshkov\save\_internal"
     SEVEN_Z_COMPRESSION_LEVEL_DEF = 5
     SEVEN_Z_STANDARD_PATHS = [
         "C:\\Program Files\\7-Zip\\7z.exe",
@@ -161,6 +160,7 @@ class Constants(frozenset):
     )
     TEXT_EMPTY = ""
     TEXT_ERROR = "Текст содержит символ '\x00'. Символ удалён из текста"
+    TEXT_IS_DIRTY = "Данные были изменены, но не сохранены в задаче"
     TEXT_NO_DAY = "Выберите хотя бы один день недели."
     TEXT_NOT_TASK = (
         "Папка или задача планировщика не заданы. Проверьте настройки по умолчанию"
@@ -169,6 +169,7 @@ class Constants(frozenset):
         "Задача планировщика {task} корректировалась вручную"
         "\nОтмените ручные правки или удалите задачу"
     )
+    TEXT_REJECT_DATA = "Данные приведены в первоначальное состяние"
     VARIABLES_DOTENV_NAME_DEF = "env"
     VARS_KEYRING = [  # секретные переменные окружения
         f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента

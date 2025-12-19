@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QSpinBox,
 )
 from PyQt6.QtCore import Qt, QTime, QSignalBlocker
+from PyQt6.QtGui import QTextCursor
 
 NULL_CHAR = "\x00"
 HTML_TEG = "[html]"
@@ -158,7 +159,7 @@ def make_html(text: str, color: str) -> str:
         f'<span style="color:{css_color}; font-weight:{font_weight};">'
         f"{safe_text}"
         f"</span>"
-        f"</div>"
+        f"</div><br>"
     )
 
 
@@ -194,7 +195,8 @@ def handle_text_edit(widget: QTextEdit, value: str) -> None:
 
     if lower.startswith(HTML_TEG):
         value = value[len(HTML_TEG) :].lstrip()
-        widget.setHtml(value)
+        widget.insertHtml(value)
+        widget.moveCursor(QTextCursor.MoveOperation.End)
         return
 
     # Если не содержит тегов

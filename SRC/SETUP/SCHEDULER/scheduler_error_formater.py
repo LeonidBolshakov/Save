@@ -1,5 +1,5 @@
 import pywintypes
-
+from typing import Callable
 import SRC.SETUP.SCHEDULER.scheduler_win32 as task_scheduler
 
 _HRESULT_MAP = {
@@ -19,8 +19,15 @@ class ErrorFormater:
     task_scheduler_win32 для корректного извлечения кода ошибки.
     """
 
-    def __init__(self, hresult_map: dict[int, str] | None = None) -> None:
+    def __init__(
+        self,
+        hresult_map: dict[int, str] | None = None,
+        extract_result: Callable[
+            [pywintypes.com_error] : int
+        ] = task_scheduler.extract_hresult,
+    ) -> None:
         self._map = hresult_map if hresult_map is not None else _HRESULT_MAP
+        self._extract_result = extract_result
 
     def format_com_error(self, error: pywintypes.com_error) -> str:  # type: ignore[attr-defined]
         """
@@ -37,7 +44,7 @@ class ErrorFormater:
         Returns:
             Строка с описанием ошибки для вывода пользователю.
         """
-        hr = task_scheduler.extract_hresult(error)
+        hr = self._extract_result(error)
 
         return self._map.get(
             hr, f"Ошибка COM (HRESULT=0x{hr:08X}). См. лог для деталей."

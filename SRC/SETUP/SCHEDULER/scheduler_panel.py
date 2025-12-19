@@ -21,7 +21,6 @@
 from typing import Literal
 
 from loguru import logger
-import pywintypes
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -33,7 +32,6 @@ from PyQt6.QtWidgets import (
 from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 import SRC.SETUP.SCHEDULER.scheduler_utils as utils
-import SRC.SETUP.SCHEDULER.scheduler_win32 as task_scheduler
 import SRC.SETUP.SCHEDULER.scheduler_dialogs as dialogs
 from SRC.SETUP.SCHEDULER.scheduler_button_style import init_button_styles
 from SRC.SETUP.SCHEDULER.scheduler_path_selector import ProgramSelector, WorkDirSelector
@@ -127,7 +125,7 @@ class SchedulePanel:
         Алгоритм:
           1. Получаем папку и имя задачи из переменных окружения (C.TASK_FOLDER, C.TASK_NAME).
           2. Если они не заданы — блокируем левую панель и выводим сообщение.
-          3. Пытаемся прочитать WEEKLY-задачу через task_scheduler.read_weekly_task().
+          3. Пытаемся прочитать WEEKLY-задачу.
           4. При успехе — отражаем параметры задачи в UI.
         """
 
@@ -189,15 +187,15 @@ class SchedulePanel:
             True  — если задача успешно загружена и UI обновлён,
             False — если произошла ошибка загрузки.
         """
-        try:
-            self.task_info = task_scheduler.read_weekly_task(self.task_path)
-        except ValueError:
+        task_info, status = self.scheduler.read_weekly_task(self.task_path)
+        if status == "invalid_definition":
             self._handle_invalid_task_definition()
             return False
-        except pywintypes.com_error:
+        if status == "not_found":
             self._handle_task_not_found()
             return False
 
+        self.task_info = task_info
         self._update_ui_from_task()
         return True
 
@@ -262,7 +260,7 @@ class SchedulePanel:
 
         self._set_week_mask(self.task_info.get("mask_days"))
         self.update_buttons_state(enabled=False)
-        self._ui_dirty = False
+        self.set_ui_dirty(False, C.TEXT_REJECT_DATA, "green")
 
     def _update_ui_from_defaults(self) -> None:
         """
@@ -274,7 +272,7 @@ class SchedulePanel:
         """
 
         self._ui_default = True
-        self._ui_dirty = False
+        self.set_ui_dirty(False, C.TEXT_REJECT_DATA, "green")
 
         # Установка значений виджетов
         self.parameter_error = False
@@ -295,12 +293,12 @@ class SchedulePanel:
 
     def on_select_all_day(self) -> None:
         """Отмечает все дни недели (маска 1111111) и помечает UI как «изменённый»."""
-        self._ui_dirty = True
+        self.set_ui_dirty(True)
         self.all_day(checked=True)
 
     def on_clean_all_day(self) -> None:
         """Снимает выделение со всех дней недели и помечает UI как «изменённый»."""
-        self._ui_dirty = True
+        self.set_ui_dirty(True)
         self.all_day(checked=False)
 
     def on_create_or_replace_task(self) -> None:
@@ -426,7 +424,7 @@ class SchedulePanel:
         self.btn_create_task.setEnabled(True)
         self._set_task_button_mode("create")
         self._update_ui_from_defaults()
-        self._ui_dirty = False
+        self.set_ui_dirty(False)
 
     def _lock_left_panel_widgets(self, enable: bool) -> None:
         """
@@ -498,7 +496,7 @@ class SchedulePanel:
         Вызывается при любых изменениях в текстовых полях, времени или чекбоксах.
         """
 
-        self._ui_dirty = True
+        self.set_ui_dirty(True)
         self.update_buttons_state(enabled=True)
 
     def update_buttons_state(self, *, enabled: bool) -> None:
@@ -539,7 +537,7 @@ class SchedulePanel:
             user_message_prefix: текст, который выводится перед сообщением
                                  (например: C.TASK_CREATED_ERROR).
         """
-        hr, msg, details = task_scheduler.extract_com_error_info(error)
+        hr, msg, details = self.scheduler.extract_com_error_info(error)
 
         logger.exception(
             "%s HRESULT=0x%08X, message=%s, details=%s",
@@ -558,8 +556,21 @@ class SchedulePanel:
         Сбрасывает флаги изменений, выводит сообщение, включает/отключает нужные кнопки.
         """
         self.set_button_create_active(self.btn_create_task, active=False)
-        self._ui_dirty = False
+        self.set_ui_dirty(False)
         self.update_buttons_state(enabled=False)
         self.put_to_info(C.TASK_CREATED_SUCSESSFULL, color="green")
         logger.info(C.TASK_CREATED_SUCSESSFULL)
         self.btn_delete_task.setEnabled(True)
+
+    def set_ui_dirty(
+        self, new_ui_diry: bool, text: str | None = None, color: str | None = None
+    ) -> None:
+        if new_ui_diry == self._ui_dirty:
+            return
+
+        message_text = text if text else C.TEXT_IS_DIRTY
+        color_text = color if color else "red"
+
+        self.put_to_info(message_text, color=color_text)
+
+        self._ui_dirty = new_ui_diry
