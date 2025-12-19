@@ -26,7 +26,7 @@ from PyQt6.QtGui import QFileSystemModel
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeView, QCheckBox
 
 from SRC.SETUP.model import CheckableFSModel
-from SRC.SETUP.schedulepanel import SchedulePanel
+from SRC.SETUP.SCHEDULER.scheduler_panel import SchedulePanel
 from SRC.SETUP.legendwidwets import Legend
 from SRC.GENERAL import paths_win
 import SRC.SETUP.utils as utils

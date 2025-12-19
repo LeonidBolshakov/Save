@@ -276,9 +276,9 @@ class CheckableFSModel(QIdentityProxyModel):
         else:
             # Разрешаем выбор и работу с флажками
             fl |= (
-                    Qt.ItemFlag.ItemIsEnabled
-                    | Qt.ItemFlag.ItemIsUserCheckable
-                    | Qt.ItemFlag.ItemIsSelectable
+                Qt.ItemFlag.ItemIsEnabled
+                | Qt.ItemFlag.ItemIsUserCheckable
+                | Qt.ItemFlag.ItemIsSelectable
             )
         return fl
 
@@ -321,7 +321,7 @@ class CheckableFSModel(QIdentityProxyModel):
     # ----- записывает данные по индексу и роли
 
     def setData(
-            self, index: QModelIndex, value, role: int = Qt.ItemDataRole.EditRole
+        self, index: QModelIndex, value, role: int = Qt.ItemDataRole.EditRole
     ) -> bool:
         """Обрабатывает изменение состояния флажка в первой колонке.
 
@@ -334,9 +334,9 @@ class CheckableFSModel(QIdentityProxyModel):
             True, если состояние изменено и сигналы разосланы.
         """
         if (
-                role != Qt.ItemDataRole.CheckStateRole
-                or index.column() != 0
-                or not index.isValid()
+            role != Qt.ItemDataRole.CheckStateRole
+            or index.column() != 0
+            or not index.isValid()
         ):
             return super().setData(index, value, role)
 

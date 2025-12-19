@@ -170,7 +170,6 @@ def delete_task_scheduler(task_path: str) -> ComError | None:
         root = scheduler.GetFolder("\\")
         folder_path, task_name = split_task_path(task_path)
         folder = root.GetFolder(folder_path)
-
         folder.DeleteTask(task_name, 0)
 
         return None
@@ -212,14 +211,14 @@ def read_weekly_task(task_path: str) -> dict[str, Any]:
     sb = trigger.StartBoundary  # ожидаем формат "YYYY-MM-DDTHH:MM:SS..."
     start_time = sb[11:16] if isinstance(sb, str) and len(sb) >= 16 else None
 
-    executable = action["Path"]
-    work_directory = action["WorkDirectory"]
+    executable = action.Path
+    work_directory = action.WorkingDirectory
     return {
         "task_path": task_path,
         "mask_days": mask_days,
         "start_time": start_time,
         "executable": executable,
-        "work_directory": work_directory,
+        "work_directory": work_directory if work_directory else None,
         "description": definition.RegistrationInfo.Description,
     }
 
@@ -256,7 +255,7 @@ def _get_single_weekly_trigger(definition: Any, task_path: str) -> Any:
 
     Args:
         definition: COM-объект определения задачи планировщика
-            (ITaskDefinition).
+            (ITaskDefinition)
         task_path (str): Путь задачи, используется в сообщениях об ошибках.
 
     Returns:
