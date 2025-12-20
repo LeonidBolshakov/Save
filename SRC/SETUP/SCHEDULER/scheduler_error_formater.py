@@ -1,3 +1,5 @@
+"""Форматирование COM-ошибок Windows Task Scheduler."""
+
 import pywintypes
 from typing import Callable
 import SRC.SETUP.SCHEDULER.scheduler_win32 as task_scheduler
@@ -23,7 +25,7 @@ class ErrorFormater:
         self,
         hresult_map: dict[int, str] | None = None,
         extract_result: Callable[
-            [pywintypes.com_error] : int
+            [pywintypes.com_error], int
         ] = task_scheduler.extract_hresult,
     ) -> None:
         self._map = hresult_map if hresult_map is not None else _HRESULT_MAP

@@ -29,7 +29,6 @@ from PyQt6.QtWidgets import (
     QCheckBox,
 )
 
-from SRC.GENERAL.environment_variables import EnvironmentVariables
 from SRC.GENERAL.constants import Constants as C
 import SRC.SETUP.SCHEDULER.scheduler_utils as utils
 import SRC.SETUP.SCHEDULER.scheduler_dialogs as dialogs
@@ -77,14 +76,12 @@ class SchedulePanel:
         self._ui_default: bool = True  # UI сформировано из значений «по умолчанию»
         self._ui_dirty: bool = False  # пользователем были внесены изменения
         self._ui = ui
-        self.parameter_error = False
 
         self._bind_ui(ui)
         self.fields = TaskFieldsController(ui, dialogs.error_message)
         init_button_styles(self)
         self.error_formatter = ErrorFormater()
         self.scheduler = TaskSchedulerService(self.put_to_info)
-        self.env = EnvironmentVariables()
         self._init_ui_from_task_or_default()
         self._init_path_selector()
 
@@ -112,6 +109,7 @@ class SchedulePanel:
         self.btn_reject_changes = ui.btn_reject_changes
         self.btn_path_programm = ui.toolButton_path_programm
         self.btn_work_directory = ui.toolButton_work_directory
+        self.btn_work_directory_d = ui.toolButton_work_directory_d
         self.text_info = ui.textEdit_Error
         self.group_box_left = ui.groupBoxLeft
 
@@ -188,16 +186,16 @@ class SchedulePanel:
             False — если произошла ошибка загрузки.
         """
         task_info, status = self.scheduler.read_weekly_task(self.task_path)
+        if task_info is not None:
+            self.task_info = task_info
+            self._update_ui_from_task()
+            return True
+
         if status == "invalid_definition":
             self._handle_invalid_task_definition()
-            return False
         if status == "not_found":
             self._handle_task_not_found()
-            return False
-
-        self.task_info = task_info
-        self._update_ui_from_task()
-        return True
+        return False
 
     def _handle_task_not_found(self) -> None:
         logger.warning(f"Задача {self.task_path} не найдена или недоступна")
@@ -229,10 +227,12 @@ class SchedulePanel:
         self.btn_create_task.clicked.connect(self._default_button_create_task_slot)
         self.btn_reject_changes.clicked.connect(self.on_reject_all_changes)
         self.btn_delete_task.clicked.connect(self.on_delete_task_clicked)
+        self.btn_work_directory_d.clicked.connect(self.on_delete_work_directiry)
 
         # Изменения текста / времени / чекбоксов → активировать кнопки «создать»/«отменить»
         self.btn_path_programm.clicked.connect(self.update_buttons_state_enable)
         self.btn_work_directory.clicked.connect(self.update_buttons_state_enable)
+        self.btn_work_directory_d.clicked.connect(self.update_buttons_state_enable)
         self.txt_task_description.textChanged.connect(self.update_buttons_state_enable)
         self.start_time_task.timeChanged.connect(self.update_buttons_state_enable)
         utils.connect_checkboxes_in_layout(
@@ -275,21 +275,24 @@ class SchedulePanel:
         self.set_ui_dirty(False, C.TEXT_REJECT_DATA, "green")
 
         # Установка значений виджетов
-        self.parameter_error = False
-        self.fields.apply_value_to_widget("description")
-        self.fields.apply_value_to_widget("program_path")
-        self.fields.apply_value_to_widget("work_directory")
-        self.fields.apply_value_to_widget("mask_of_days")
-        self.fields.apply_value_to_widget("start_time")
-        self._update_task_creation_ui_state()
+        result_operarions = (
+            self.fields.apply_value_to_widget("description") is not None,
+            self.fields.apply_value_to_widget("program_path") is not None,
+            self.fields.apply_value_to_widget("work_directory") is not None,
+            self.fields.apply_value_to_widget("mask_of_days") is not None,
+            self.fields.apply_value_to_widget("start_time") is not None,
+        )
 
-    def _update_task_creation_ui_state(self):
+        self.set_task_creation_status_ui(all(result_operarions))
+
+    def set_task_creation_status_ui(self, result_operarions: bool) -> None:
         """Обновляет состояние UI в зависимости от готовности задачи к созданию."""
-        if self.parameter_error:
+
+        if result_operarions:
+            self.put_to_info(C.TASK_READY_TO_CREATED)
+        else:
             self.put_to_info(C.TASK_NOT_READY_TO_CREATED)
             self._lock_left_panel_widgets(enable=False)
-        else:
-            self.put_to_info(C.TASK_READY_TO_CREATED)
 
     def on_select_all_day(self) -> None:
         """Отмечает все дни недели (маска 1111111) и помечает UI как «изменённый»."""
@@ -343,6 +346,9 @@ class SchedulePanel:
             self._update_ui_from_defaults()
         else:
             self._update_ui_from_task()
+
+    def on_delete_work_directiry(self):
+        self.txt_work_directory_path.setText("")
 
     def all_day(self, checked: bool) -> None:
         """
@@ -495,7 +501,6 @@ class SchedulePanel:
 
         Вызывается при любых изменениях в текстовых полях, времени или чекбоксах.
         """
-
         self.set_ui_dirty(True)
         self.update_buttons_state(enabled=True)
 

@@ -1,8 +1,8 @@
 from typing import Callable
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox, QWidget
 
 
-def confirm_delete_task(msg_parent: Callable[[], None]) -> bool:
+def confirm_delete_task(msg_parent: Callable[[], QWidget | None]) -> bool:
     """
     Показывает диалог подтверждения удаления задачи.
 
@@ -29,6 +29,7 @@ def confirm_delete_task(msg_parent: Callable[[], None]) -> bool:
 
 
 def error_message(text: str, informative_text: str) -> None:
+    """Показывает диалог критической ошибки."""
     msg = QMessageBox(None)
     msg.setIcon(QMessageBox.Icon.Critical)
     msg.setWindowTitle("Ошибка")

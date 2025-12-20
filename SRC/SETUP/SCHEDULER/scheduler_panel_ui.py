@@ -1,3 +1,11 @@
+"""Типы UI-элементов и описание полей для SchedulePanel.
+
+Содержит:
+- HasSchedulePanelUI: протокол ожидаемого набора виджетов;
+- ControlType: классификация типов полей для валидации;
+- DescrTaskFields: описание одного поля (виджет, env-ключ, тип и тексты ошибок).
+"""
+
 from enum import Enum, auto
 from typing import Protocol, Callable
 from dataclasses import dataclass
@@ -33,6 +41,7 @@ class HasSchedulePanelUI(Protocol):
     toolButton_path_programm        : QToolButton
     lineEdit_path_work_directory    : QLineEdit
     toolButton_work_directory       : QToolButton
+    toolButton_work_directory_d     : QToolButton
     textEdit_task_description       : QPlainTextEdit
     timeEdit_task_start_in          : QTimeEdit
     btn_clean_all_day               : QPushButton

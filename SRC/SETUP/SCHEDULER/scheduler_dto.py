@@ -1,3 +1,5 @@
+"""DTO-объекты для модуля планировщика."""
+
 from dataclasses import dataclass
 
 
