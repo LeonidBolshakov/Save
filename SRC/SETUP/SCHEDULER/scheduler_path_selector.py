@@ -64,20 +64,15 @@ class PathSelector(QObject):
 
     def set_path(self, path: str) -> None:
         """
-        Установить новый путь, можно извне.
-
-        Если путь не изменился, метод ничего не делает.
+        Установить новый путь в поле для отображения пути.
+        Метод можно вызывать извне.
 
         Parameters
         ----------
         path : str
             Полный путь к файлу или каталогу.
         """
-        if path is None:
-            return
-
-        path = str(path)
-        if path == self._full_path:
+        if not path:
             return
 
         self._full_path = path
@@ -87,7 +82,7 @@ class PathSelector(QObject):
         self.path_changed.emit(self._full_path)
         return
 
-    def get_path(self) -> str:
+    def get_path(self) -> str | None:
         """
         Получить текущий полный путь.
 
@@ -189,7 +184,7 @@ class ProgramSelector(PathSelector):
             "",
             "Исполняемые файлы (*.exe *.com *.bat);;Все файлы (*)",
         )
-        return file_name or None
+        return file_name or ""
 
 
 class WorkDirSelector(PathSelector):
@@ -211,4 +206,4 @@ class WorkDirSelector(PathSelector):
             "Выберите рабочую папку",
             "",
         )
-        return dir_name or None
+        return dir_name or ""

@@ -102,10 +102,18 @@ def ensure_folder(root: Any, folder_path: str) -> Any:
     return current
 
 
-def set_weekly_trigger(task_def, days_mask: int, start_time: str) -> None:
+def set_weekly_trigger(
+    task_def: win32com.client.CDispatch, days_mask: int, start_time: str
+) -> None:
     """
-    Добавляет WEEKLY-триггер на указанные дни в заданное время.
-    start_time: "HH:MM"
+    Добавляет (и делает единственным) WEEKLY-триггер на указанные дни в заданное время.
+
+    Перед созданием триггера удаляет все существующие триггеры из task_def.
+
+    Args:
+        task_def: win32com.client.CDispatch.
+        days_mask: Внутренняя 7-битная маска дней (bit0=MON … bit6=SUN).
+        start_time: Время запуска в формате "HH:MM" (локальное время).
     """
     while task_def.Triggers.Count > 0:
         task_def.Triggers.Remove(1)
@@ -133,7 +141,7 @@ def set_exec_action(
 
     Args:
         task_def: COM-объект определения задачи планировщика
-            (ITaskDefinition).
+            (win32com.client.CDispatch).
         executable_path: Абсолютный путь к исполняемому файлу.
         work_directory_path: Рабочая директория процесса
             (может быть пустой строкой).
@@ -145,10 +153,7 @@ def set_exec_action(
 
     # Установка рабочей директории.
     if work_directory_path:
-        try:
-            action.WorkingDirectory = work_directory_path
-        except (AttributeError, ValueError, pywintypes.com_error) as e:
-            raise pywintypes.com_error
+        action.WorkingDirectory = work_directory_path
 
 
 def delete_task_scheduler(task_path: str) -> ComError | None:
@@ -187,7 +192,7 @@ def read_weekly_task(task_path: str) -> dict[str, Any]:
       - mask_days       : внутренняя маска дней (bit0=MON — bit6=SUN);
       - start_time      : строка "HH:MM" или None;
       - executable      : путь к EXE или None;
-      - work_dictonary  : рабочая директория;
+      - work_directory  : рабочая директория;
       - description     : описание задачи.
 
     Требования:
@@ -255,7 +260,7 @@ def _get_single_weekly_trigger(definition: Any, task_path: str) -> Any:
 
     Args:
         definition: COM-объект определения задачи планировщика
-            (ITaskDefinition)
+            (win32com.client.CDispatch)
         task_path (str): Путь задачи, используется в сообщениях об ошибках.
 
     Returns:
@@ -332,7 +337,7 @@ def extract_com_error_info(error: pywintypes.com_error) -> tuple[int, str, str]:
     return hr, msg, details
 
 
-from typing import Any, Tuple
+from typing import Any
 
 
 def create_replace_task_scheduler(
@@ -384,7 +389,7 @@ def _get_root_folder(scheduler: Any) -> Any:
     return scheduler.GetFolder("\\")
 
 
-def _get_target_folder_and_name(scheduler: Any, task_path: str) -> Tuple[Any, str]:
+def _get_target_folder_and_name(scheduler: Any, task_path: str) -> tuple[Any, str]:
     """
     По полному пути задачи возвращает целевую папку и имя задачи.
     """

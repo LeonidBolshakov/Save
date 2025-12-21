@@ -1,3 +1,13 @@
+"""Утилиты для работы с виджетами PyQt6 в панели планировщика.
+
+Модуль содержит функции для:
+- установки значения в виджеты разных типов (текст, время, числовые поля);
+- работы с маской дней недели через набор QCheckBox в layout;
+- формирования небольших HTML-сообщений для QTextEdit.
+
+Все функции ориентированы на использование в SchedulePanel и связанных контроллерах.
+"""
+
 import html
 from typing import Any, Callable
 
@@ -24,29 +34,31 @@ WEEKDAY_MAX_INDEX = DAYS_IN_WEEK - 1
 WidgetHandler = Callable[[Any, str], str | None]
 
 
-def process_weekdays_layout(
-    layout: QLayout,
-    text: str,
-    *,
-    empty: str = "",
-) -> str | None:
+def process_weekdays_layout(layout: QLayout, text: str) -> str | None:
     """
     Устанавливает состояние чекбоксов внутри QHBoxLayout по битовой маске
 
     text:
       - '1111100'
       - или '0b1111100'
-      - пустая строка или `empty` → маска 0
+      - пустая строка → маска 0
 
-    0-й бит → первый виджет в layout
-    1-й бит → второй и т.д.
+    Ввод интерпретируется как двоичная строка фиксированной длины 7 бит:
+      - первый символ строки — старший бит (bit6);
+      - последний символ строки — младший бит (bit0).
+
+    Соответствие виджетам:
+      - первый виджет в layout соответствует старшему биту (bit6);
+      - последний виджет — младшему (bit0).
+
+    Это позволяет вводить маску привычно слева-направо (Пн→Вс), например "1111100".
 
     Важно: внутри layout должны находиться виджеты с методом setChecked (обычно QCheckBox).
 
     Returns:
         None при успехе или строку с описанием ошибки.
     """
-    text = (text or empty or "").strip()
+    text = (text or "").strip()
 
     if not text:
         mask = 0
@@ -94,7 +106,7 @@ def set_widget_value(
 
     # 1. Специальный случай — layout с днями недели (битовая маска)
     if isinstance(widget, QLayout):
-        return process_weekdays_layout(widget, value, empty=empty)
+        return process_weekdays_layout(widget, value)
 
     # 2. Диспетчеризация по типу виджета
     for cls, handler in WIDGET_HANDLERS:
@@ -236,5 +248,5 @@ WIDGET_HANDLERS: list[tuple[type, WidgetHandler]] = [
 
 
 def text_to_save_text(text: str) -> str:
-    """Убирает из текста опасный для Qt6 символ"""
+    """Удаляет из текста NUL-символ (``\\x00``), который может ломать отображение/сохранение в Qt6."""
     return text.replace(NULL_CHAR, "")
