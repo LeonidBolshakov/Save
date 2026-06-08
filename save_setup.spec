@@ -13,7 +13,7 @@ datas = [
 ]
 
 a = Analysis(
-    ['SRC/SETUP/save_setup.py'],
+    ['src/SETUP/save_setup.py'],
     pathex=[proj_root],
     binaries=[],
     datas=datas,

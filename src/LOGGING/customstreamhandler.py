@@ -1,0 +1,28 @@
+import logging
+
+from src.GENERAL.constants import Constants as C
+
+logger = logging.getLogger(__name__)
+
+
+class CustomStreamHandler(logging.StreamHandler):
+
+    def __init__(self, stream=None):
+        super().__init__(stream)
+        self.stream = stream
+        self.email_send_trigger = C.ARCHIVING_END_TRIGGER
+
+    def emit(self, record):
+        """
+        Переопределение метода записи лога для фильтрации сообщений.
+
+        Args:
+            record (logging. LogRecord): Запись лога для обработки
+        """
+        try:
+            if self.email_send_trigger not in record.getMessage():
+                if len(record.getMessage()):
+                    super().emit(record)
+        except Exception:
+            logger.exception("...")
+            self.handleError(record)
