@@ -9,7 +9,7 @@ proj_root = os.path.abspath(".")
 
 # список данных, которые нужно включить в EXE
 datas = [
-    (os.path.join(proj_root, "save_setup.ui"), "."),
+    (os.path.join(proj_root, "src/save_setup.ui"), "."),
 ]
 
 a = Analysis(
