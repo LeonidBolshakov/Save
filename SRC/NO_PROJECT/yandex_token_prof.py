@@ -75,7 +75,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
         start_time = time.time()
         timeout = 30  # Максимальное время ожидания
 
-        # Ждем изменения статуса или таймаута
+        # Ждем изменения статуса или тайм-аута
         while time.time() - start_time < timeout:
             # Проверяем обновление статуса
             if state.authorization_status != "pending":
@@ -393,7 +393,7 @@ class OAuthFlow:
                 if time.time() - start_time > 120:
                     self.authorization_status = "error"
                     self.authorization_message = (
-                        "Таймаут: не получили ответ за 2 минуты"
+                        "Тайм-аут: не получили ответ за 2 минуты"
                     )
                     print("\n❌", self.authorization_message)
                     return

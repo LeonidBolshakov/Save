@@ -11,6 +11,7 @@ def write_file(self, local_path: str) -> bool:
     """
     Загружает локальный файл на Яндекс-Диск
 
+    :param self: Ссылка на вызывающий объект
     :param local_path: Путь к локальному файлу
     :return: Статус операции (True/False)
     """

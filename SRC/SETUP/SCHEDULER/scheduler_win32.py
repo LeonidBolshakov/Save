@@ -161,7 +161,7 @@ def delete_task_scheduler(task_path: str) -> ComError | None:
     Удаляет задачу из Windows Task Scheduler (Win32 COM API).
 
     Поведение:
-        - task_path может быть как "MyTask", так и "\\Folder\\MyTask";
+        - task_path может быть как MyTask, так и /Folder/MyTask;
         - если задача не найдена или возникает COM-ошибка — возвращается pywintypes.com_error;
         - другие исключения (ValueError из split_task_path и т.п.) пробрасываются.
 
@@ -274,7 +274,7 @@ def _get_single_weekly_trigger(definition: Any, task_path: str) -> Any:
     if len(triggers) != 1:
         raise ValueError(
             f"Задача {task_path!r} должна содержать ровно один триггер, "
-            f"найдено: {len(triggers)} тригера."
+            f"найдено: {len(triggers)} триггера."
         )
 
     trigger = triggers[0]

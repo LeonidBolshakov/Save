@@ -58,6 +58,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         ui_file = paths_win.resource_path("save_setup.ui")
+        self.ui = uic.loadUi(ui_file, self)
         uic.loadUi(ui_file, self)
         utils.setup_logging()
 

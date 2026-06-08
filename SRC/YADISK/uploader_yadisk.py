@@ -1,7 +1,9 @@
 import os
 import logging
 import hashlib
+
 import requests
+from requests import Response
 from typing import BinaryIO
 from tenacity import (
     retry,
@@ -106,12 +108,14 @@ class UploaderToYaDisk:
             href = getattr(res, "href", None)
             if isinstance(href, str) and href:
                 return href
+
         except Exception as e:
             raise YaDiskError from e
 
         # Если формат неожиданный — записываем в лог и падаем с понятной ошибкой
-        logger.error(YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}"))
-        raise ValueError(YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}"))
+        message = YT.unknown_error.format(type=f"{type(res)!r}", res=f"{res!r}", e="")
+        logger.error(message)
+        raise ValueError(message)
 
     # --- Фильтр: по каким ошибкам повторяем ---
     @staticmethod
@@ -128,7 +132,7 @@ class UploaderToYaDisk:
         # 2) Сетевая ошибка
         if isinstance(exc, requests.exceptions.RequestException):
 
-            resp = getattr(exc, "response", None)
+            resp: Response = getattr(exc, "response", None)
             if resp is not None and resp.status_code is not None:
                 return UploaderToYaDisk._is_retryable_status(resp.status_code)
 
@@ -185,7 +189,7 @@ class UploaderToYaDisk:
         Отправка файла в облако
         :param upload_url: URL для загрузки файла
         :param f: Загружаемый файл
-        :param timeout: Тайм аут в секундах
+        :param timeout: Тайм-аут в секундах
         :return: ответ сервера
         """
         if TESTING:

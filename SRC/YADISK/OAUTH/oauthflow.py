@@ -375,6 +375,7 @@ class OAuthFlow:
         try:
             uri = variables.get_var(YC.YANDEX_REDIRECT_URI)
             parsed = urlparse(uri)
+
             if parsed.port is None or parsed.port == "":
                 raise ValueError(YT.invalid_port.format(e=""))
             return parsed.port

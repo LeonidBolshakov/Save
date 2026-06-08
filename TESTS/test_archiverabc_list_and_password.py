@@ -41,20 +41,13 @@ def test_classify_entropy_all_bands():
 
 
 def test_message_about_password_and_log_levels(caplog):
-    import inspect
-
     caplog.set_level(logging.DEBUG)
 
     a = DummyArch()
-    fn = (
-        a.log_by_password_level
-    )  # у некоторых реализаций метод статический/экземплярный
 
     # Вызываем с нужной арностью: (level, strength, entropy) или (self, level, strength, entropy)
-    sig = inspect.signature(fn)
-    if len(sig.parameters) == 3:
-        fn(999, "S", "E")
-    else:
-        fn.__func__(a, 999, "S", "E")  # type: ignore[attr-defined]
+    a.log_by_password_level(999, "S", "E")
 
-    assert any(r.levelno == logging.CRITICAL for r in caplog.records)
+    assert any(
+        record.levelno == logging.CRITICAL for record in caplog.records
+    ), "Ожидалась хотя бы одна запись лога уровня CRITICAL"

@@ -126,7 +126,7 @@ class PathSelector(QObject):
         """
         Обновить отображаемый текст в `QLineEdit`.
 
-        Текст усекётся посередине (`ElideMiddle`) в зависимости
+        Текст усекается посередине (`ElideMiddle`) в зависимости
         от текущей доступной ширины поля ввода.
         """
         if not self._full_path:
@@ -137,7 +137,7 @@ class PathSelector(QObject):
         available_width = self.path_edit.contentsRect().width()
 
         if available_width <= 0:
-            # Виджет ещё не разложен layout’ом
+            # Виджет ещё не разложен by layout
             self.path_edit.setText(self._full_path)
             return
 

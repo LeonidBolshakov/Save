@@ -67,6 +67,8 @@ def test_updated_tokens_saves_and_sets(monkeypatch):
         save_tokens=lambda acc, ref, exp: saved.update(acc=acc, ref=ref, exp=exp)
     )
     tokens = f.updated_tokens()
+    if tokens is None:
+        assert False
     assert tokens["access_token"] == "A2"
     assert saved == {"acc": "A2", "ref": "R2", "exp": "9999"}
 

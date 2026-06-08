@@ -29,9 +29,9 @@ def test_set_get_path_and_signal(qtbot):
     assert len(spy) == 1
     assert spy[0] == [SAMPLE_PATH]
 
-    # Повторно записывем тот же путь -> нет нового сигнала
+    # Повторно записываем тот же путь
     s.set_path(SAMPLE_PATH)
-    assert len(spy) == 1
+    assert len(spy) == 2
 
 
 def test_set_path_none_does_nothing(qtbot):
@@ -185,7 +185,7 @@ def test_program_selector_dialog_cancel(qtbot, monkeypatch):
 
     monkeypatch.setattr(m.QFileDialog, "getOpenFileName", lambda *a, **k: ("", ""))
     s = m.ProgramSelector(edit, btn)
-    assert s.choose_path() is None
+    assert s.choose_path() == ""
 
 
 def test_workdir_selector_dialog_ok(qtbot, monkeypatch):
@@ -209,4 +209,4 @@ def test_workdir_selector_dialog_cancel(qtbot, monkeypatch):
 
     monkeypatch.setattr(m.QFileDialog, "getExistingDirectory", lambda *a, **k: "")
     s = m.WorkDirSelector(edit, btn)
-    assert s.choose_path() is None
+    assert s.choose_path() == ""

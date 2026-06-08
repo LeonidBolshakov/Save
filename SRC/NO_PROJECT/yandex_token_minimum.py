@@ -15,6 +15,10 @@ code_challenge = (
 )
 
 
+class AuthHTTPServer(HTTPServer):
+    auth_code: str | None = None
+
+
 # Обработчик запросов
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, format_, *args):
@@ -42,7 +46,7 @@ class Handler(BaseHTTPRequestHandler):
 
 # Создаем сервер с явным атрибутом
 # noinspection PyTypeChecker
-server = HTTPServer(("localhost", 12345), Handler)
+server = AuthHTTPServer(("localhost", 12345), Handler)
 server.auth_code = None
 
 # Запускаем процесс авторизации

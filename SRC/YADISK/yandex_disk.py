@@ -16,6 +16,7 @@
 import time
 import os
 import logging
+from typing import cast
 
 from tenacity import (
     retry,
@@ -65,9 +66,14 @@ class _Client:
         # форма, совместимая с реальным API
         return {"href": "http://dummy"}
 
-    def upload(self, local_path: str, remote_path: str, overwrite: bool = True):
+    def upload(
+        self, local_path: str, remote_path: str, overwrite: bool = True, **kwargs
+    ):
         # безопасный no operation для тестов
         return None
+
+    def listdir(self, path: str):
+        return []
 
 
 def get_oauth_flow():
@@ -112,34 +118,47 @@ class YandexDisk:
             self.get_token_for_API()
         )  # токен доступа к Яндекс-Диску
 
+        if self.access_token is None:
+            raise PermissionError("Не получен access token")
+
         self.ya_disk = self.init_ya_disk(self.access_token)
 
         self.remote_dir = self.create_remote_dir()
 
     @staticmethod
-    def _get_ya_disk(access_token: str) -> YaDiskError:
+    def _get_ya_disk(access_token: str) -> YaDisk:
         import yadisk
 
         try:
             session = RequestsSession()
             disk = yadisk.YaDisk(token=access_token, session=session)
+
             # Проверка доступности диска
             if disk.check_token():
                 return disk
+
             logger.info(YT.authorization_error.format(e=""))
             raise PermissionError
+
+        except PermissionError:
+            raise
+
         except UnauthorizedError as e:
             logger.error(YT.authorization_error.format(e=e))
             raise PermissionError from e
+
         except BadRequestError as e:
             logger.error(YT.invalid_request)
             raise PermissionError from e
         except YaDiskError as e:
+
             logger.error(YT.error_ya_disk.format(e=e))
             raise RuntimeError from e
+
         except ConnectionError as e:
             logger.error((YT.no_internet.format(e=e)))
             raise RuntimeError from e
+
         except Exception as e:
             logger.error(YT.unknown_error.format(e=e))
             raise RuntimeError from e
@@ -171,7 +190,8 @@ class YandexDisk:
 
     def init_ya_disk(self, access_token: str) -> YaDisk:
         if TESTING:
-            return _Client(access_token)  # без сети в тестах
+            client: object = _Client(access_token)
+            return cast(YaDisk, client)  # без сети в тестах
         return self._get_ya_disk(access_token)
 
     def create_remote_path(self) -> str:
@@ -215,7 +235,7 @@ class YandexDisk:
 
             # Делегируем загрузку: внутри загрузчик сам получит upload_url, сделает повторы и проверит MD5
             uploader = (
-                UploaderToYaDisk(  # делегат загрузки (повторы, таймауты, проверку MD5)
+                UploaderToYaDisk(  # делегат загрузки (повторы, тайм-ауты, проверку MD5)
                     ya_disk=self.ya_disk, remote_path=self.remote_path
                 )
             )

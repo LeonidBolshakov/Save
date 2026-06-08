@@ -69,7 +69,7 @@ def save_set_to_file(items: set[str], list_archive_file_paths: str | Path) -> No
 
     Args:
         items: Множество полных путей отмеченных элементов
-        list_archive_file_paths: Путь к файлу со списом архивируемых файлов.
+        list_archive_file_paths: Путь к файлу со списком архивируемых файлов.
     """
     p = Path(list_archive_file_paths)
     try:

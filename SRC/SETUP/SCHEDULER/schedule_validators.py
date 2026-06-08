@@ -84,7 +84,7 @@ def file_path_handler(text: str) -> bool:
     p = Path(text)
     if p.drive:
         base = text[len(p.drive) :]
-    # анализуруем путь без драйвера.
+    # анализируем путь без драйвера.
     return directory_handler(base)
 
 
@@ -94,7 +94,7 @@ def directory_handler(text: str) -> bool:
 
     Условия:
         1. Строка не пуста.
-        2. Путь является "корневым" (начинается с '\\' или '/').
+        2. Путь является "корневым" (начинается с \\ или /).
         3. Каждая часть пути не содержит недопустимых символов/имён.
         4. Путь не заканчивается пробелом или точкой.
     """
@@ -152,6 +152,6 @@ def mask_days_handler(text: str) -> bool:
     """
     try:
         value = int(text, 2)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
         return False
     return 0 <= value < 256

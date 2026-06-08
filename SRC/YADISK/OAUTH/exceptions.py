@@ -3,7 +3,7 @@ class AuthError(Exception):
 
 
 class AuthCancelledError(AuthError):
-    """Пользователь отменил авторизацию или истек таймаут."""
+    """Пользователь отменил авторизацию или истек тайм-аут."""
 
 
 class RefreshTokenError(AuthError):

@@ -43,6 +43,6 @@ def recursive_search(base_path, pattern):
 
 # Пример использования
 if __name__ == "__main__":
-    base_path = "C:/"
-    pattern = "7.exe"
-    recursive_search(base_path, pattern)
+    base_path_ = "C:/"
+    pattern_ = "7.exe"
+    recursive_search(base_path_, pattern_)

@@ -114,7 +114,7 @@ def set_widget_value(
             return handler(widget, value)
 
     # 3. Тип нами не поддерживается
-    return f"Тип widget {type(widget)} программой не поддерживается"
+    return f"Тип widget {type(widget).__name__} программой не поддерживается"
 
 
 def connect_checkboxes_in_layout(layout: QHBoxLayout, slot: Callable) -> None:
@@ -141,7 +141,7 @@ def make_html(text: str, color: str) -> str:
     Формирует небольшой HTML-фрагмент для вывода в QTextEdit.
 
     Особенности:
-      - text экранируется (html.escape) и переводы строк '\n' заменяются на <br>;
+      - text экранируется (html.escape) и переводы строк \n заменяются на <br>;
       - параметр color задаёт цвет текста (например, 'green'/'red' или любой CSS-цвет);
       - насыщенность шрифта подбирается автоматически:
           * "green" — успешное сообщение (слегка жирный);

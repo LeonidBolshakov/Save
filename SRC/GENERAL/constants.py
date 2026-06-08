@@ -112,14 +112,14 @@ class Constants(frozenset):
     PAR_STANDARD_PROGRAM_PATHS = "standard_program_paths"
     PROGRAM_PATH = "PROGRAM_PATH"
     PROGRAM_PATH_DEFAULT = r"C:\Program Files\Bolshakov\save_to_cload\main.exe"
-    PROGRAM_PATH_ERROR = "Ошибка в пути выполняемой прграммы"
+    PROGRAM_PATH_ERROR = "Ошибка в пути выполняемой программы"
     PROGRAM_WRITE_VARS = "write_vars"
     REMOTE_ARCHIVE_PREFIX_DEF = "archive"
     ROOT_REMOTE_ARCHIVE_DIR = "/Архивы"
     ROTATING_BACKUP_COUNT = 3
     ROTATING_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
     SEND_MAIL_MAX_RETRY_ATTEMPTS = 3  # Максимальное количество попыток отправки email
-    SETTINGS_DIRECTORY = r"Bolshkov\save\_internal"
+    SETTINGS_DIRECTORY = r"Bolshakov\save\_internal"
     SEVEN_Z_COMPRESSION_LEVEL_DEF = 5
     SEVEN_Z_STANDARD_PATHS = [
         "C:\\Program Files\\7-Zip\\7z.exe",
@@ -159,7 +159,7 @@ class Constants(frozenset):
         "\n'Создать задачу'"
     )
     TEXT_EMPTY = ""
-    TEXT_ERROR = "Текст содержит символ '\x00'. Символ удалён из текста"
+    TEXT_ERROR = "Текст содержит символ \x00. Символ удалён из текста"
     TEXT_IS_DIRTY = "Данные были изменены, но не сохранены в задаче"
     TEXT_NO_DAY = "Выберите хотя бы один день недели."
     TEXT_NOT_TASK = (
@@ -169,7 +169,7 @@ class Constants(frozenset):
         "Задача планировщика {task} корректировалась вручную"
         "\nОтмените ручные правки или удалите задачу"
     )
-    TEXT_REJECT_DATA = "Данные приведены в первоначальное состяние"
+    TEXT_REJECT_DATA = "Данные приведены в первоначальное состояние"
     VARIABLES_DOTENV_NAME_DEF = "env"
     VARS_KEYRING = [  # секретные переменные окружения
         f"{YC.ENV_YANDEX_CLIENT_ID}",  # ID Яндекс клиента

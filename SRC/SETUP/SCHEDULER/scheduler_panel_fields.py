@@ -60,7 +60,7 @@ class TaskFieldsController:
         self, value: str, control_type: ControlType, error_text: str
     ) -> bool:
         """
-        Универсальная проверка значения по типу контролла.
+        Универсальная проверка значения по control.
 
         Вызывает соответствующий обработчик из get_handlers_map().
         При ошибке логирует сообщение и показывает сообщение пользователю.

@@ -222,21 +222,33 @@ class SchedulePanel:
 
     def _btn_signal_connect(self) -> None:
         """Подключает сигналы кнопок и полей ввода к слотам SchedulePanel."""
-        self.btn_select_all_day.clicked.connect(self.on_select_all_day)
-        self.btn_clean_all_day.clicked.connect(self.on_clean_all_day)
-        self.btn_create_task.clicked.connect(self._default_button_create_task_slot)
-        self.btn_reject_changes.clicked.connect(self.on_reject_all_changes)
-        self.btn_delete_task.clicked.connect(self.on_delete_task_clicked)
-        self.btn_work_directory_d.clicked.connect(self.on_delete_work_directiry)
 
-        # Изменения текста / времени / чекбоксов → активировать кнопки «создать»/«отменить»
-        self.btn_path_programm.clicked.connect(self.update_buttons_state_enable)
-        self.btn_work_directory.clicked.connect(self.update_buttons_state_enable)
-        self.btn_work_directory_d.clicked.connect(self.update_buttons_state_enable)
-        self.txt_task_description.textChanged.connect(self.update_buttons_state_enable)
-        self.start_time_task.timeChanged.connect(self.update_buttons_state_enable)
+        button_slots = (
+            (self.btn_select_all_day, self.on_select_all_day),
+            (self.btn_clean_all_day, self.on_clean_all_day),
+            (self.btn_create_task, self._default_button_create_task_slot),
+            (self.btn_reject_changes, self.on_reject_all_changes),
+            (self.btn_delete_task, self.on_delete_task_clicked),
+            (self.btn_work_directory_d, self.on_delete_work_directory),
+        )
+
+        for button, slot in button_slots:
+            button.clicked.connect(slot)
+
+        changed_signals = (
+            self.btn_path_programm.clicked,
+            self.btn_work_directory.clicked,
+            self.btn_work_directory_d.clicked,
+            self.txt_task_description.textChanged,
+            self.start_time_task.timeChanged,
+        )
+
+        for signal in changed_signals:
+            signal.connect(self.update_buttons_state_enable)
+
         utils.connect_checkboxes_in_layout(
-            self.hbox_week_days, self.update_buttons_state_enable
+            self.hbox_week_days,
+            self.update_buttons_state_enable,
         )
 
     def _update_ui_from_task(self) -> None:
@@ -339,7 +351,7 @@ class SchedulePanel:
         """
         Откатывает все не сохранённые изменения.
 
-        Если UI содержит значения по умолчанию — просто перезаполняет их,
+        Если UI содержит значения по умолчанию — просто пере заполняет их,
         иначе — заново подгружает данные из считанной задачи.
         """
         if self._ui_default:
@@ -347,7 +359,7 @@ class SchedulePanel:
         else:
             self._update_ui_from_task()
 
-    def on_delete_work_directiry(self):
+    def on_delete_work_directory(self):
         self.txt_work_directory_path.setText("")
 
     def all_day(self, checked: bool) -> None:
@@ -438,7 +450,8 @@ class SchedulePanel:
         Используется при ошибках конфигурации задачи или при её удалении.
         """
         for child in self.group_box_left.findChildren(QWidget):
-            child.setEnabled(enable)
+            if isinstance(child, QWidget):
+                child.setEnabled(enable)
 
     def _set_task_button_mode(self, mode: Literal["create", "delete"]) -> None:
         """

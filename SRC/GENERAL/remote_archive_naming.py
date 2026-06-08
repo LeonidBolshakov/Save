@@ -1,6 +1,6 @@
 from __future__ import annotations
 import re
-from typing import Protocol, Callable
+from typing import Protocol
 from datetime import date
 import logging
 
@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class RemoteArchiveNamingProtokol(Protocol):
-    accept_remote_directory_element: Callable[[str], None]
-    generate_path_remote_dir: Callable[[], str]
-    generate_path_remote_file: Callable[[], str]
+    def accept_remote_directory_element(self, item: str) -> None: ...
+    def generate_path_remote_dir(self) -> str: ...
+    def generate_path_remote_file(self) -> str: ...
 
 
 class RemoteArchiveNaming(RemoteArchiveNamingProtokol):

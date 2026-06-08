@@ -16,10 +16,12 @@ def get_parameter(
     except KeyError as e:
         match level:
             case logging.CRITICAL:
-                logger.critical(T.error_parameter_archiver.format(param=parameter))
+                logger.critical(T.error_parameter_archiver.format(param=parameter, e=e))
                 raise KeyError from e
-            case logging.DEBUG:
+            case logging.NOTSET:
                 pass
             case _:
-                logger.info(T.error_parameter_archiver.format(param=parameter))
+                logger.info(
+                    T.error_parameter_archiver.format(param=parameter.format(), e=e)
+                )
     return None

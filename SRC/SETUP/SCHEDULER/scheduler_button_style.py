@@ -39,7 +39,7 @@ def init_button_styles(self) -> None:
     """
     )
 
-    # Кнопка "Отказаться от изменениий"
+    # Кнопка "Отказаться от изменений"
     self.btn_reject_changes.setStyleSheet(
         """
         QPushButton {

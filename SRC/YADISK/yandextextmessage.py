@@ -1,12 +1,12 @@
 class YandexTextMessage(frozenset):
     authorization_error = "Ошибка авторизации {e}"
     authorization_timeout = "Превышено время ожидания авторизации {e}"
-    callback_timeout = "Таймаут ожидания ответа от Яндекс во время авторизации"
+    callback_timeout = "Тайм-аут ожидания ответа от Яндекса во время авторизации"
     canceled_authorization = "Отмена авторизации пользователем"
     critical_error = "Критическая ошибка во время получения токена: {e}"
-    dangerous_symbols = "Ответ от Яндекс (Redirect URI) содержит опасные символы"
+    dangerous_symbols = "Ответ от Яндекса (Redirect URI) содержит опасные символы"
     dictionary_expected = (
-        "От Яндекс ожидался словарь, получен тип {type}.\n{response}..."
+        "От Яндекса ожидался словарь, получен тип {type}.\n{response}..."
     )
     during = "Файл загружен за {during} сек."
     error_API_Yandex_disk = "Файл на Яндекс-Диск не записан"
@@ -52,11 +52,11 @@ class YandexTextMessage(frozenset):
     no_callback_path = "Яндекс не авторизовал наш запрос."
     no_correct_redirect_uri = (
         "Заданный нами в keyring -  redirect_uri: {redirect_uri}.\n"
-        "Должен соответствовать зарегистрированному в \n"
-        "кабинете разработчика Яндекса"
+        "Должен соответствовать зарегистрированному\n"
+        "в кабинете разработчика Яндекса"
     )
     no_expires_in = (
-        "expires_in (время жизни токена) нет в токен полученном от Яндекс.\n"
+        "expires_in (время жизни токена) нет в токен полученном от Яндекса.\n"
         "Полагаем, что время жизни не ограничено."
     )
     no_internet = "Нет подключения к интернету -> Нет доступа к Яндекс-Диску\n{e}"
@@ -69,7 +69,7 @@ class YandexTextMessage(frozenset):
     start_fast_load = "Начало быстрой загрузки файла {local_path}"
     start_full_auth_flow = "Запуск полного процесса аутентификации"
     start_update_token = "Начало формирование токена доступа посредством refresh_token"
-    start_update_tokens = "Получаем токены от Яндекс с помощью refresh_token"
+    start_update_tokens = "Получаем токены от Яндекса с помощью refresh_token"
     successful_access_token = "Успешно получен access_token"
     token_expired = "[Token Load] Срок действия токена истек {seconds} сек назад"
     token_in_memory = "Используется существующий валидный токен"
@@ -79,12 +79,12 @@ class YandexTextMessage(frozenset):
     )
     token_valid = "Токен успешно прошел проверку через API Яндекса"
     tokens_saved = "Токены сохранены в keyring"
-    unknown_error = "Ошибка доступа кcls Яндекс-Диску: {e}"
+    unknown_error = "Ошибка доступа к Яндекс-Диску: {e}"
     unknown_format = "Неизвестный формат для ссылки для прямой загрузки файла на Яндекс-Диск:\n {type} -> {res}"
     valid_token = "Токен успешно получен"
     valid_token_found = "[Token Load] Найден валидный {token} в keyring"
-    updated_tokens = "С помощью refresh_token получены обновлённые токены от Яндекс."
+    updated_tokens = "С помощью refresh_token получены обновлённые токены от Яндекса."
     updated_tokens_error = (
-        "Не удалось получить обновлённые токены от Яндекс с помощью refresh_token. {e}"
+        "Не удалось получить обновлённые токены от Яндекса с помощью refresh_token. {e}"
     )
     url_received = "Получен адрес прямой загрузки файла в облако: {upload_url}"

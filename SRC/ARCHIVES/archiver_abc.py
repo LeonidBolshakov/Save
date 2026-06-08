@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import subprocess
 from typing import Any
 from pathlib import Path
-from typing import Protocol, Callable
+from typing import Protocol
 import sys
 import logging
 
@@ -26,7 +26,10 @@ class _ArchiveContext:
 
 
 class BackupManagerArchiver(Protocol):
-    create_archive: Callable[[dict[str, Any]], str | None]
+    def create_archive(
+        self,
+        parameters_dict: dict[str, Any],
+    ) -> str | None: ...
 
 
 class Archiver(ABC, BackupManagerArchiver):

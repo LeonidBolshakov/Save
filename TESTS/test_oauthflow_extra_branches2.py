@@ -9,7 +9,7 @@ def _mk(valid_uri=True):
     if valid_uri:
         f.redirect_uri = "http://localhost:8123/cb"
     else:
-        f.redirect_uri = "http://example.com#frag"  # invalid
+        f.redirect_uri = "https://example.com#frag"  # invalid
     # provide client id
     f.yandex_client_id = "cid"
     # stub token_manager but not used here

@@ -35,6 +35,9 @@ def test_load_and_validate_tokens_success(monkeypatch):
         TokenManager, "_validate_token_api", lambda self, t: True, raising=True
     )
     tokens = tm.load_and_validate_exist_tokens()
+    if tokens is None:
+        assert False
+
     assert tokens[YC.YANDEX_ACCESS_TOKEN] == "acc"
     assert tokens[YC.YANDEX_REFRESH_TOKEN] == "ref"
     assert tokens[YC.YANDEX_EXPIRES_AT] == "9999999999"

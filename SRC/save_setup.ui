@@ -1216,7 +1216,7 @@ QCheckBox::indicator:disabled {
        </font>
       </property>
       <property name="title">
-       <string>GroupBox</string>
+       <string/>
       </property>
       <property name="alignment">
        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
