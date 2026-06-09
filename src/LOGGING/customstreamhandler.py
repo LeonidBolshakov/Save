@@ -1,28 +1,32 @@
 import logging
+import sys
+from io import TextIOWrapper
+from typing import TextIO
 
 from src.GENERAL.constants import Constants as C
 
-logger = logging.getLogger(__name__)
-
 
 class CustomStreamHandler(logging.StreamHandler):
+    def __init__(self, stream: TextIO | None = None):
+        if stream is None:
+            stream = sys.stderr
 
-    def __init__(self, stream=None):
+        if isinstance(stream, TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
+
         super().__init__(stream)
-        self.stream = stream
+
         self.email_send_trigger = C.ARCHIVING_END_TRIGGER
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         """
         Переопределение метода записи лога для фильтрации сообщений.
-
-        Args:
-            record (logging. LogRecord): Запись лога для обработки
         """
         try:
-            if self.email_send_trigger not in record.getMessage():
-                if len(record.getMessage()):
-                    super().emit(record)
+            message = record.getMessage()
+
+            if message and self.email_send_trigger not in message:
+                super().emit(record)
+
         except Exception:
-            logger.exception("...")
             self.handleError(record)

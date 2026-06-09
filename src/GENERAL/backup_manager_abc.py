@@ -60,7 +60,7 @@ class BackupManager(ABC):
             self.variables.validate_vars()  # Проверка наличия необходимых переменных окружения
         except Exception as e:
             logger.critical(str(e))
-            exit(1)
+            sys.exit(1)
 
         logging.raiseExceptions = True  # Отмена запрета вывода трассировки
 
@@ -150,7 +150,10 @@ class BackupManager(ABC):
             format=C.LOG_FORMAT,
             handlers=[
                 logging.StreamHandler(sys.stdout),
-                logging.FileHandler(log_file_path),
+                logging.FileHandler(
+                    log_file_path,
+                    encoding="utf-8",
+                ),
             ],
         )  # Настройка действует только до настройки основного логирования
 

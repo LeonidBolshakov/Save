@@ -1,6 +1,7 @@
 import sys
 import logging
 
+
 from src.GENERAL.backup_manager_7z import BackupManager7z
 from src.GENERAL.paths_win import ensure_env_exists
 
@@ -11,7 +12,7 @@ def main() -> int:
     """Точка входа в приложение резервного копирования."""
 
     # подготовка env
-    env_path = ensure_env_exists()
+    ensure_env_exists()
 
     try:
         manager = BackupManager7z()

@@ -28,26 +28,33 @@ def get_internal_dir() -> Path:
     """
     Папка _Internal рядом с exe (в сборке)
     или рядом с корнем проекта (при запуске из исходников).
+    """
 
+    base_dir = get_base_dir(2)  # project_root
+    return base_dir / "_Internal"
+
+
+def get_base_dir(folder_level: int = 2) -> Path:
+    """
     Структура проекта:
-        project_root/
+        project_root/       folder_level=2
             _Internal/
-            src/
-                GENERAL/
+            src/            folder_level = 1
+                GENERAL/    folder_level = 0
                     paths_win.py
     """
     if getattr(sys, "frozen", False):
         # запуск из exe
-        base_dir = Path(sys.executable).parent
+        base_dir = Path(sys._MEIPASS)  # type: ignore[attr-defined]
     else:
         # запуск из исходников:
         # __file__ = project_root/src/GENERAL/paths_win.py
         # parents[0] = .../src/GENERAL
         # parents[1] = .../src
         # parents[2] = .../project_root
-        base_dir = Path(__file__).resolve().parents[2]
+        base_dir = Path(__file__).resolve().parents[folder_level]
 
-    return base_dir / "_Internal"
+    return base_dir
 
 
 def ensure_env_exists() -> Path:
@@ -92,11 +99,5 @@ def resource_path(rel: str) -> Path:
     """
     Возвращает путь к UI в исходниках и собранном EXE.
     """
-    # Запуск из PyInstaller onefile
-    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        # noinspection PyProtectedMember
-        base = Path(sys._MEIPASS)
-        return base / rel
-
-    # Запуск из проекта
-    return Path(os.path.abspath(".")) / rel
+    base_dir = get_base_dir(1)  # src_root
+    return base_dir / rel
