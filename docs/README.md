@@ -1,6 +1,6 @@
 # Documentation Assets
 
-Place project documentation images in this directory.
+Project documentation images are stored in this directory.
 
 Recommended setup window screenshot path:
 
@@ -8,4 +8,4 @@ Recommended setup window screenshot path:
 docs/setup-window.png
 ```
 
-After adding the screenshot, uncomment the image block in `README.md` and `README.en.md`.
+This screenshot is used in `README.md` and `README.en.md`.

@@ -59,13 +59,7 @@ The setup window contains two main areas:
 
 ## Setup Window
 
-The setup window screenshot should be stored as `docs/setup-window.png` and displayed in this section.
-
-<!--
-After adding the screenshot file to the repository, uncomment the line below:
-
 ![Setup window](docs/setup-window.png)
--->
 
 ## Configuration and Secrets
 
